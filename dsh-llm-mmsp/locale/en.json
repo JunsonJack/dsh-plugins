@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "MMSP Protocol Adapter",
+    "description": "Lets DSH speak MMSP directly to penguin and other MMSP-only upstreams."
+  }
+}

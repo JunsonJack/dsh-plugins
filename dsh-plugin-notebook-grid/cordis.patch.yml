@@ -1,0 +1,16 @@
+# dsh-plugin-notebook-grid — bundle patch layer.
+#
+# 自动挂载条件：本包出现在 profile 的 `package.json` → `dsh.profile.bundles` 中。
+# DSH loader 会自动加载本文件，并向 loader 条目表插入下面这唯一一行。
+#
+# ⚠️ 重要：不要再把 `- id: notebook-grid` 写进用户补丁 `cordis.patch.yml`，
+#    否则会产生两条同 id 的 loader entry，DSH 启动时直接校验失败：
+#    `duplicate loader entry id "notebook-grid" (2 rows)`
+- insert:
+    - id: notebook-grid
+      name: dsh-plugin-notebook-grid
+      config:
+        enabled: true
+        style: grid
+        size: 24
+        opacity: 0.08

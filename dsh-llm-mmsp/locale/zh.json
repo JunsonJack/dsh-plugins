@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "MMSP 协议适配",
+    "description": "让 DSH 直接用 MMSP 协议调用 penguin 等只开放 MMSP 的上游。"
+  }
+}
