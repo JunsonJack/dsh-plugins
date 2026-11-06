@@ -229,6 +229,7 @@ ${typing ? typingRule() : ''}
 [data-chat-flow-kind='assistant-step'] table {
   display: block;
   max-width: 100%;
+  min-width: 100%;
   width: max-content;
   overflow-x: auto;
   border-collapse: collapse;
@@ -245,9 +246,19 @@ ${typing ? typingRule() : ''}
   white-space: nowrap;
   font-weight: 600;
 }
+/* 单元格正文按词换行(break-word),而不是 anywhere——anywhere 会在
+   字符中间硬断,代码/标识符被"折叠"成两半。 */
 [data-chat-flow-kind='assistant-step'] table td {
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+}
+/* 表格内的行内代码/等宽片段保持整词不折行(与 harness 自带样式一致,
+   避免 plugin_manage install_bundle 这类命令被拆成两段)。 */
+[data-chat-flow-kind='assistant-step'] table code,
+[data-chat-flow-kind='assistant-step'] table kbd,
+[data-chat-flow-kind='assistant-step'] table samp {
+  white-space: nowrap;
+  overflow-wrap: normal;
 }
 /* 表格横向滚动条:细窄 QQ 风,避免默认滚动条挤占行高。 */
 [data-chat-flow-kind='assistant-step'] table::-webkit-scrollbar {
@@ -267,6 +278,7 @@ ${typing ? typingRule() : ''}
 [data-message-bubble][data-message-bubble] table {
   display: block;
   max-width: 100%;
+  min-width: 100%;
   width: max-content;
   overflow-x: auto;
 }
@@ -275,20 +287,26 @@ ${typing ? typingRule() : ''}
 }
 [data-message-bubble][data-message-bubble] table td {
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+}
+[data-message-bubble][data-message-bubble] table code,
+[data-message-bubble][data-message-bubble] table kbd,
+[data-message-bubble][data-message-bubble] table samp {
+  white-space: nowrap;
+  overflow-wrap: normal;
 }
 
 /* ── 卡片兜底:只做"防外溢",不产生滚动条 ─────────────────────────────
     需求:只有表格区域可以横向滚动;正常不溢出的文字块不应出现任何滚动条。
     因此卡片用 overflow-x: hidden(裁掉溢出,不生成滚动条),而不是 auto;
-    长文本改为自动换行(overflow-wrap: anywhere)而不是靠滚动查看。
+    长文本改为按词换行(break-word)而不是靠滚动查看。
     代码块 pre 自带 overflow-x: auto,超长代码仍可在块内滚动。 */
 [data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {
   overflow-x: hidden;
   max-width: 100%;
 }
-[data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] :not(pre):not(pre *) {
-  overflow-wrap: anywhere;
+[data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] :not(pre):not(pre *):not(table):not(table *) {
+  overflow-wrap: break-word;
 }
 
 /* ── Markdown 代码块:QQ NT 仿窗口三色圆点装饰 ──────────────────────── */

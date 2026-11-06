@@ -192,7 +192,16 @@ describe('QQ NT layout config branches', () => {
     expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] table th,")
     // 表头不换行 → 宽表必须能横向滚动;表体单元格可换行
     expect(QQ_LAYOUT_CSS).toContain('white-space: nowrap')
-    expect(QQ_LAYOUT_CSS).toContain('overflow-wrap: anywhere')
+    // 单元格按词换行(break-word),不用 anywhere——anywhere 会在字符中间
+    // 硬断,让表格右侧的代码/标识符看起来被"折叠"成两半。
+    expect(QQ_LAYOUT_CSS).toContain('overflow-wrap: break-word')
+    expect(QQ_LAYOUT_CSS).not.toContain('overflow-wrap: anywhere')
+  })
+
+  it('keeps inline code inside table cells intact', () => {
+    // 表格内的行内代码/等宽片段不折行(命令名不被拆断)。
+    expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] table code,")
+    expect(QQ_LAYOUT_CSS).toContain("[data-message-bubble][data-message-bubble] table code,")
   })
 
   it('never shows a scrollbar on ordinary text blocks', () => {
