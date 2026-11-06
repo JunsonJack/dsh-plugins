@@ -55,6 +55,8 @@ export { QQ_SKIN_SETTINGS_NS }
 /** 两份配置是否等价(字段固定,逐字段比较以免无谓重挂皮肤层)。 */
 function sameConfig(left: QQSkinConfig, right: QQSkinConfig): boolean {
   return left.palette === right.palette
+    && left.customColor === right.customColor
+    && left.avatarStyle === right.avatarStyle
     && left.bubbleTail === right.bubbleTail
     && left.assistantAvatar === right.assistantAvatar
     && left.chatMaxWidth === right.chatMaxWidth
@@ -115,6 +117,8 @@ export function apply(ctx: ClientContext): void {
     }
     return {
       setPalette: (palette) => write('palette', palette),
+      setCustomColor: (color) => write('customColor', color),
+      setAvatarStyle: (style) => write('avatarStyle', style),
       setBubbleTail: (value) => write('bubbleTail', value),
       setAssistantAvatar: (value) => write('assistantAvatar', value),
       setChatMaxWidth: (width) => write('chatMaxWidth', width),

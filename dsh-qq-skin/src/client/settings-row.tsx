@@ -23,8 +23,10 @@ import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import {
   CHAT_MAX_WIDTH_MAX,
   CHAT_MAX_WIDTH_MIN,
+  QQ_AVATAR_STYLES,
   QQ_SKIN_PALETTES,
   QQ_SKIN_SOUND_VARIANTS,
+  type QQAvatarStyle,
   type QQSkinPalette,
   type QQSkinSoundVariant,
 } from './config.ts'
@@ -35,6 +37,10 @@ import type { QQSkinSettingsKey } from './settings-locales.ts'
 export interface QQSkinRowInjected {
   /** 切换色板变体。 */
   setPalette: (palette: QQSkinPalette) => void
+  /** 设置自定义主色。 */
+  setCustomColor: (color: string) => void
+  /** 切换企鹅头像装扮。 */
+  setAvatarStyle: (style: QQAvatarStyle) => void
   /** 开关用户气泡尾巴。 */
   setBubbleTail: (value: boolean) => void
   /** 开关助手企鹅头像。 */
@@ -69,6 +75,7 @@ const PALETTE_LABEL_KEYS: Record<QQSkinPalette, QQSkinSettingsKey> = {
   clean: 'palette.clean',
   green: 'palette.green',
   black: 'palette.black',
+  custom: 'palette.custom',
 }
 
 /** 提示声音色选项文案键。 */
@@ -78,6 +85,13 @@ const SOUND_VARIANT_LABEL_KEYS: Record<QQSkinSoundVariant, QQSkinSettingsKey> = 
   knock: 'sound.knock',
 }
 
+/** 企鹅头像装扮选项文案键。 */
+const AVATAR_STYLE_LABEL_KEYS: Record<QQAvatarStyle, QQSkinSettingsKey> = {
+  classic: 'avatar.classic',
+  sunglasses: 'avatar.sunglasses',
+  scarf: 'avatar.scarf',
+}
+
 /** 色板卡片的渐变色块预览(亮色代表色,纯辨识度点缀,不参与主题)。 */
 const PALETTE_PREVIEW: Record<QQSkinPalette, string> = {
   classic: 'linear-gradient(135deg, #12B7F5 0%, #A8E3FF 100%)',
@@ -85,6 +99,7 @@ const PALETTE_PREVIEW: Record<QQSkinPalette, string> = {
   clean: 'linear-gradient(135deg, #12B7F5 0%, #EAF4FB 100%)',
   green: 'linear-gradient(135deg, #95EC69 0%, #E4F7D6 100%)',
   black: 'linear-gradient(135deg, #0B0F16 0%, #1D2937 100%)',
+  custom: 'linear-gradient(135deg, #FF5722 0%, #12B7F5 50%, #9C27B0 100%)',
 }
 
 /** 行容器/标题:与宿主 AppearanceRow/LanguageRow 的 group+title 一致。 */
@@ -222,7 +237,7 @@ function ToggleRow({ label, checked, onChange }: {
  * @returns 行元素树。
  */
 export function QQSkinSettingsRow({
-  t, useStore, setPalette, setBubbleTail, setAssistantAvatar, setChatMaxWidth,
+  t, useStore, setPalette, setCustomColor, setAvatarStyle, setBubbleTail, setAssistantAvatar, setChatMaxWidth,
   setMessageSound, setSendSound, setSoundVariant, setWindowShake, setFrostedGlass, setTyping,
 }: QQSkinRowComponentProps) {
   const config = useStore(s => s.config)
@@ -252,7 +267,7 @@ export function QQSkinSettingsRow({
     <div style={groupStyle}>
       <div style={titleStyle}>{t('row.title')}</div>
 
-      {/* 色板:五选一卡片(渐变色块 + 文案,选中描边对齐宿主 cube) */}
+      {/* 色板:六选一卡片(渐变色块 + 文案,选中描边对齐宿主 cube) */}
       <div role="radiogroup" style={cardRowStyle}>
         {QQ_SKIN_PALETTES.map(palette => (
           <PaletteCard
@@ -264,6 +279,61 @@ export function QQSkinSettingsRow({
           />
         ))}
       </div>
+
+      {/* 自定义主色调色盘:选中使用自定义主色板时展开 */}
+      {config.palette === 'custom' && (
+        <div style={fieldRowStyle}>
+          <span style={fieldLabelStyle}>{t('row.customColor')}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input
+              type="color"
+              value={config.customColor}
+              onChange={event => { setCustomColor(event.currentTarget.value) }}
+              style={{
+                width: '32px', height: '28px', padding: 0, border: 'none',
+                borderRadius: '6px', background: 'transparent', cursor: 'pointer',
+              }}
+            />
+            <span style={{ fontSize: '13px', fontFamily: 'monospace', color: 'var(--dsw-alias-label-secondary)' }}>
+              {config.customColor}
+            </span>
+          </span>
+        </div>
+      )}
+
+      {/* 企鹅头像装扮:开启企鹅头像时展开装扮药丸组 */}
+      {config.assistantAvatar && (
+        <div style={fieldRowStyle}>
+          <span style={fieldLabelStyle}>{t('row.avatarStyle')}</span>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {QQ_AVATAR_STYLES.map(style => {
+              const selected = config.avatarStyle === style
+              return (
+                <button
+                  key={style}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => { setAvatarStyle(style) }}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '8px',
+                    border: `1px solid ${selected ? 'var(--dsw-static-neutral-bluish-400)' : 'var(--dsw-alias-border-l2)'}`,
+                    background: selected ? 'var(--dsw-alias-bg-module-platform)' : 'transparent',
+                    color: selected ? 'var(--dsw-alias-brand-primary)' : 'var(--dsw-alias-label-secondary)',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    fontWeight: selected ? 500 : 400,
+                    transition: 'all 0.12s ease',
+                  }}
+                >
+                  {t(AVATAR_STYLE_LABEL_KEYS[style])}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* 开关网格:2 列紧凑布局(气泡尾巴/头像/提示音/抖动/毛玻璃/打字机) */}
       <div style={toggleGridStyle}>

@@ -139,4 +139,18 @@ describe('QQ NT layout config branches', () => {
     expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] pre")
     expect(QQ_LAYOUT_CSS).toContain('rgba(255, 95, 86, 0.85)')
   })
+
+  it('switches penguin avatar style between classic, sunglasses, and scarf', () => {
+    const classic = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, avatarStyle: 'classic' })
+    expect(classic).toContain('data:image/png;base64')
+    expect(classic).not.toContain('data:image/svg+xml')
+
+    const sunglasses = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, avatarStyle: 'sunglasses' })
+    expect(sunglasses).toContain('data:image/svg+xml')
+    expect(sunglasses).toContain('data:image/png;base64')
+
+    const scarf = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, avatarStyle: 'scarf' })
+    expect(scarf).toContain('data:image/svg+xml')
+    expect(scarf).toContain('data:image/png;base64')
+  })
 })

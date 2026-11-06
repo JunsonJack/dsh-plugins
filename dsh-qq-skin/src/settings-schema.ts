@@ -13,8 +13,10 @@
 import type { Volatile } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import {
+  QQ_AVATAR_STYLES,
   QQ_SKIN_PALETTES,
   QQ_SKIN_SOUND_VARIANTS,
+  type QQAvatarStyle,
   type QQSkinPalette,
   type QQSkinSoundVariant,
 } from './client/config.ts'
@@ -23,6 +25,10 @@ import {
 export interface Config {
   /** 色板变体。 */
   palette: Volatile<QQSkinPalette>
+  /** 自定义主色十六进制色值(如 #12B7F5)。 */
+  customColor: Volatile<string>
+  /** 企鹅头像装扮(classic=经典, sunglasses=墨镜, scarf=围巾)。 */
+  avatarStyle: Volatile<QQAvatarStyle>
   /** 用户气泡右侧"尾巴"伪元素开关。 */
   bubbleTail: Volatile<boolean>
   /** 助手消息左侧官方 QQ 企鹅头像开关。 */
@@ -46,6 +52,8 @@ export interface Config {
 /** 设置分节 schema:宿主校验条目配置、设置面板渲染表单共用。 */
 export const Config = z.object({
   palette: z.union([...QQ_SKIN_PALETTES]).default('classic').volatile(),
+  customColor: z.string().default('#12B7F5').volatile(),
+  avatarStyle: z.union([...QQ_AVATAR_STYLES]).default('classic').volatile(),
   bubbleTail: z.boolean().default(true).volatile(),
   assistantAvatar: z.boolean().default(true).volatile(),
   chatMaxWidth: z.number().min(480).max(1600).default(880).volatile(),

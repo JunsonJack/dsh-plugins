@@ -440,8 +440,80 @@ const BLACK_TOKEN_DELTAS: ThemeTokenOverrides = {
   '--dsw-specific-sidebar-nav-item-hover': { light: '#0B0F16', dark: '#0B0F16' },
 }
 
-/** 各色板在 classic 基准上的增量映射。 */
-const PALETTE_DELTAS: Record<QQSkinPalette, ThemeTokenOverrides> = {
+/** 解析 3 位或 6 位 hex 颜色为 [r, g, b] 整数元组。 */
+export function parseHexColor(hex: string): [number, number, number] | null {
+  if (typeof hex !== 'string') return null
+  const cleaned = hex.trim().replace(/^#/, '')
+  if (cleaned.length === 3) {
+    const r0 = cleaned.charAt(0)
+    const g0 = cleaned.charAt(1)
+    const b0 = cleaned.charAt(2)
+    const r = parseInt(r0 + r0, 16)
+    const g = parseInt(g0 + g0, 16)
+    const b = parseInt(b0 + b0, 16)
+    return isNaN(r) || isNaN(g) || isNaN(b) ? null : [r, g, b]
+  }
+  if (cleaned.length === 6) {
+    const r = parseInt(cleaned.slice(0, 2), 16)
+    const g = parseInt(cleaned.slice(2, 4), 16)
+    const b = parseInt(cleaned.slice(4, 6), 16)
+    return isNaN(r) || isNaN(g) || isNaN(b) ? null : [r, g, b]
+  }
+  return null
+}
+
+/** 将 [r, g, b] 格式化为标准大写 #RRGGBB。 */
+export function formatHexColor([r, g, b]: [number, number, number]): string {
+  const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)))
+  const toHex = (n: number) => clamp(n).toString(16).padStart(2, '0').toUpperCase()
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`
+}
+
+/** 两个颜色按比例线性混合(amount: 0 返回 c1, 1 返回 c2)。 */
+export function mixColors(hex1: string, hex2: string, amount: number): string {
+  const rgb1 = parseHexColor(hex1) ?? [18, 183, 245]
+  const rgb2 = parseHexColor(hex2) ?? [255, 255, 255]
+  const r = rgb1[0] + (rgb2[0] - rgb1[0]) * amount
+  const g = rgb1[1] + (rgb2[1] - rgb1[1]) * amount
+  const b = rgb1[2] + (rgb2[2] - rgb1[2]) * amount
+  return formatHexColor([r, g, b])
+}
+
+/**
+ * 根据自定义主色派生全套 light/dark 品牌色与气泡色 token 增量。
+ * @param customColor - 十六进制主色(如 #12B7F5)。
+ */
+export function buildCustomTokenDeltas(customColor: string = '#12B7F5'): ThemeTokenOverrides {
+  const primary = formatHexColor(parseHexColor(customColor) ?? [18, 183, 245])
+  const primaryDark = mixColors(primary, '#FFFFFF', 0.28)
+  const brandTextLight = mixColors(primary, '#000000', 0.15)
+  const brandTextDark = mixColors(primary, '#FFFFFF', 0.45)
+  const tertiaryLight = mixColors(primary, '#FFFFFF', 0.88)
+  const tertiaryDark = mixColors(primary, '#101822', 0.82)
+  const hoverLight = mixColors(primary, '#000000', 0.08)
+  const hoverDark = mixColors(primary, '#FFFFFF', 0.20)
+
+  // 气泡颜色(QQ 用户发送气泡背景)
+  const bubbleLight = mixColors(primary, '#FFFFFF', 0.62)
+  const bubbleLightHighlight = mixColors(primary, '#FFFFFF', 0.48)
+  const bubbleDark = mixColors(primary, '#101822', 0.68)
+  const bubbleDarkHighlight = mixColors(primary, '#101822', 0.52)
+
+  return {
+    '--dsw-alias-brand-primary': { light: primary, dark: primaryDark },
+    '--dsw-alias-brand-primary-new-colorprimary-new-color': { light: primary, dark: primaryDark },
+    '--dsw-alias-brand-text': { light: brandTextLight, dark: brandTextDark },
+    '--dsw-alias-state-business-primary': { light: primary, dark: primaryDark },
+    '--dsw-alias-state-business-tertiary': { light: tertiaryLight, dark: tertiaryDark },
+    '--dsw-alias-button-info-fill': { light: primary, dark: primaryDark },
+    '--dsw-alias-button-info-hover': { light: hoverLight, dark: hoverDark },
+    '--dsw-specific-bubble': { light: bubbleLight, dark: bubbleDark },
+    '--dsw-specific-bubble-highlight': { light: bubbleLightHighlight, dark: bubbleDarkHighlight },
+  }
+}
+
+/** 各预设色板在 classic 基准上的增量映射。 */
+const PALETTE_DELTAS: Record<Exclude<QQSkinPalette, 'custom'>, ThemeTokenOverrides> = {
   classic: {},
   vivid: VIVID_TOKEN_DELTAS,
   clean: CLEAN_TOKEN_DELTAS,
@@ -451,8 +523,13 @@ const PALETTE_DELTAS: Record<QQSkinPalette, ThemeTokenOverrides> = {
 
 /**
  * 生成指定色板的完整 token 覆盖集(classic 全量 + 该色板增量)。
+ * 当 palette 为 custom 时使用 customColor 动态派生品牌与气泡 token。
  * @param palette - 色板变体标识。
+ * @param customColor - 自定义主色十六进制色值(可选)。
  */
-export function buildTokenOverrides(palette: QQSkinPalette): ThemeTokenOverrides {
+export function buildTokenOverrides(palette: QQSkinPalette, customColor?: string): ThemeTokenOverrides {
+  if (palette === 'custom') {
+    return { ...QQ_TOKEN_OVERRIDES, ...buildCustomTokenDeltas(customColor) }
+  }
   return { ...QQ_TOKEN_OVERRIDES, ...(PALETTE_DELTAS[palette] ?? {}) }
 }

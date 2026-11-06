@@ -1,9 +1,32 @@
 import { describe, expect, it } from 'vitest'
-import { QQ_SKIN_DEFAULT_CONFIG, QQ_SKIN_PALETTES, resolveQQSkinConfig } from '../src/client/config.ts'
+import {
+  QQ_AVATAR_STYLES,
+  QQ_SKIN_DEFAULT_CONFIG,
+  QQ_SKIN_PALETTES,
+  resolveQQSkinConfig,
+} from '../src/client/config.ts'
 
 describe('QQ skin config', () => {
-  it('declares the five palette variants', () => {
-    expect(QQ_SKIN_PALETTES).toEqual(['classic', 'vivid', 'clean', 'green', 'black'])
+  it('declares the six palette variants', () => {
+    expect(QQ_SKIN_PALETTES).toEqual(['classic', 'vivid', 'clean', 'green', 'black', 'custom'])
+  })
+
+  it('declares the three avatar styles', () => {
+    expect(QQ_AVATAR_STYLES).toEqual(['classic', 'sunglasses', 'scarf'])
+  })
+
+  it('avatarStyle defaults to classic and accepts sunglasses or scarf', () => {
+    expect(resolveQQSkinConfig().avatarStyle).toBe('classic')
+    expect(resolveQQSkinConfig({ avatarStyle: 'sunglasses' }).avatarStyle).toBe('sunglasses')
+    expect(resolveQQSkinConfig({ avatarStyle: 'scarf' }).avatarStyle).toBe('scarf')
+    expect(resolveQQSkinConfig({ avatarStyle: 'invalid' as never }).avatarStyle).toBe('classic')
+  })
+
+  it('customColor normalizes valid hex colors and falls back to default', () => {
+    expect(resolveQQSkinConfig().customColor).toBe('#12B7F5')
+    expect(resolveQQSkinConfig({ customColor: '#007aff' }).customColor).toBe('#007AFF')
+    expect(resolveQQSkinConfig({ customColor: '#abc' }).customColor).toBe('#AABBCC')
+    expect(resolveQQSkinConfig({ customColor: 'invalid' }).customColor).toBe('#12B7F5')
   })
 
   it('falls back to defaults when no config is passed', () => {

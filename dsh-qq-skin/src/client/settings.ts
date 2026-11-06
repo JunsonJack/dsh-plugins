@@ -15,6 +15,7 @@
 import {
   resolveQQSkinConfig,
   type PartialQQSkinConfig,
+  type QQAvatarStyle,
   type QQSkinConfig,
   type QQSkinPalette,
   type QQSkinSoundVariant,
@@ -26,6 +27,8 @@ export const QQ_SKIN_SETTINGS_NS = 'qq-skin'
 /** 设置分节里的持久化字段:形状与 QQSkinConfig 一致,全部可缺省。 */
 export interface QQSkinSettings {
   palette?: QQSkinPalette | undefined
+  customColor?: string | undefined
+  avatarStyle?: QQAvatarStyle | undefined
   bubbleTail?: boolean | undefined
   assistantAvatar?: boolean | undefined
   chatMaxWidth?: number | undefined
@@ -50,6 +53,8 @@ export function settingsToConfig(
   const s = section ?? {}
   return resolveQQSkinConfig({
     palette: s.palette ?? fallback?.palette,
+    customColor: s.customColor ?? fallback?.customColor,
+    avatarStyle: s.avatarStyle ?? fallback?.avatarStyle,
     bubbleTail: s.bubbleTail ?? fallback?.bubbleTail,
     assistantAvatar: s.assistantAvatar ?? fallback?.assistantAvatar,
     chatMaxWidth: s.chatMaxWidth ?? fallback?.chatMaxWidth,

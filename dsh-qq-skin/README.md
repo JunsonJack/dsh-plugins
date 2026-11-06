@@ -24,7 +24,7 @@ The **QQ Skin** settings row in the App settings General section, with the palet
 
 ## Settings panel
 
-The skin registers a **QQ Skin** settings row in the App settings General section, with visual toggles for palette / bubble tail / assistant avatar / chat width / message sound & sound theme / window shake reminder / frosted glass acrylic blur / typing animation. Changes apply immediately (hot reload remounts both layers) and are persisted to the user-settings document. The settings panel overrides the static config below.
+The skin registers a **QQ Skin** settings row in the App settings General section, with visual toggles for palette / custom color / penguin avatar style / bubble tail / assistant avatar / chat width / message sound & sound theme / send sound / window shake reminder / frosted glass acrylic blur / typing animation. Changes apply immediately (hot reload remounts both layers) and are persisted to the user-settings document. The settings panel overrides the static config below.
 
 ## Configuration
 
@@ -32,7 +32,9 @@ The plugin receives config the cordis function-plugin way (`apply(ctx, config)`)
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `palette` | `'classic'` | Palette variant: `classic` Classic Blue / `vivid` Vivid Purple / `clean` Clean White / `green` Green Bubble / `black` Deep Black |
+| `palette` | `'classic'` | Palette variant: `classic` Classic Blue / `vivid` Vivid Purple / `clean` Clean White / `green` Green Bubble / `black` Deep Black / `custom` Custom Accent Color |
+| `customColor` | `'#12B7F5'` | Hex custom brand color (e.g. `#FF5722`, automatically derives full token scales when `palette: 'custom'`) |
+| `avatarStyle` | `'classic'` | Penguin avatar decoration: `classic` Original penguin / `sunglasses` Cool black sunglasses / `scarf` Warm winter red scarf |
 | `bubbleTail` | `true` | Small triangular "tail" on the right of user bubbles |
 | `assistantAvatar` | `true` | Official QQ-penguin avatar disc left of assistant messages |
 | `chatMaxWidth` | `880` | Max width of the chat flow (px, clamped between 480 and 1600) |
@@ -46,7 +48,19 @@ The plugin receives config the cordis function-plugin way (`apply(ctx, config)`)
 Example (set in the profile's plugin config):
 
 ```json
-{ "palette": "vivid", "bubbleTail": false, "chatMaxWidth": 720, "messageSound": true, "soundVariant": "waterdrop", "windowShake": true, "frostedGlass": true, "typing": true }
+{
+  "palette": "custom",
+  "customColor": "#FF5722",
+  "avatarStyle": "sunglasses",
+  "bubbleTail": true,
+  "chatMaxWidth": 880,
+  "messageSound": true,
+  "sendSound": true,
+  "soundVariant": "waterdrop",
+  "windowShake": true,
+  "frostedGlass": true,
+  "typing": true
+}
 ```
 
 ## What it covers

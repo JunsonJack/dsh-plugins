@@ -15,6 +15,12 @@ export type QQSkinSettingsKey =
   | 'palette.clean'
   | 'palette.green'
   | 'palette.black'
+  | 'palette.custom'
+  | 'row.customColor'
+  | 'row.avatarStyle'
+  | 'avatar.classic'
+  | 'avatar.sunglasses'
+  | 'avatar.scarf'
   | 'row.bubbleTail'
   | 'row.assistantAvatar'
   | 'row.chatMaxWidth'
@@ -44,6 +50,12 @@ export const zh: Record<QQSkinSettingsKey, string> = {
   'palette.clean': '简洁白',
   'palette.green': '经典绿气泡',
   'palette.black': '深空黑',
+  'palette.custom': '自定义主色',
+  'row.customColor': '主色调色盘',
+  'row.avatarStyle': '企鹅装扮',
+  'avatar.classic': '经典企鹅',
+  'avatar.sunglasses': '酷黑墨镜',
+  'avatar.scarf': '冬日暖围巾',
   'row.bubbleTail': '气泡尾巴',
   'row.assistantAvatar': '企鹅头像',
   'row.chatMaxWidth': '会话宽度',
@@ -67,6 +79,12 @@ export const en: Record<QQSkinSettingsKey, string> = {
   'palette.clean': 'Clean White',
   'palette.green': 'Green Bubble',
   'palette.black': 'Deep Black',
+  'palette.custom': 'Custom Color',
+  'row.customColor': 'Accent color',
+  'row.avatarStyle': 'Avatar style',
+  'avatar.classic': 'Classic',
+  'avatar.sunglasses': 'Sunglasses',
+  'avatar.scarf': 'Winter scarf',
   'row.bubbleTail': 'Bubble tail',
   'row.assistantAvatar': 'Penguin avatar',
   'row.chatMaxWidth': 'Chat width',

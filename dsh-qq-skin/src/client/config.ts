@@ -7,11 +7,17 @@
  * 合并时兜底为默认值,保证任何畸形输入都不会让皮肤挂掉。
  */
 
-/** 可选色板:经典蓝(默认)/ 炫彩紫 / 简洁白 / 经典绿气泡 / 深空黑。 */
-export const QQ_SKIN_PALETTES = ['classic', 'vivid', 'clean', 'green', 'black'] as const
+/** 可选色板:经典蓝(默认)/ 炫彩紫 / 简洁白 / 经典绿气泡 / 深空黑 / 自定义主色。 */
+export const QQ_SKIN_PALETTES = ['classic', 'vivid', 'clean', 'green', 'black', 'custom'] as const
 
 /** 色板标识。 */
 export type QQSkinPalette = (typeof QQ_SKIN_PALETTES)[number]
+
+/** 可选企鹅头像装扮:经典官方企鹅(默认)/ 酷黑墨镜企鹅 / 温暖围巾冬日企鹅。 */
+export const QQ_AVATAR_STYLES = ['classic', 'sunglasses', 'scarf'] as const
+
+/** 企鹅头像装扮标识。 */
+export type QQAvatarStyle = (typeof QQ_AVATAR_STYLES)[number]
 
 /** 可选提示声音色:经典寻呼机 6-beep 方波(默认)/ 灵动水滴 / 清脆敲门。 */
 export const QQ_SKIN_SOUND_VARIANTS = ['beep', 'waterdrop', 'knock'] as const
@@ -23,6 +29,10 @@ export type QQSkinSoundVariant = (typeof QQ_SKIN_SOUND_VARIANTS)[number]
 export interface QQSkinConfig {
   /** 色板变体。 */
   palette: QQSkinPalette
+  /** 自定义主色十六进制色值(当 palette 为 custom 时生效,如 #12B7F5)。 */
+  customColor: string
+  /** 企鹅头像装扮(classic=经典, sunglasses=墨镜, scarf=围巾)。 */
+  avatarStyle: QQAvatarStyle
   /** 用户气泡右侧"尾巴"伪元素开关。 */
   bubbleTail: boolean
   /** 助手消息左侧官方 QQ 企鹅头像开关。 */
@@ -47,9 +57,14 @@ export interface QQSkinConfig {
 export const CHAT_MAX_WIDTH_MIN = 480
 export const CHAT_MAX_WIDTH_MAX = 1600
 
+/** 默认主色十六进制。 */
+export const DEFAULT_CUSTOM_COLOR = '#12B7F5'
+
 /** 默认配置(经典蓝、气泡尾巴、企鹅头像、880px 宽、经典音色)。 */
 export const QQ_SKIN_DEFAULT_CONFIG: QQSkinConfig = {
   palette: 'classic',
+  customColor: DEFAULT_CUSTOM_COLOR,
+  avatarStyle: 'classic',
   bubbleTail: true,
   assistantAvatar: true,
   chatMaxWidth: 880,
@@ -59,6 +74,25 @@ export const QQ_SKIN_DEFAULT_CONFIG: QQSkinConfig = {
   windowShake: false,
   frostedGlass: false,
   typing: true,
+}
+
+/** 规范化十六进制色值:格式错误回落默认 #12B7F5,3位扩展为6位。 */
+export function normalizeHexColor(value: unknown): string {
+  if (typeof value !== 'string') return DEFAULT_CUSTOM_COLOR
+  const trimmed = value.trim()
+  const match3 = /^#([0-9a-fA-F]{3})$/.exec(trimmed)
+  if (match3) {
+    const raw = match3[1] ?? ''
+    const r = raw.charAt(0)
+    const g = raw.charAt(1)
+    const b = raw.charAt(2)
+    return `#${r}${r}${g}${g}${b}${b}`.toUpperCase()
+  }
+  const match6 = /^#([0-9a-fA-F]{6})$/.exec(trimmed)
+  if (match6) {
+    return `#${match6[1] ?? ''}`.toUpperCase()
+  }
+  return DEFAULT_CUSTOM_COLOR
 }
 
 /** 规范化聊天流最大宽度(px):非法或<=0回落默认值,正数范围钳制在 480~1600。 */
@@ -81,6 +115,10 @@ export function resolveQQSkinConfig(config?: PartialQQSkinConfig): QQSkinConfig 
     palette: QQ_SKIN_PALETTES.includes(raw.palette as QQSkinPalette)
       ? (raw.palette as QQSkinPalette)
       : QQ_SKIN_DEFAULT_CONFIG.palette,
+    customColor: normalizeHexColor(raw.customColor),
+    avatarStyle: QQ_AVATAR_STYLES.includes(raw.avatarStyle as QQAvatarStyle)
+      ? (raw.avatarStyle as QQAvatarStyle)
+      : QQ_SKIN_DEFAULT_CONFIG.avatarStyle,
     bubbleTail: typeof raw.bubbleTail === 'boolean'
       ? raw.bubbleTail
       : QQ_SKIN_DEFAULT_CONFIG.bubbleTail,

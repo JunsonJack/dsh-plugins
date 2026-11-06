@@ -8,17 +8,19 @@ describe('QQ skin settings', () => {
 
   it('resolves to defaults when no setting section and no fallback', () => {
     expect(settingsToConfig(undefined)).toEqual({
-      palette: 'classic', bubbleTail: true, assistantAvatar: true,
+      palette: 'classic', customColor: '#12B7F5', avatarStyle: 'classic',
+      bubbleTail: true, assistantAvatar: true,
       chatMaxWidth: 880, messageSound: false, sendSound: false, soundVariant: 'beep',
       windowShake: false, frostedGlass: false, typing: true,
     })
   })
 
   it('prefers settings fields over fallback config', () => {
-    const section: QQSkinSettings = { palette: 'vivid', chatMaxWidth: 720, soundVariant: 'waterdrop' }
-    const config = settingsToConfig(section, { palette: 'clean', bubbleTail: false, soundVariant: 'knock' })
+    const section: QQSkinSettings = { palette: 'vivid', chatMaxWidth: 720, soundVariant: 'waterdrop', avatarStyle: 'sunglasses' }
+    const config = settingsToConfig(section, { palette: 'clean', bubbleTail: false, soundVariant: 'knock', avatarStyle: 'scarf' })
     expect(config).toEqual({
-      palette: 'vivid', bubbleTail: false, assistantAvatar: true,
+      palette: 'vivid', customColor: '#12B7F5', avatarStyle: 'sunglasses',
+      bubbleTail: false, assistantAvatar: true,
       chatMaxWidth: 720, messageSound: false, sendSound: false, soundVariant: 'waterdrop',
       windowShake: false, frostedGlass: false, typing: true,
     })
@@ -26,9 +28,10 @@ describe('QQ skin settings', () => {
 
   it('fills unset settings fields from the fallback config', () => {
     const section: QQSkinSettings = { bubbleTail: false }
-    const config = settingsToConfig(section, { palette: 'green', chatMaxWidth: 640, windowShake: true })
+    const config = settingsToConfig(section, { palette: 'green', chatMaxWidth: 640, windowShake: true, avatarStyle: 'scarf' })
     expect(config).toEqual({
-      palette: 'green', bubbleTail: false, assistantAvatar: true,
+      palette: 'green', customColor: '#12B7F5', avatarStyle: 'scarf',
+      bubbleTail: false, assistantAvatar: true,
       chatMaxWidth: 640, messageSound: false, sendSound: false, soundVariant: 'beep',
       windowShake: true, frostedGlass: false, typing: true,
     })

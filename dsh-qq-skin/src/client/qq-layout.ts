@@ -19,14 +19,15 @@
  * 暗色变体统一由 `body[data-ds-dark-theme]`(ui-theme 呈现器写入)门控。
  */
 import type { Context } from '@deepseek-ai/cordis'
-import { QQ_AVATAR_DATA_URI } from './qq-avatar.ts'
-import { QQ_SKIN_DEFAULT_CONFIG, type QQSkinConfig } from './config.ts'
+import { getAvatarBackgroundImage } from './qq-avatar.ts'
+import { QQ_SKIN_DEFAULT_CONFIG, type QQAvatarStyle, type QQSkinConfig } from './config.ts'
 
 /** 注入的 <style> 标签归属标识(便于排查与测试断言)。 */
 export const QQ_LAYOUT_PLUGIN = 'dsh-qq-skin/layout'
 
-/** 企鹅头像圆标(默认开启时注入;关闭后无头像,也不占左侧空间)。 */
-function avatarRule(): string {
+/** 企鹅头像圆标(默认开启时注入;关闭后无头像,也不占左侧空间;支持墨镜/围巾装扮)。 */
+function avatarRule(style: QQAvatarStyle = 'classic'): string {
+  const bgImage = getAvatarBackgroundImage(style)
   return `
 [data-chat-flow-kind='assistant-step'] {
   position: relative;
@@ -41,7 +42,7 @@ function avatarRule(): string {
   height: 22px;
   border-radius: 50%;
   background-color: var(--dsw-alias-bg-layer-1);
-  background-image: url("${QQ_AVATAR_DATA_URI}");
+  background-image: ${bgImage};
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
@@ -154,7 +155,7 @@ ${frostedGlass ? frostedGlassRule() : ''}
    > [data-slot] > [class$='_root'] 精确命中 AssistantMarkdown 的
    root(避免误伤嵌套的 ReasoningRow 等同名 root)。头像 top 按
    卡片 padding-top 12px + Think 行高 24px 垂直居中:12 + 12 - 11 = 13。 */
-${assistantAvatar ? avatarRule() : ''}
+${assistantAvatar ? avatarRule(config.avatarStyle) : ''}
 [data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {
   border-radius: 16px 16px 16px 6px;
   padding: 12px 16px;
