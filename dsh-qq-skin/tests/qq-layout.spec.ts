@@ -205,4 +205,15 @@ describe('QQ NT layout config branches', () => {
     expect(QQ_LAYOUT_CSS).toContain("[class$='_bubble'] a {")
     expect(QQ_LAYOUT_CSS).toContain('color: inherit')
   })
+
+  it('forces white text on every bubble descendant but leaves code blocks alone', () => {
+    // 气泡里的 markdown 正文各元素从 --dsw-alias-label-* 取自己的深色,
+    // 只给容器上色会被子元素覆盖 → 逐元素压白,并排除代码块。
+    expect(QQ_LAYOUT_CSS).toContain("[class$='_bubble'] :not(pre):not(pre *):not(code) {")
+    const descendantRule = QQ_LAYOUT_CSS.slice(
+      QQ_LAYOUT_CSS.indexOf("[class$='_bubble'] :not(pre):not(pre *):not(code) {"),
+    )
+    expect(descendantRule.slice(0, descendantRule.indexOf('}'))).toContain('color: rgb(255, 255, 255)')
+    expect(QQ_LAYOUT_CSS).not.toMatch(/\[class\$='_bubble'\] code[^\n]*\{[^}]*color: rgb\(255, 255, 255\)/)
+  })
 })

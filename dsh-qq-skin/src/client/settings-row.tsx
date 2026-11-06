@@ -97,7 +97,7 @@ const AVATAR_STYLE_LABEL_KEYS: Record<QQAvatarStyle, QQSkinSettingsKey> = {
 const PALETTE_PREVIEW: Record<QQSkinPalette, string> = {
   classic: 'linear-gradient(135deg, #12B7F5 0%, #11A8E1 100%)',
   vivid: 'linear-gradient(135deg, #8A5CF5 0%, #7F55E1 100%)',
-  clean: 'linear-gradient(135deg, #1F2A35 0%, #3A4A59 100%)',
+  clean: 'linear-gradient(135deg, #FFFFFF 0%, #E6EEF6 100%)',
   green: 'linear-gradient(135deg, #07C160 0%, #06B258 100%)',
   black: 'linear-gradient(135deg, #0B0F16 0%, #1D2937 100%)',
   qqblue: 'linear-gradient(135deg, #2D73D7 0%, #3059CD 100%)',

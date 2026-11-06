@@ -216,6 +216,13 @@ ${typing ? typingRule() : ''}
   color: rgb(255, 255, 255);
   box-shadow: 0 1px 2px rgba(${shadow[0]}, ${shadow[1]}, ${shadow[2]}, 0.12);
 }
+/* 气泡内文字一律白字:气泡里的 markdown 正文各元素会从
+   --dsw-alias-label-* 取自己的深色,只给气泡容器上色会被子元素覆盖,
+   所以逐元素压白(:not(pre)/:not(pre *)/:not(code) 排除代码块,
+   避免白字压在浅色代码底上)。 */
+[class$='_bubble'] :not(pre):not(pre *):not(code) {
+  color: rgb(255, 255, 255);
+}
 [class$='_bubble'] a {
   color: inherit;
 }
