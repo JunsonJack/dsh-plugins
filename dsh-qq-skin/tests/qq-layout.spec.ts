@@ -185,6 +185,21 @@ describe('QQ NT layout config branches', () => {
     expect(custom).not.toContain('rgba(18, 183, 245, 0.35)')
   })
 
+  it('keeps wide markdown tables inside the card with horizontal scroll', () => {
+    expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] table {")
+    expect(QQ_LAYOUT_CSS).toContain('overflow-x: auto')
+    expect(QQ_LAYOUT_CSS).toContain('width: max-content')
+    expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] table th,")
+    expect(QQ_LAYOUT_CSS).toContain("word-break: break-word")
+    // 卡片兜底:超长内容不撑破气泡
+    expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {\n  overflow-x: auto;")
+  })
+
+  it('keeps wide tables inside the user bubble too', () => {
+    expect(QQ_LAYOUT_CSS).toContain("[data-message-bubble][data-message-bubble] table {")
+    expect(QQ_LAYOUT_CSS).toContain("[data-message-bubble][data-message-bubble] table td {")
+  })
+
   it('keeps classic QQ blue shadows on preset palettes', () => {
     expect(QQ_LAYOUT_CSS).toContain('rgba(18, 183, 245, 0.35)')
     expect(QQ_LAYOUT_CSS).toContain('rgba(18, 122, 175, 0.22)')

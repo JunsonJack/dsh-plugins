@@ -220,6 +220,58 @@ ${typing ? typingRule() : ''}
   color: var(--dsw-alias-label-secondary);
 }
 
+/* ── Markdown 表格:太宽时在卡片内横向滚动,不外溢撑破气泡 ─────────────
+    宽表是回复框横向溢出的主要来源:harness 默认让 <table> 按内容宽度
+    撑开,直接把 assistant 卡片顶出可视区。这里让表格自身成为可滚动
+    容器(table{display:block} + overflow-x:auto),单元格允许换行,
+    既不撑破卡片,又保留横向滚动查看宽列。 */
+[data-chat-flow-kind='assistant-step'] table {
+  display: block;
+  max-width: 100%;
+  width: max-content;
+  overflow-x: auto;
+  border-collapse: collapse;
+  border-spacing: 0;
+  -webkit-overflow-scrolling: touch;
+}
+[data-chat-flow-kind='assistant-step'] table th,
+[data-chat-flow-kind='assistant-step'] table td {
+  white-space: normal;
+  word-break: break-word;
+  vertical-align: top;
+  border: 1px solid var(--dsw-alias-border-l1);
+  padding: 6px 10px;
+}
+/* 表格横向滚动条:细窄 QQ 风,避免默认滚动条挤占行高。 */
+[data-chat-flow-kind='assistant-step'] table::-webkit-scrollbar {
+  height: 8px;
+}
+[data-chat-flow-kind='assistant-step'] table::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: var(--dsw-alias-scrollbar-bg-l1);
+}
+[data-chat-flow-kind='assistant-step'] table::-webkit-scrollbar-thumb:hover {
+  background: var(--dsw-alias-scrollbar-hover-l1);
+}
+/* 用户气泡里的表格同样不得撑破气泡。 */
+[data-message-bubble][data-message-bubble] table {
+  display: block;
+  max-width: 100%;
+  width: max-content;
+  overflow-x: auto;
+}
+[data-message-bubble][data-message-bubble] table th,
+[data-message-bubble][data-message-bubble] table td {
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* 卡片本身兜底:任何超长内容(超长代码行/无空格长串)也不撑破气泡。 */
+[data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
 /* ── Markdown 代码块:QQ NT 仿窗口三色圆点装饰 ──────────────────────── */
 [data-chat-flow-kind='assistant-step'] pre {
   position: relative;
