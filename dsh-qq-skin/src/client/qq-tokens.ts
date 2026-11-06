@@ -479,8 +479,54 @@ export function mixColors(hex1: string, hex2: string, amount: number): string {
   return formatHexColor([r, g, b])
 }
 
+/** 主色之上的反白文字:亮主色配深字、暗主色配白字(简化亮度判定)。 */
+function invertLabelOn(hex: string): string {
+  const [r = 0, g = 0, b = 0] = parseHexColor(hex) ?? [18, 183, 245]
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return luminance > 0.6 ? '#101822' : '#FFFFFF'
+}
+
+/** 静态刻度浅端 stop → 主色向白混合比例(500 即主色本身,不含在内)。 */
+const STATIC_TINT_STOPS: Record<string, number> = {
+  '50': 0.94, '50p': 0.91, '75': 0.85, '100': 0.88, '200': 0.75,
+  '300': 0.55, '400': 0.30, '450': 0.15,
+}
+
+/** 静态刻度深端 stop → 主色向黑混合比例。 */
+const STATIC_SHADE_STOPS: Record<string, number> = {
+  '600': 0.12, '700-delete': 0.25, '800': 0.40, '900': 0.55, '950': 0.70,
+}
+
+/** deepseek 刻度包含的 stop(与 classic 基准一致:无 50p/75/950)。 */
+const DEEPSEEK_SCALE_STOPS = ['50', '100', '200', '300', '400', '450', '500', '600', '700-delete', '800', '900'] as const
+
+/** blue 刻度包含的 stop(与 classic 基准一致:无 200/700-delete)。 */
+const BLUE_SCALE_STOPS = ['50', '50p', '75', '100', '300', '400', '450', '500', '600', '800', '900', '950'] as const
+
+/** 由主色生成一条静态刻度(亮暗同值,与 classic 的 QQ 天蓝刻度策略一致)。 */
+function buildStaticScale(prefix: 'deepseek' | 'blue', stops: readonly string[], primary: string): ThemeTokenOverrides {
+  const scale: ThemeTokenOverrides = {}
+  for (const stop of stops) {
+    if (stop === '500') {
+      scale[`--dsw-static-${prefix}-${stop}`] = { light: primary, dark: primary }
+      continue
+    }
+    const tint = STATIC_TINT_STOPS[stop]
+    const shade = STATIC_SHADE_STOPS[stop]
+    const value = tint !== undefined
+      ? mixColors(primary, '#FFFFFF', tint)
+      : mixColors(primary, '#000000', shade ?? 0.5)
+    scale[`--dsw-static-${prefix}-${stop}`] = { light: value, dark: value }
+  }
+  return scale
+}
+
 /**
- * 根据自定义主色派生全套 light/dark 品牌色与气泡色 token 增量。
+ * 根据自定义主色派生全套 light/dark 品牌/状态/按钮/选中态/静态刻度 token
+ * 增量。除气泡外,classic 基准里所有写死 QQ 蓝的 token(主按钮填充/悬停、
+ * 对比填充、ghost 选中描边、侧栏 accent、bluish 链接文字、hover 高亮、
+ * static-deepseek/static-blue 两条刻度等)都从 customColor 重新推导,
+ * 避免「只有部分带颜色的文字/链接/按钮跟随自定义主色」。
  * @param customColor - 十六进制主色(如 #12B7F5)。
  */
 export function buildCustomTokenDeltas(customColor: string = '#12B7F5'): ThemeTokenOverrides {
@@ -488,10 +534,15 @@ export function buildCustomTokenDeltas(customColor: string = '#12B7F5'): ThemeTo
   const primaryDark = mixColors(primary, '#FFFFFF', 0.28)
   const brandTextLight = mixColors(primary, '#000000', 0.15)
   const brandTextDark = mixColors(primary, '#FFFFFF', 0.45)
+  const bluishLight = mixColors(primary, '#000000', 0.30)
   const tertiaryLight = mixColors(primary, '#FFFFFF', 0.88)
   const tertiaryDark = mixColors(primary, '#101822', 0.82)
   const hoverLight = mixColors(primary, '#000000', 0.08)
   const hoverDark = mixColors(primary, '#FFFFFF', 0.20)
+  const ghostActiveLight = mixColors(primary, '#FFFFFF', 0.90)
+  const ghostActiveHoverLight = mixColors(primary, '#FFFFFF', 0.84)
+  const dimmedLight = mixColors(primary, '#FFFFFF', 0.75)
+  const dimmedDark = mixColors(primary, '#101822', 0.70)
 
   // 气泡颜色(QQ 用户发送气泡背景)
   const bubbleLight = mixColors(primary, '#FFFFFF', 0.62)
@@ -499,16 +550,33 @@ export function buildCustomTokenDeltas(customColor: string = '#12B7F5'): ThemeTo
   const bubbleDark = mixColors(primary, '#101822', 0.68)
   const bubbleDarkHighlight = mixColors(primary, '#101822', 0.52)
 
+  // 主色半透明(hover 高亮等);暗色沿用经典白叠加以保证深底可见。
+  const [pr = 0, pg = 0, pb = 0] = parseHexColor(primary) ?? [18, 183, 245]
+  const accentHoverLight = `rgba(${pr}, ${pg}, ${pb}, 0.10)`
+
   return {
     '--dsw-alias-brand-primary': { light: primary, dark: primaryDark },
+    '--dsw-alias-brand-primary-invert': { light: invertLabelOn(primary), dark: invertLabelOn(primaryDark) },
     '--dsw-alias-brand-primary-new-colorprimary-new-color': { light: primary, dark: primaryDark },
     '--dsw-alias-brand-text': { light: brandTextLight, dark: brandTextDark },
+    '--dsw-alias-label-primary-bluish': { light: bluishLight, dark: brandTextDark },
     '--dsw-alias-state-business-primary': { light: primary, dark: primaryDark },
     '--dsw-alias-state-business-tertiary': { light: tertiaryLight, dark: tertiaryDark },
+    '--dsw-alias-interactive-bg-hover-accent': { light: accentHoverLight, dark: 'rgba(255, 255, 255, 0.20)' },
     '--dsw-alias-button-info-fill': { light: primary, dark: primaryDark },
     '--dsw-alias-button-info-hover': { light: hoverLight, dark: hoverDark },
+    '--dsw-alias-button-primary-fill': { light: primary, dark: primaryDark },
+    '--dsw-alias-button-primary-hover': { light: hoverLight, dark: hoverDark },
+    '--dsw-alias-button-primary-dimmed': { light: dimmedLight, dark: dimmedDark },
+    '--dsw-alias-button-contrast-fill': { light: primary, dark: primaryDark },
+    '--dsw-alias-button-ghost-active-fill': { light: ghostActiveLight, dark: dimmedDark },
+    '--dsw-alias-button-ghost-active-hover': { light: ghostActiveHoverLight, dark: mixColors(primary, '#101822', 0.60) },
+    '--dsw-alias-button-ghost-active-border': { light: primary, dark: primaryDark },
+    '--dsw-specific-sidebar-nav-item-active-accent': { light: primary, dark: primaryDark },
     '--dsw-specific-bubble': { light: bubbleLight, dark: bubbleDark },
     '--dsw-specific-bubble-highlight': { light: bubbleLightHighlight, dark: bubbleDarkHighlight },
+    ...buildStaticScale('deepseek', DEEPSEEK_SCALE_STOPS, primary),
+    ...buildStaticScale('blue', BLUE_SCALE_STOPS, primary),
   }
 }
 

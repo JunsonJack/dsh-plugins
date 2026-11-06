@@ -153,4 +153,18 @@ describe('QQ NT layout config branches', () => {
     expect(scarf).toContain('data:image/svg+xml')
     expect(scarf).toContain('data:image/png;base64')
   })
+
+  it('derives avatar glow and bubble shadow from customColor on the custom palette', () => {
+    const custom = buildQQLayoutCss({
+      ...QQ_SKIN_DEFAULT_CONFIG, palette: 'custom', customColor: '#FF5722',
+    })
+    expect(custom).toContain('rgba(255, 87, 34, 0.35)')
+    expect(custom).toContain('rgba(255, 87, 34, 0.12)')
+    expect(custom).not.toContain('rgba(18, 183, 245, 0.35)')
+  })
+
+  it('keeps classic QQ blue shadows on preset palettes', () => {
+    expect(QQ_LAYOUT_CSS).toContain('rgba(18, 183, 245, 0.35)')
+    expect(QQ_LAYOUT_CSS).toContain('rgba(18, 122, 175, 0.12)')
+  })
 })

@@ -33,7 +33,7 @@ The plugin receives config the cordis function-plugin way (`apply(ctx, config)`)
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `palette` | `'classic'` | Palette variant: `classic` Classic Blue / `vivid` Vivid Purple / `clean` Clean White / `green` Green Bubble / `black` Deep Black / `custom` Custom Accent Color |
-| `customColor` | `'#12B7F5'` | Hex custom brand color (e.g. `#FF5722`, automatically derives full token scales when `palette: 'custom'`) |
+| `customColor` | `'#12B7F5'` | Hex custom brand color (e.g. `#FF5722`); when `palette: 'custom'` every brand-bound token follows it — buttons, links, selected accents, and the static blue/deepseek scales |
 | `avatarStyle` | `'classic'` | Penguin avatar decoration: `classic` Original penguin / `sunglasses` Cool black sunglasses / `scarf` Warm winter red scarf |
 | `bubbleTail` | `true` | Small triangular "tail" on the right of user bubbles |
 | `assistantAvatar` | `true` | Official QQ-penguin avatar disc left of assistant messages |

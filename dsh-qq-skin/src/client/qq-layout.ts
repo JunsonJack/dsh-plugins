@@ -21,13 +21,16 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { getAvatarBackgroundImage } from './qq-avatar.ts'
 import { QQ_SKIN_DEFAULT_CONFIG, type QQAvatarStyle, type QQSkinConfig } from './config.ts'
+import { parseHexColor } from './qq-tokens.ts'
 
 /** 注入的 <style> 标签归属标识(便于排查与测试断言)。 */
 export const QQ_LAYOUT_PLUGIN = 'dsh-qq-skin/layout'
 
-/** 企鹅头像圆标(默认开启时注入;关闭后无头像,也不占左侧空间;支持墨镜/围巾装扮)。 */
-function avatarRule(style: QQAvatarStyle = 'classic'): string {
+/** 企鹅头像圆标(默认开启时注入;关闭后无头像,也不占左侧空间;支持墨镜/围巾装扮)。
+ * glow 为头像投影的主色 RGB:custom 色板跟随自定义主色,其余色板保持经典 QQ 蓝。 */
+function avatarRule(style: QQAvatarStyle = 'classic', glow: [number, number, number] = [18, 183, 245]): string {
   const bgImage = getAvatarBackgroundImage(style)
+  const [gr, gg, gb] = glow
   return `
 [data-chat-flow-kind='assistant-step'] {
   position: relative;
@@ -46,7 +49,7 @@ function avatarRule(style: QQAvatarStyle = 'classic'): string {
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
-  box-shadow: 0 1px 3px rgba(18, 183, 245, 0.35);
+  box-shadow: 0 1px 3px rgba(${gr}, ${gg}, ${gb}, 0.35);
 }
 `
 }
@@ -133,6 +136,11 @@ body[data-ds-dark-theme] [data-composer-card] {
  */
 export function buildQQLayoutCss(config: QQSkinConfig = QQ_SKIN_DEFAULT_CONFIG): string {
   const { bubbleTail, assistantAvatar, chatMaxWidth, typing, windowShake, frostedGlass } = config
+  // 头像光晕与气泡阴影的主色:custom 色板跟随自定义主色,其余色板保持经典 QQ 蓝。
+  const isCustom = config.palette === 'custom'
+  const customRgb = isCustom ? parseHexColor(config.customColor) : null
+  const glow: [number, number, number] = customRgb ?? [18, 183, 245]
+  const shadow: [number, number, number] = customRgb ?? [18, 122, 175]
   return `
 /* ── 消息流:居中收窄,像聊天窗口的画布 ─────────────────────────────── */
 [data-chat-flow] {
@@ -155,7 +163,7 @@ ${frostedGlass ? frostedGlassRule() : ''}
    > [data-slot] > [class$='_root'] 精确命中 AssistantMarkdown 的
    root(避免误伤嵌套的 ReasoningRow 等同名 root)。头像 top 按
    卡片 padding-top 12px + Think 行高 24px 垂直居中:12 + 12 - 11 = 13。 */
-${assistantAvatar ? avatarRule(config.avatarStyle) : ''}
+${assistantAvatar ? avatarRule(config.avatarStyle, glow) : ''}
 [data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {
   border-radius: 16px 16px 16px 6px;
   padding: 12px 16px;
@@ -196,7 +204,7 @@ ${typing ? typingRule() : ''}
 [class$='_bubble'] {
   position: relative;
   border-radius: 16px 6px 16px 16px;
-  box-shadow: 0 1px 2px rgba(18, 122, 175, 0.12);
+  box-shadow: 0 1px 2px rgba(${shadow[0]}, ${shadow[1]}, ${shadow[2]}, 0.12);
 }
 ${bubbleTail ? bubbleTailRule() : ''}
 

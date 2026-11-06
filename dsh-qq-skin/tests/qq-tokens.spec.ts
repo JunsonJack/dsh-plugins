@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  buildTokenOverrides, QQ_SKIN_SOURCE, QQ_TOKEN_OVERRIDES,
+  buildCustomTokenDeltas, buildTokenOverrides, mixColors, QQ_SKIN_SOURCE, QQ_TOKEN_OVERRIDES,
 } from '../src/client/qq-tokens.ts'
 import { QQ_SKIN_PALETTES } from '../src/client/config.ts'
 
@@ -150,5 +150,52 @@ describe('QQ skin token palettes', () => {
     expect(custom['--dsw-specific-bubble'].light).toBeDefined()
     expect(custom['--dsw-specific-bubble'].dark).toBeDefined()
     expect(custom['--dsw-alias-brand-primary'].dark).not.toBe('#FF5722')
+  })
+
+  it('custom palette follows customColor across buttons, links, accents and static scales', () => {
+    // 修复前:主按钮/链接文字/选中态/static 刻度仍写死 QQ 蓝,导致部分
+    // 带颜色的文字、链接、按钮不跟随自定义主色。
+    const custom = buildTokenOverrides('custom', '#FF5722')
+    expect(custom['--dsw-alias-button-primary-fill']).toMatchObject({ light: '#FF5722' })
+    expect(custom['--dsw-alias-button-primary-hover'].light).toBe(mixColors('#FF5722', '#000000', 0.08))
+    expect(custom['--dsw-alias-button-contrast-fill']).toMatchObject({ light: '#FF5722' })
+    expect(custom['--dsw-alias-button-ghost-active-border']).toMatchObject({ light: '#FF5722' })
+    expect(custom['--dsw-specific-sidebar-nav-item-active-accent']).toMatchObject({ light: '#FF5722' })
+    expect(custom['--dsw-alias-label-primary-bluish'].light).toBe(mixColors('#FF5722', '#000000', 0.30))
+    expect(custom['--dsw-alias-interactive-bg-hover-accent'].light).toBe('rgba(255, 87, 34, 0.10)')
+    expect(custom['--dsw-static-deepseek-500']).toMatchObject({ light: '#FF5722', dark: '#FF5722' })
+    expect(custom['--dsw-static-blue-50'].light).toBe(mixColors('#FF5722', '#FFFFFF', 0.94))
+    expect(custom['--dsw-static-deepseek-900'].light).toBe(mixColors('#FF5722', '#000000', 0.55))
+    // 主色之上的反白文字按亮度自动选择(亮主色配白字,提亮后的暗色配深字)。
+    expect(custom['--dsw-alias-brand-primary-invert'].light).toBe('#FFFFFF')
+    expect(custom['--dsw-alias-brand-primary-invert'].dark).toBe('#101822')
+  })
+
+  it('custom palette overrides every token the classic base hardcodes QQ blue into', () => {
+    const deltas = buildCustomTokenDeltas('#FF5722')
+    const blueBound = Object.entries(QQ_TOKEN_OVERRIDES)
+      .filter(([, modes]) => Object.values(modes).some(
+        (value) => value.includes('#12B7F5') || value.includes('rgba(18, 183, 245'),
+      ))
+      .map(([name]) => name)
+    expect(blueBound.length).toBeGreaterThan(0)
+    for (const name of blueBound) {
+      expect(deltas[name], name).toBeDefined()
+    }
+  })
+
+  it('custom palette leaves no hardcoded QQ blue behind', () => {
+    const merged = buildTokenOverrides('custom', '#FF5722')
+    for (const [name, modes] of Object.entries(merged)) {
+      expect(JSON.stringify(modes), name).not.toContain('#12B7F5')
+      expect(JSON.stringify(modes), name).not.toContain('rgba(18, 183, 245')
+    }
+  })
+
+  it('custom palette falls back to the default QQ blue for invalid colors', () => {
+    const custom = buildTokenOverrides('custom', 'not-a-color')
+    expect(custom['--dsw-alias-brand-primary']).toMatchObject({ light: '#12B7F5' })
+    expect(custom['--dsw-static-deepseek-500']).toMatchObject({ light: '#12B7F5' })
+    expect(custom['--dsw-alias-button-primary-fill']).toMatchObject({ light: '#12B7F5' })
   })
 })

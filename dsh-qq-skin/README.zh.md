@@ -33,7 +33,7 @@ App 设置里注册的 **「QQ 皮肤」** 设置行，可视化切换色板 / �
 | 配置项 | 默认值 | 说明 |
 | --- | --- | --- |
 | `palette` | `'classic'` | 色板变体：`classic` 经典蓝 / `vivid` 炫彩紫 / `clean` 简洁白 / `green` 经典绿气泡 / `black` 深空黑 / `custom` 自定义主色 |
-| `customColor` | `'#12B7F5'` | 自定义主色调（十六进制颜色，如 `#FF5722`，当 `palette: 'custom'` 时自动派生亮暗色完整全套 token 阶梯） |
+| `customColor` | `'#12B7F5'` | 自定义主色调（十六进制颜色，如 `#FF5722`）；当 `palette: 'custom'` 时所有品牌相关 token 全部跟随——按钮、链接文字、选中态 accent 以及 static blue/deepseek 整条刻度 |
 | `avatarStyle` | `'classic'` | 企鹅头像装扮：`classic` 经典原版 / `sunglasses` 酷炫墨镜 / `scarf` 暖冬红围巾（高精度 SVG 动态图层叠加） |
 | `bubbleTail` | `true` | 用户气泡右侧"尾巴"小三角 |
 | `assistantAvatar` | `true` | 助手消息左侧官方 QQ 企鹅头像圆标 |
