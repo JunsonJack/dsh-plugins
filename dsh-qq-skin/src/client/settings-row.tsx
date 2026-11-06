@@ -13,7 +13,7 @@
  * 样式用内联 style 直读 `--dsw-*` token(跟随色板与亮暗),不依赖构建期
  * CSS Modules 管线——本插件的客户端 bundle 无 CSS 处理步骤。
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls ui-settings 的 SlotMap 声明合并(声明 settings.general.item
@@ -244,6 +244,19 @@ export function QQSkinSettingsRow({
   const [widthDraft, setWidthDraft] = useState(String(config.chatMaxWidth))
   const [widthFocused, setWidthFocused] = useState(false)
 
+  // 自定义主色:草稿态即时回显 + 40ms 防抖提交。拖拽拾色时输入框不被
+  // 宿主快照的异步回写跳变;主题层由运行时原地热更新(无闪屏),提交只
+  // 负责把最终色持久化。
+  const [colorDraft, setColorDraft] = useState(config.customColor)
+  const colorTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  useEffect(() => { setColorDraft(config.customColor) }, [config.customColor])
+  useEffect(() => () => { if (colorTimer.current) window.clearTimeout(colorTimer.current) }, [])
+  const pickColor = (value: string): void => {
+    setColorDraft(value)
+    if (colorTimer.current) window.clearTimeout(colorTimer.current)
+    colorTimer.current = setTimeout(() => { setCustomColor(value) }, 40)
+  }
+
   useEffect(() => {
     if (!widthFocused) {
       setWidthDraft(String(config.chatMaxWidth))
@@ -287,15 +300,15 @@ export function QQSkinSettingsRow({
           <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <input
               type="color"
-              value={config.customColor}
-              onChange={event => { setCustomColor(event.currentTarget.value) }}
+              value={colorDraft}
+              onChange={event => { pickColor(event.currentTarget.value) }}
               style={{
                 width: '32px', height: '28px', padding: 0, border: 'none',
                 borderRadius: '6px', background: 'transparent', cursor: 'pointer',
               }}
             />
             <span style={{ fontSize: '13px', fontFamily: 'monospace', color: 'var(--dsw-alias-label-secondary)' }}>
-              {config.customColor}
+              {colorDraft.toUpperCase()}
             </span>
           </span>
         </div>

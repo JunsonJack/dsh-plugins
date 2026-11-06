@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import {
-  buildQQLayoutCss, installQQLayout, QQ_LAYOUT_CSS, QQ_LAYOUT_PLUGIN,
+  buildQQLayoutCss, createQQLayoutLayer, installQQLayout, QQ_LAYOUT_CSS, QQ_LAYOUT_PLUGIN,
 } from '../src/client/qq-layout.ts'
 import { QQ_SKIN_DEFAULT_CONFIG } from '../src/client/config.ts'
 
@@ -69,6 +69,24 @@ describe('QQ NT layout layer', () => {
 
     await ctx.fiber.dispose()
 
+    expect(tag.remove).toHaveBeenCalledTimes(1)
+  })
+
+  it('layer handle rewrites the same stylesheet in place on hot update', () => {
+    const { nodes } = stubDocument()
+    const layer = createQQLayoutLayer()
+    expect(nodes).toHaveLength(1)
+    const tag = nodes[0]
+    expect(tag.textContent).toBe(QQ_LAYOUT_CSS)
+
+    layer.set({ ...QQ_SKIN_DEFAULT_CONFIG, chatMaxWidth: 720 })
+
+    // 原地改写:标签不被移除重建,拖色调色时无裸题闪屏。
+    expect(nodes).toHaveLength(1)
+    expect(tag.remove).not.toHaveBeenCalled()
+    expect(tag.textContent).toContain('max-width: 720px')
+
+    layer.remove()
     expect(tag.remove).toHaveBeenCalledTimes(1)
   })
 })

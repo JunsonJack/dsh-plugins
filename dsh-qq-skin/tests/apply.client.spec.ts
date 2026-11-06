@@ -108,7 +108,7 @@ describe('dsh-qq-skin client apply', () => {
     expect(QQ_SKIN_SETTINGS_NS).toBe('qq-skin')
   })
 
-  it('hot-updates both layers when the settings section changes', () => {
+  it('hot-updates both layers in place when the settings section changes', () => {
     const nodes = stubDocument()
     const overrideTokens = vi.fn(() => vi.fn())
     const { ctx, host } = makeCtx(overrideTokens)
@@ -118,13 +118,15 @@ describe('dsh-qq-skin client apply', () => {
     // 首次:配置未到达 → 出厂默认 classic,单次挂载。
     expect(nodes).toHaveLength(1)
 
-    // 模拟设置持久化:palette → vivid,订阅者把旧的 <style> 重建为 vivid。
+    // 模拟设置持久化:palette → vivid + 宽度调整,订阅者把同一 <style>
+    // 原地改写为 vivid(不移除不重建,避免调色时闪回裸题)。
     nodes[0].remove.mockClear()
-    host.push({ palette: 'vivid' })
+    host.push({ palette: 'vivid', chatMaxWidth: 720 })
 
     expect(overrideTokens).toHaveBeenLastCalledWith(QQ_SKIN_SOURCE, buildTokenOverrides('vivid'))
-    expect(nodes).toHaveLength(2)
-    expect(nodes[0].remove).toHaveBeenCalledTimes(1)
+    expect(nodes).toHaveLength(1)
+    expect(nodes[0].remove).not.toHaveBeenCalled()
+    expect(nodes[0].textContent).toContain('max-width: 720px')
   })
 
   it('does not remount the layers when the ready snapshot matches the first paint', () => {

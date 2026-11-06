@@ -333,18 +333,42 @@ body[data-ds-dark-theme] [data-time-hover-root] [class$='_timeEnd'] {
 export const QQ_LAYOUT_CSS = buildQQLayoutCss(QQ_SKIN_DEFAULT_CONFIG)
 
 /**
- * 创建并注入一个全局 <style> 标签,返回移除函数。低层原语,供运行时
- * 热更新(重建样式标签)与一次性安装复用;不依赖 effect 生命周期。
- * @param config - 用户配置(气泡尾巴/头像/宽度等,可缺省)。
- * @returns 移除该样式标签的清理函数。
+ * 布局层句柄:持有注入的 `<style>` 标签。热更新走 `set` 原地改写标签
+ * 内容(不移除不重建),避免"先拆后建"的中间裸态造成主题闪回默认色
+ * 的展示抽搐;`remove` 仅在插件卸载时调用。
  */
-export function createQQLayoutTag(config?: QQSkinConfig): () => void {
-  if (typeof document === 'undefined') return () => {}
+export interface QQLayoutLayer {
+  /** 原地替换样式内容(同一 `<style>` 标签,无闪屏)。 */
+  set: (config?: QQSkinConfig) => void
+  /** 移除样式标签。 */
+  remove: () => void
+}
+
+/**
+ * 创建并注入布局层:一个全局 `<style>` 标签 + 原地更新/移除句柄。
+ * @param config - 用户配置(气泡尾巴/头像/宽度等,可缺省)。
+ * @returns 布局层句柄。
+ */
+export function createQQLayoutLayer(config?: QQSkinConfig): QQLayoutLayer {
+  if (typeof document === 'undefined') return { set: () => {}, remove: () => {} }
   const tag = document.createElement('style')
   tag.dataset.plugin = QQ_LAYOUT_PLUGIN
   tag.textContent = buildQQLayoutCss(config)
   document.head.appendChild(tag)
-  return () => { tag.remove() }
+  return {
+    set: (next?: QQSkinConfig) => { tag.textContent = buildQQLayoutCss(next) },
+    remove: () => { tag.remove() },
+  }
+}
+
+/**
+ * 创建并注入一个全局 `<style>` 标签,返回移除函数(一次性安装用)。
+ * 热更新请走 {@link createQQLayoutLayer} 的原地 `set`。
+ * @param config - 用户配置(气泡尾巴/头像/宽度等,可缺省)。
+ * @returns 移除该样式标签的清理函数。
+ */
+export function createQQLayoutTag(config?: QQSkinConfig): () => void {
+  return createQQLayoutLayer(config).remove
 }
 
 /**
