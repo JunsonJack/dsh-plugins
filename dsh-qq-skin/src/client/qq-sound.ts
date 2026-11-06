@@ -23,6 +23,8 @@ import type { QQSkinConfig } from './config.ts'
 const FLOW_SELECTOR = '[data-chat-flow]'
 /** 助手消息节点选择器(harness ChatNodeSeat 的 data-chat-flow-kind)。 */
 const STEP_SELECTOR = "[data-chat-flow-kind='assistant-step']"
+/** 提示音防抖冷却时间(ms):6 声嘀总长约 1.2s,冷却期内抑制重叠发声。 */
+const SOUND_COOLDOWN_MS = 1200
 
 /**
  * 音效运行时:持有当前开关状态,管理 sentinel + flow 两个 observer。
@@ -39,6 +41,12 @@ export class QQSoundRuntime {
   private observer: MutationObserver | undefined
   /** 已播放过的助手节点集合(避免同一节点重复播放)。 */
   private readonly played: WeakSet<Element> = new WeakSet()
+  /** 上次播放时间戳,用于冷却防抖。 */
+  private lastPlayedTime = 0
+  /** 复用的 AudioContext 实例,空闲时释放。 */
+  private audioCtx: AudioContext | undefined
+  /** 自动关闭 AudioContext 的定时器。 */
+  private closeTimer: ReturnType<typeof setTimeout> | undefined
 
   /**
    * @param ctx - 客户端插件上下文(effect 生命周期)。
@@ -66,10 +74,21 @@ export class QQSoundRuntime {
     this.applyObserver(config)
   }
 
-  /** 卸载两个 observer(插件 dispose 与热更新时共用)。 */
+  /** 卸载两个 observer 与音频资源(插件 dispose 与热更新时共用)。 */
   dispose(): void {
     this.disposeObserver()
     this.disposeSentinel()
+    this.disposeAudio()
+  }
+
+  /** 将目标根节点下已有的助手消息记入已播放,避免作为新消息误触发。 */
+  private seedExisting(root: Element): void {
+    const existing = typeof root.querySelectorAll === 'function'
+      ? root.querySelectorAll(STEP_SELECTOR)
+      : []
+    for (const el of Array.from(existing)) {
+      this.played.add(el)
+    }
   }
 
   /** 按配置挂载 sentinel(或直接挂 flow observer 如果聊天流已存在)。 */
@@ -77,9 +96,10 @@ export class QQSoundRuntime {
     if (!config.messageSound) return
     if (typeof document === 'undefined') return
 
-    // 快路径:聊天流已挂载,直接观察。
+    // 快路径:聊天流已挂载,先记录已有历史消息,再挂载观察。
     const flow = document.querySelector(FLOW_SELECTOR)
     if (flow) {
+      this.seedExisting(flow)
       this.mountFlowObserver(flow)
       return
     }
@@ -104,22 +124,39 @@ export class QQSoundRuntime {
     this.observer.observe(flow, { childList: true, subtree: true })
   }
 
-  /** 从 mutation 记录中提取新增的 assistant-step 并播放(去重)。 */
+  /** 从 mutation 记录中提取新增的 assistant-step 并播放(去重、历史静默、防抖)。 */
   private handleMutations(mutations: MutationRecord[]): void {
+    const targets: Element[] = []
     for (const mutation of mutations) {
       for (const node of mutation.addedNodes) {
         if (!(node instanceof Element)) continue
-        // 新增节点本身是 assistant-step,或其内部包含 assistant-step。
-        const targets = node.matches(STEP_SELECTOR)
-          ? [node]
-          : Array.from(node.querySelectorAll(STEP_SELECTOR))
-        for (const target of targets) {
-          if (this.played.has(target)) continue
-          this.played.add(target)
-          void this.playSound()
+        if (typeof node.matches === 'function' && node.matches(STEP_SELECTOR)) {
+          targets.push(node)
+        } else if (typeof node.querySelectorAll === 'function') {
+          const nested = node.querySelectorAll(STEP_SELECTOR)
+          for (const item of Array.from(nested)) {
+            targets.push(item)
+          }
         }
       }
     }
+
+    const unplayed = targets.filter(target => !this.played.has(target))
+    for (const target of unplayed) {
+      this.played.add(target)
+    }
+
+    // 若未产生未播放的新节点则跳过
+    if (unplayed.length === 0) return
+
+    // 若同批新增多条消息(历史记录批量挂载或会话切换),一律静默不发声
+    if (unplayed.length > 1) return
+
+    // 单条真实新消息:防抖冷却保护,避免流式输出连续多 step 造成音效重叠
+    const now = Date.now()
+    if (now - this.lastPlayedTime < SOUND_COOLDOWN_MS) return
+    this.lastPlayedTime = now
+    void this.playSound()
   }
 
   /** 卸载 flow observer 并清空句柄。 */
@@ -134,6 +171,22 @@ export class QQSoundRuntime {
     this.sentinel = undefined
   }
 
+  /** 释放 AudioContext 及延迟关闭定时器。 */
+  private disposeAudio(): void {
+    if (this.closeTimer !== undefined) {
+      clearTimeout(this.closeTimer)
+      this.closeTimer = undefined
+    }
+    if (this.audioCtx && this.audioCtx.state !== 'closed') {
+      try {
+        void this.audioCtx.close()
+      } catch {
+        // 忽略关闭异常
+      }
+    }
+    this.audioCtx = undefined
+  }
+
   /** 播放一次"嘀嘀嘀嘀嘀嘀"提示音(Web Audio 合成,零资源依赖)。 */
   private async playSound(): Promise<void> {
     if (typeof window === 'undefined') return
@@ -141,7 +194,10 @@ export class QQSoundRuntime {
       const AudioCtor = window.AudioContext
         ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
       if (!AudioCtor) return
-      const audioCtx = new AudioCtor()
+      if (!this.audioCtx || this.audioCtx.state === 'closed') {
+        this.audioCtx = new AudioCtor()
+      }
+      const audioCtx = this.audioCtx
       // autoplay 策略:新建 AudioContext 多半处于 suspended 态,
       // 必须 resume() 才能发声;resume() 本身也需用户交互前置,
       // 但 harness 的发送消息已经是用户点击行为,这里顺势放行。
@@ -170,8 +226,13 @@ export class QQSoundRuntime {
       for (let i = 0; i < 6; i++) {
         beep(now + i * 0.2)
       }
-      // 播放完毕后关闭 audioCtx 释放资源。
-      setTimeout(() => { void audioCtx.close() }, 1500)
+      // 播放完毕后重置定时器,延迟关闭释放硬件资源
+      if (this.closeTimer !== undefined) {
+        clearTimeout(this.closeTimer)
+      }
+      this.closeTimer = setTimeout(() => {
+        this.disposeAudio()
+      }, 1500)
     } catch {
       // 自动播放策略拦截或 AudioContext 不可用,静默吞掉。
     }

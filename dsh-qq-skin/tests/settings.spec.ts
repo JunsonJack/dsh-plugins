@@ -43,4 +43,11 @@ describe('QQ skin settings', () => {
     expect(config.messageSound).toBe(true)
     expect(config.typing).toBe(false)
   })
+
+  it('sanitizes invalid or out-of-range fields from settings section', () => {
+    const section: QQSkinSettings = { palette: 'unknown' as never, chatMaxWidth: 200 }
+    const config = settingsToConfig(section)
+    expect(config.palette).toBe('classic')
+    expect(config.chatMaxWidth).toBe(480)
+  })
 })

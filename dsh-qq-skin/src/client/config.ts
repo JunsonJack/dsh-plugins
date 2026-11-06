@@ -51,8 +51,13 @@ function normalizeChatMaxWidth(value: unknown): number {
   return Math.min(CHAT_MAX_WIDTH_MAX, Math.max(CHAT_MAX_WIDTH_MIN, Math.round(value)))
 }
 
+/** 用户可调配置(可选/部分)。显式包含 undefined 以兼容 exactOptionalPropertyTypes。 */
+export type PartialQQSkinConfig = {
+  [K in keyof QQSkinConfig]?: QQSkinConfig[K] | undefined
+}
+
 /** 合并用户配置与默认值,非法字段回落默认。 */
-export function resolveQQSkinConfig(config?: Partial<QQSkinConfig>): QQSkinConfig {
+export function resolveQQSkinConfig(config?: PartialQQSkinConfig): QQSkinConfig {
   const raw = config ?? {}
   return {
     palette: QQ_SKIN_PALETTES.includes(raw.palette as QQSkinPalette)

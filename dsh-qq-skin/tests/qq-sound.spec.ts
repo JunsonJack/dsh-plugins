@@ -179,4 +179,146 @@ describe('QQSoundRuntime', () => {
     expect(observers[1].observe).toHaveBeenCalledWith(flow, { childList: true, subtree: true })
     void ctx.fiber.dispose()
   })
+
+  it('silences sound when multiple assistant steps mount in batch (history restore)', () => {
+    let flow: Element | null = null
+    const observers: Array<{ callback: MutationCallback }> = []
+    vi.stubGlobal('document', {
+      querySelector: vi.fn(() => flow),
+    })
+    vi.stubGlobal('MutationObserver', class {
+      callback: MutationCallback
+      observe = vi.fn()
+      disconnect = vi.fn()
+      constructor(cb: MutationCallback) {
+        this.callback = cb
+        observers.push(this)
+      }
+    })
+    class FakeElement {
+      matches: (sel: string) => boolean
+      querySelectorAll: (sel: string) => FakeElement[]
+      constructor(matches: (sel: string) => boolean, querySelectorAll: (sel: string) => FakeElement[]) {
+        this.matches = matches
+        this.querySelectorAll = querySelectorAll
+      }
+    }
+    vi.stubGlobal('Element', FakeElement)
+    const audioCtxs: unknown[] = []
+    vi.stubGlobal('window', {
+      AudioContext: class {
+        state = 'running'
+        currentTime = 0
+        destination = {}
+        createOscillator = () => ({
+          connect: vi.fn(() => ({ connect: vi.fn() })),
+          start: vi.fn(),
+          stop: vi.fn(),
+          type: '',
+          frequency: { value: 0 },
+        })
+        createGain = () => ({
+          gain: {
+            setValueAtTime: vi.fn(),
+            linearRampToValueAtTime: vi.fn(),
+            exponentialRampToValueAtTime: vi.fn(),
+          },
+          connect: vi.fn(),
+        })
+        close = vi.fn()
+        resume = vi.fn()
+        constructor() { audioCtxs.push(this) }
+      },
+    })
+
+    const ctx = new Context()
+    new QQSoundRuntime(ctx, soundOn)
+
+    // 模拟同批挂载 3 条历史消息
+    const step1 = new FakeElement((sel) => sel === "[data-chat-flow-kind='assistant-step']", () => [])
+    const step2 = new FakeElement((sel) => sel === "[data-chat-flow-kind='assistant-step']", () => [])
+    const step3 = new FakeElement((sel) => sel === "[data-chat-flow-kind='assistant-step']", () => [])
+    const flowEl = new FakeElement(() => false, () => [step1, step2, step3])
+    flow = flowEl
+
+    const mutation = { addedNodes: [flowEl] } as unknown as MutationRecord
+    observers[0].callback([mutation], observers[0] as unknown as MutationObserver)
+
+    // 历史批量消息应静默,不实例化 AudioContext 发声
+    expect(audioCtxs).toHaveLength(0)
+    void ctx.fiber.dispose()
+  })
+
+  it('debounces sounds that arrive within the cooldown window', () => {
+    let flow: Element | null = null
+    const observers: Array<{ callback: MutationCallback }> = []
+    vi.stubGlobal('document', {
+      querySelector: vi.fn(() => flow),
+    })
+    vi.stubGlobal('MutationObserver', class {
+      callback: MutationCallback
+      observe = vi.fn()
+      disconnect = vi.fn()
+      constructor(cb: MutationCallback) {
+        this.callback = cb
+        observers.push(this)
+      }
+    })
+    class FakeElement {
+      matches: (sel: string) => boolean
+      querySelectorAll: (sel: string) => FakeElement[]
+      constructor(matches: (sel: string) => boolean, querySelectorAll: (sel: string) => FakeElement[]) {
+        this.matches = matches
+        this.querySelectorAll = querySelectorAll
+      }
+    }
+    vi.stubGlobal('Element', FakeElement)
+    let playCount = 0
+    vi.stubGlobal('window', {
+      AudioContext: class {
+        state = 'running'
+        currentTime = 0
+        destination = {}
+        createOscillator = () => {
+          playCount++
+          return {
+            connect: vi.fn(() => ({ connect: vi.fn() })),
+            start: vi.fn(),
+            stop: vi.fn(),
+            type: '',
+            frequency: { value: 0 },
+          }
+        }
+        createGain = () => ({
+          gain: {
+            setValueAtTime: vi.fn(),
+            linearRampToValueAtTime: vi.fn(),
+            exponentialRampToValueAtTime: vi.fn(),
+          },
+          connect: vi.fn(),
+        })
+        close = vi.fn()
+        resume = vi.fn()
+      },
+    })
+
+    const ctx = new Context()
+    new QQSoundRuntime(ctx, soundOn)
+
+    const step1 = new FakeElement((sel) => sel === "[data-chat-flow-kind='assistant-step']", () => [])
+    const flowEl = new FakeElement(() => false, () => [step1])
+    flow = flowEl
+
+    // 第一声:触发播放 (6 个 beep)
+    observers[0].callback([{ addedNodes: [flowEl] } as unknown as MutationRecord], observers[0] as unknown as MutationObserver)
+    expect(playCount).toBe(6)
+
+    // 在 1.2s 冷却期内到达的后续 step
+    const step2 = new FakeElement((sel) => sel === "[data-chat-flow-kind='assistant-step']", () => [])
+    observers[0].callback([{ addedNodes: [step2] } as unknown as MutationRecord], observers[0] as unknown as MutationObserver)
+
+    // 应被防抖抑制,保持为 6 次 beep
+    expect(playCount).toBe(6)
+    void ctx.fiber.dispose()
+  })
 })

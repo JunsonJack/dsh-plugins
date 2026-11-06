@@ -12,19 +12,24 @@
  * ⚠ 本文件保持零运行时依赖(不 import schemastery/react),客户端 bundle
  * 与宿主 schema 均可安全引用;schema 本体放宿主侧(settings-schema.ts)。
  */
-import { resolveQQSkinConfig, type QQSkinConfig, type QQSkinPalette } from './config.ts'
+import {
+  resolveQQSkinConfig,
+  type PartialQQSkinConfig,
+  type QQSkinConfig,
+  type QQSkinPalette,
+} from './config.ts'
 
 /** 设置命名空间 == profile 条目 id(cordis.patch.yml 的 `id`)。 */
 export const QQ_SKIN_SETTINGS_NS = 'qq-skin'
 
 /** 设置分节里的持久化字段:形状与 QQSkinConfig 一致,全部可缺省。 */
 export interface QQSkinSettings {
-  palette?: QQSkinPalette
-  bubbleTail?: boolean
-  assistantAvatar?: boolean
-  chatMaxWidth?: number
-  messageSound?: boolean
-  typing?: boolean
+  palette?: QQSkinPalette | undefined
+  bubbleTail?: boolean | undefined
+  assistantAvatar?: boolean | undefined
+  chatMaxWidth?: number | undefined
+  messageSound?: boolean | undefined
+  typing?: boolean | undefined
 }
 
 /**
@@ -35,7 +40,7 @@ export interface QQSkinSettings {
  */
 export function settingsToConfig(
   section: QQSkinSettings | undefined,
-  fallback?: Partial<QQSkinConfig>,
+  fallback?: PartialQQSkinConfig,
 ): QQSkinConfig {
   const s = section ?? {}
   return resolveQQSkinConfig({

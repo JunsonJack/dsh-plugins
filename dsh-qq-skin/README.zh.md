@@ -1,5 +1,7 @@
 # dsh-qq-skin
 
+[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/deepseek-ai/deepseek-harness)
+
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`）的 **QQ NT 风格皮肤插件**：亮暗统一为 QQ NT 语言——**亮色白净克制**（表面近白、边框/hover 中性，品牌蓝 `#12B7F5` 与浅蓝气泡 `#A8E3FF` 只做辨识度点缀），**暗色沉稳蓝灰**（基座 `#101822`，降饱和耐看，蓝同样只点缀），一眼可辨。内置五种色板变体（经典蓝 / 炫彩紫 / 简洁白 / 经典绿气泡 / 深空黑），开关与尺寸均可配置，App 设置面板可视化切换 + 热更新。
 
 [English](README.md)
@@ -22,7 +24,7 @@ App 设置里注册的 **「QQ 皮肤」** 设置行，可视化切换色板 / �
 
 ## 设置面板
 
-皮肤在 App 设置里注册 **「QQ 皮肤」** 设置行，可视化切换色板 / 气泡尾巴 / 企鹅头像 / 会话宽度——变更立即生效（热更新重挂两层，不重启），并持久化到用户设置文档。设置面板改动优先于这里的静态配置。
+皮肤在 App 设置里注册 **「QQ 皮肤」** 设置行，可视化切换色板 / 气泡尾巴 / 企鹅头像 / 会话宽度 / 提示音 / 打字机动效——变更立即生效（热更新重挂两层，不重启），并持久化到用户设置文档。设置面板改动优先于这里的静态配置。
 
 ## 配置
 
@@ -33,12 +35,14 @@ App 设置里注册的 **「QQ 皮肤」** 设置行，可视化切换色板 / �
 | `palette` | `'classic'` | 色板变体：`classic` 经典蓝 / `vivid` 炫彩紫 / `clean` 简洁白 / `green` 经典绿气泡 / `black` 深空黑 |
 | `bubbleTail` | `true` | 用户气泡右侧"尾巴"小三角 |
 | `assistantAvatar` | `true` | 助手消息左侧官方 QQ 企鹅头像圆标 |
-| `chatMaxWidth` | `880` | 聊天流最大宽度（px） |
+| `chatMaxWidth` | `880` | 聊天流最大宽度（px，约束在 480～1600 之间） |
+| `messageSound` | `false` | 新助手消息“嘀嘀”提示音开关（Web Audio 合成，零外部资源依赖，历史加载静音与 1.2s 防抖保护） |
+| `typing` | `true` | 助手消息打字机揭示动效开关 |
 
 示例（在 profile 的插件配置里指定）：
 
 ```json
-{ "palette": "vivid", "bubbleTail": false, "chatMaxWidth": 720 }
+{ "palette": "vivid", "bubbleTail": false, "chatMaxWidth": 720, "messageSound": true, "typing": true }
 ```
 
 ## 覆盖范围
