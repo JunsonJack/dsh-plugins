@@ -25,8 +25,10 @@ import type { QQSkinConfig, QQSkinSoundVariant } from './config.ts'
 const FLOW_SELECTOR = '[data-chat-flow]'
 /** 助手消息节点选择器(harness ChatNodeSeat 的 data-chat-flow-kind)。 */
 const STEP_SELECTOR = "[data-chat-flow-kind='assistant-step']"
-/** 用户消息节点选择器(harness ChatNodeSeat 或气泡元素)。 */
-const USER_SELECTOR = "[data-chat-flow-kind='user'], [class$='_bubble']"
+/** 用户消息节点选择器(harness ChatNodeSeat 或气泡元素)。
+ * 气泡锚点用 `data-message-bubble`(UserMessageBubble 透传的稳定属性),
+ * 不依赖 CSS Modules 的 hash 类名。 */
+const USER_SELECTOR = "[data-chat-flow-kind='user'], [data-message-bubble]"
 
 /** 发送消息防抖冷却时间(ms)。 */
 const SENT_SOUND_COOLDOWN_MS = 400

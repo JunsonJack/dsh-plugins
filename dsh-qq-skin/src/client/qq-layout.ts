@@ -10,11 +10,14 @@
  * 样式按配置生成(`buildQQLayoutCss`):气泡尾巴、企鹅头像、聊天流宽度
  * 均可开关/调整,未配置字段回落 `QQ_SKIN_DEFAULT_CONFIG`。
  *
- * 选择器策略:客户端 CSS Modules 的类名模式为 `[hash]_[local]`(本地名
- * 保留在类名尾部),因此 `[class$="_localName"]` 可稳定命中组件内部节点;
- * 结构钩子优先使用组件源码里的 `data-*` 属性(`data-chat-flow`、
+ * 选择器策略:优先使用组件源码里的 `data-*` 属性(`data-chat-flow`、
  * `data-composer-card`、`data-chat-flow-kind`、`data-time-hover-root`、
- * `data-conversation-scroll` 等),两者均不依赖 hash。会话头部是
+ * `data-conversation-scroll`、`data-message-bubble` 等),它们与 hash 无关。
+ * CSS Modules 类名有两种形态:多数是 `[hash]_[local]`(本地名在尾部,
+ * `[class$='_localName']` 可稳定命中),但用户消息气泡所在的
+ * @deepseek-ai/dsh-client-ui-primitives 模块是 `_[local]_[hash]`
+ * (本地名在开头,如 `_bubble_1sgyj_1`),因此气泡一律走
+ * `data-message-bubble` 属性锚点。会话头部是
  * ConversationSession 的 `<header>` 元素(同列各面板的 header 均为 div,
  * 用 `header[class$='_header']` 唯一命中,不误伤 DetailsPanel/TodoPanel)。
  * 暗色变体统一由 `body[data-ds-dark-theme]`(ui-theme 呈现器写入)门控。
@@ -26,6 +29,21 @@ import { parseHexColor } from './qq-tokens.ts'
 
 /** 注入的 <style> 标签归属标识(便于排查与测试断言)。 */
 export const QQ_LAYOUT_PLUGIN = 'dsh-qq-skin/layout'
+
+/**
+ * 用户消息气泡的稳定选择器。
+ *
+ * harness 的 CSS Modules 类名形如 `_bubble_1sgyj_1`(本地名在**开头**),
+ * 与 `[data-message-bubble][data-message-bubble]`(本地名在结尾)的假设相反——早期版本因此从未命中
+ * 真正的用户气泡。UserMessageBubble 组件会把 `data-message-bubble` 属性
+ * 透传到该 <div> 上,这是与 hash 无关的稳定锚点,故以它为准。
+ *
+ * 写法上重复一次属性选择器(`[data-message-bubble][data-message-bubble]`)
+ * 以把特异度提到 (0,2,0),稳定压过 harness 的 `.\_bubble_1sgyj_1`
+ * (0,1,0)——后者声明 `color: var(--dsw-alias-label-primary)`,正是气泡
+ * 文字发黑的根因。
+ */
+export const QQ_USER_BUBBLE_SELECTOR = '[data-message-bubble][data-message-bubble]'
 
 /** 企鹅头像圆标(默认开启时注入;关闭后无头像,也不占左侧空间;支持墨镜/围巾装扮)。
  * glow 为头像投影的主色 RGB:custom 色板跟随自定义主色,其余色板保持经典 QQ 蓝。 */
@@ -58,7 +76,7 @@ function avatarRule(style: QQAvatarStyle = 'classic', glow: [number, number, num
 /** 用户气泡"尾巴"(默认开启时注入,QQ 右侧指向头像的小三角)。 */
 function bubbleTailRule(): string {
   return `
-[class$='_bubble']::after {
+[data-message-bubble][data-message-bubble]::after {
   content: '';
   position: absolute;
   right: -5px;
@@ -214,7 +232,7 @@ ${typing ? typingRule() : ''}
     白字通用(用 rgb() 而非 #FFF,遵守布局层不写十六进制色的护栏)。气泡内
     链接继承白字,避免蓝链接融进蓝底。简洁白色板是唯一例外:亮色气泡为纯白
     底,必须配深字并描一道发丝边,否则白底白字(暗色仍为深底 → 仍用白字)。 */
-[class$='_bubble'] {
+[data-message-bubble][data-message-bubble] {
   position: relative;
   border-radius: ${isQqBlue ? '16px' : '16px 6px 16px 16px'};
   color: ${bubbleForeground};
@@ -225,22 +243,22 @@ ${typing ? typingRule() : ''}
    --dsw-alias-label-* 取自己的深色,只给气泡容器上色会被子元素覆盖,
    所以逐元素覆盖(:not(pre)/:not(pre *)/:not(code) 排除代码块,
    避免白字压在浅色代码底上)。 */
-[class$='_bubble'] :not(pre):not(pre *):not(code) {
+[data-message-bubble][data-message-bubble] :not(pre):not(pre *):not(code) {
   color: ${bubbleForeground};
 }
-[class$='_bubble'] a {
+[data-message-bubble][data-message-bubble] a {
   color: inherit;
 }
 ${isClean ? `/* 简洁白:暗色气泡回到深底,文字回到白字。 */
-body[data-ds-dark-theme] [class$='_bubble'],
-body[data-ds-dark-theme] [class$='_bubble'] :not(pre):not(pre *):not(code) {
+body[data-ds-dark-theme] [data-message-bubble][data-message-bubble],
+body[data-ds-dark-theme] [data-message-bubble][data-message-bubble] :not(pre):not(pre *):not(code) {
   color: rgb(255, 255, 255);
 }
 ` : ''}
 ${bubbleTail ? bubbleTailRule() : ''}
 ${isQqBlue ? `
 /* QQ蓝色板:还原参考图的轻微 135° 渐变(仅亮色;暗色保持实色深底)。 */
-body:not([data-ds-dark-theme]) [class$='_bubble'] {
+body:not([data-ds-dark-theme]) [data-message-bubble][data-message-bubble] {
   background-image: linear-gradient(135deg, rgb(${gradStart[0]}, ${gradStart[1]}, ${gradStart[2]}) 0%, rgb(${gradEnd[0]}, ${gradEnd[1]}, ${gradEnd[2]}) 100%);
 }
 ` : ''}
@@ -337,10 +355,10 @@ header[class$='_header'] {
    的 mark/name 插槽)原样呈现,QQ 感完全由蓝色 token 层体现。 */
 
 /* ── 暗色微调:阴影与伪元素在深底上降噪 ────────────────────────────── */
-body[data-ds-dark-theme] [class$='_bubble'] {
+body[data-ds-dark-theme] [data-message-bubble][data-message-bubble] {
   box-shadow: none;
 }
-${bubbleTail ? `body[data-ds-dark-theme] [class$='_bubble']::after {
+${bubbleTail ? `body[data-ds-dark-theme] [data-message-bubble][data-message-bubble]::after {
   box-shadow: none;
 }
 ` : ''}body[data-ds-dark-theme] [data-composer-card] {

@@ -93,12 +93,12 @@ describe('QQ NT layout layer', () => {
 
 describe('QQ NT layout config branches', () => {
   it('bubble tail rule appears by default and can be disabled', () => {
-    const tailRule = `[class$='_bubble']::after`
+    const tailRule = `[data-message-bubble][data-message-bubble]::after`
     expect(QQ_LAYOUT_CSS).toContain(tailRule)
     const off = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, bubbleTail: false })
     expect(off).not.toContain(tailRule)
     // The dark-mode tail companion follows the same switch.
-    expect(off).not.toContain(`body[data-ds-dark-theme] [class$='_bubble']::after`)
+    expect(off).not.toContain(`body[data-ds-dark-theme] [data-message-bubble][data-message-bubble]::after`)
   })
 
   it('assistant avatar rule appears by default and can be disabled', () => {
@@ -188,9 +188,9 @@ describe('QQ NT layout config branches', () => {
 
   it('qqblue palette renders uniform bubble corners and a subtle light-mode gradient', () => {
     const qqblue = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, palette: 'qqblue' })
-    expect(qqblue).toMatch(/\[class\$='_bubble'\] \{\s*position: relative;\s*border-radius: 16px;/)
+    expect(qqblue).toMatch(/\[data-message-bubble\]\[data-message-bubble\] \{\s*position: relative;\s*border-radius: 16px;/)
     expect(qqblue).toContain('linear-gradient(135deg, rgb(44, 110, 214) 0%, rgb(48, 95, 204) 100%)')
-    expect(qqblue).toContain("body:not([data-ds-dark-theme]) [class$='_bubble']")
+    expect(qqblue).toContain("body:not([data-ds-dark-theme]) [data-message-bubble][data-message-bubble]")
   })
 
   it('classic palette keeps the tail-side small corner and no gradient', () => {
@@ -198,35 +198,46 @@ describe('QQ NT layout config branches', () => {
     expect(QQ_LAYOUT_CSS).not.toContain('linear-gradient')
   })
 
+  it('targets the user bubble through the hash-independent data-message-bubble anchor', () => {
+    // harness 的用户气泡类名是 `_bubble_1sgyj_1`(本地名在开头),
+    // `[class$='_bubble']` 从不命中 → 白字/圆角/尾巴全部失效。
+    // 气泡一律走 UserMessageBubble 透传的 data-message-bubble 属性。
+    expect(QQ_LAYOUT_CSS).not.toContain("[class$='_bubble']")
+    expect(QQ_LAYOUT_CSS).toContain('[data-message-bubble][data-message-bubble] {')
+    // 重复属性选择器把特异度提到 (0,2,0),压过 harness 的 (0,1,0) 类规则。
+    expect(QQ_LAYOUT_CSS).toContain('[data-message-bubble][data-message-bubble] :not(pre):not(pre *):not(code) {')
+    expect(QQ_LAYOUT_CSS).toContain('[data-message-bubble][data-message-bubble]::after {')
+  })
+
   it('renders user bubbles solid with white text and inherited link color', () => {
     // 实色气泡上深色字不可读:布局层统一指定白字,链接继承白字避免蓝链
     // 接融进蓝底(对应 QQ 发送气泡观感)。
-    expect(QQ_LAYOUT_CSS).toMatch(/\[class\$='_bubble'\] \{[^}]*color: rgb\(255, 255, 255\)/)
-    expect(QQ_LAYOUT_CSS).toContain("[class$='_bubble'] a {")
+    expect(QQ_LAYOUT_CSS).toMatch(/\[data-message-bubble\]\[data-message-bubble\] \{[^}]*color: rgb\(255, 255, 255\)/)
+    expect(QQ_LAYOUT_CSS).toContain("[data-message-bubble][data-message-bubble] a {")
     expect(QQ_LAYOUT_CSS).toContain('color: inherit')
   })
 
   it('forces white text on every bubble descendant but leaves code blocks alone', () => {
     // 气泡里的 markdown 正文各元素从 --dsw-alias-label-* 取自己的深色,
     // 只给容器上色会被子元素覆盖 → 逐元素压白,并排除代码块。
-    expect(QQ_LAYOUT_CSS).toContain("[class$='_bubble'] :not(pre):not(pre *):not(code) {")
+    expect(QQ_LAYOUT_CSS).toContain("[data-message-bubble][data-message-bubble] :not(pre):not(pre *):not(code) {")
     const descendantRule = QQ_LAYOUT_CSS.slice(
-      QQ_LAYOUT_CSS.indexOf("[class$='_bubble'] :not(pre):not(pre *):not(code) {"),
+      QQ_LAYOUT_CSS.indexOf("[data-message-bubble][data-message-bubble] :not(pre):not(pre *):not(code) {"),
     )
     expect(descendantRule.slice(0, descendantRule.indexOf('}'))).toContain('color: rgb(255, 255, 255)')
-    expect(QQ_LAYOUT_CSS).not.toMatch(/\[class\$='_bubble'\] code[^\n]*\{[^}]*color: rgb\(255, 255, 255\)/)
+    expect(QQ_LAYOUT_CSS).not.toMatch(/\[data-message-bubble\]\[data-message-bubble\] code[^\n]*\{[^}]*color: rgb\(255, 255, 255\)/)
   })
 
   it('switches to dark text and a hairline border on the clean palette light bubble', () => {
     // 简洁白气泡是纯白底:白字会隐身 → 亮色用深字 + 发丝边;暗色气泡仍为
     // 深底,靠暗色规则拉回白字。
     const clean = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, palette: 'clean' })
-    expect(clean).toMatch(/\[class\$='_bubble'\] \{[^}]*color: rgb\(15, 40, 59\)/)
-    expect(clean).not.toMatch(/\[class\$='_bubble'\] \{[^}]*color: rgb\(255, 255, 255\)/)
+    expect(clean).toMatch(/\[data-message-bubble\]\[data-message-bubble\] \{[^}]*color: rgb\(15, 40, 59\)/)
+    expect(clean).not.toMatch(/\[data-message-bubble\]\[data-message-bubble\] \{[^}]*color: rgb\(255, 255, 255\)/)
     expect(clean).toContain('border: 1px solid var(--dsw-alias-border-l2);')
-    expect(clean).toContain("[class$='_bubble'] :not(pre):not(pre *):not(code) {\n  color: rgb(15, 40, 59);")
-    expect(clean).toContain("body[data-ds-dark-theme] [class$='_bubble'],")
-    const darkRule = clean.slice(clean.indexOf("body[data-ds-dark-theme] [class$='_bubble'],"))
+    expect(clean).toContain("[data-message-bubble][data-message-bubble] :not(pre):not(pre *):not(code) {\n  color: rgb(15, 40, 59);")
+    expect(clean).toContain("body[data-ds-dark-theme] [data-message-bubble][data-message-bubble],")
+    const darkRule = clean.slice(clean.indexOf("body[data-ds-dark-theme] [data-message-bubble][data-message-bubble],"))
     expect(darkRule.slice(0, darkRule.indexOf('}'))).toContain('color: rgb(255, 255, 255)')
     // 其他色板不该带这条例外规则。
     expect(QQ_LAYOUT_CSS).not.toContain('border: 1px solid var(--dsw-alias-border-l2);')
