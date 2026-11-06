@@ -147,6 +147,9 @@ export function buildQQLayoutCss(config: QQSkinConfig = QQ_SKIN_DEFAULT_CONFIG):
   const isQqBlue = config.palette === 'qqblue'
   const gradStart: [number, number, number] = parseHexColor('#2C6ED6') ?? [44, 110, 214]
   const gradEnd: [number, number, number] = parseHexColor('#305FCC') ?? [48, 95, 204]
+  // 简洁白色板的亮色气泡是纯白底 → 文字改深色(暗色由下方暗色规则拉回白字)。
+  const isClean = config.palette === 'clean'
+  const bubbleForeground = isClean ? 'rgb(15, 40, 59)' : 'rgb(255, 255, 255)'
   return `
 /* ── 消息流:居中收窄,像聊天窗口的画布 ─────────────────────────────── */
 [data-chat-flow] {
@@ -209,23 +212,31 @@ ${typing ? typingRule() : ''}
 /* ── 用户气泡:实色主色底 + 白字(QQ 发送气泡观感)、右上小圆角(尾巴朝
     右侧头像方向)。白字硬编码:实色气泡上深色字不可读;暗色气泡同为深色底,
     白字通用(用 rgb() 而非 #FFF,遵守布局层不写十六进制色的护栏)。气泡内
-    链接继承白字,避免蓝链接融进蓝底。 */
+    链接继承白字,避免蓝链接融进蓝底。简洁白色板是唯一例外:亮色气泡为纯白
+    底,必须配深字并描一道发丝边,否则白底白字(暗色仍为深底 → 仍用白字)。 */
 [class$='_bubble'] {
   position: relative;
   border-radius: ${isQqBlue ? '16px' : '16px 6px 16px 16px'};
-  color: rgb(255, 255, 255);
+  color: ${bubbleForeground};
+  ${isClean ? 'border: 1px solid var(--dsw-alias-border-l2);' : ''}
   box-shadow: 0 1px 2px rgba(${shadow[0]}, ${shadow[1]}, ${shadow[2]}, 0.12);
 }
-/* 气泡内文字一律白字:气泡里的 markdown 正文各元素会从
+/* 气泡内文字一律跟随气泡前景色:气泡里的 markdown 正文各元素会从
    --dsw-alias-label-* 取自己的深色,只给气泡容器上色会被子元素覆盖,
-   所以逐元素压白(:not(pre)/:not(pre *)/:not(code) 排除代码块,
+   所以逐元素覆盖(:not(pre)/:not(pre *)/:not(code) 排除代码块,
    避免白字压在浅色代码底上)。 */
 [class$='_bubble'] :not(pre):not(pre *):not(code) {
-  color: rgb(255, 255, 255);
+  color: ${bubbleForeground};
 }
 [class$='_bubble'] a {
   color: inherit;
 }
+${isClean ? `/* 简洁白:暗色气泡回到深底,文字回到白字。 */
+body[data-ds-dark-theme] [class$='_bubble'],
+body[data-ds-dark-theme] [class$='_bubble'] :not(pre):not(pre *):not(code) {
+  color: rgb(255, 255, 255);
+}
+` : ''}
 ${bubbleTail ? bubbleTailRule() : ''}
 ${isQqBlue ? `
 /* QQ蓝色板:还原参考图的轻微 135° 渐变(仅亮色;暗色保持实色深底)。 */

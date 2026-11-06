@@ -110,7 +110,8 @@ describe('QQ skin token palettes', () => {
     expect(clean['--dsw-alias-brand-primary']).toMatchObject({
       light: '#12B7F5', dark: '#4CB8FF',
     })
-    expect(clean['--dsw-specific-bubble']).toMatchObject({ light: '#1F2A35' })
+    expect(clean['--dsw-specific-bubble']).toMatchObject({ light: '#FFFFFF' })
+    expect(clean['--dsw-specific-bubble-highlight']).toMatchObject({ light: '#F1F6FA' })
   })
 
   it('green palette remaps bubbles and static scale to classic QQ green', () => {
@@ -169,9 +170,10 @@ describe('QQ skin token palettes', () => {
     expect(custom['--dsw-alias-brand-primary'].dark).not.toBe('#FF5722')
   })
 
-  it('every palette ships a solid brand bubble, not a pale tint', () => {
+  it('every palette ships a solid opaque bubble, not a translucent tint', () => {
+    // 简洁白是唯一例外:气泡为纯白实色(配深字),其余色板为品牌实色(配白字)。
     const solid: Record<string, string> = {
-      classic: '#12B7F5', vivid: '#8A5CF5', clean: '#1F2A35', green: '#07C160', black: '#0E2638', qqblue: '#2E65D1',
+      classic: '#12B7F5', vivid: '#8A5CF5', clean: '#FFFFFF', green: '#07C160', black: '#0E2638', qqblue: '#2E65D1',
     }
     for (const [palette, expected] of Object.entries(solid)) {
       const overrides = buildTokenOverrides(palette as never)

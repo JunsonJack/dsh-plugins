@@ -216,4 +216,19 @@ describe('QQ NT layout config branches', () => {
     expect(descendantRule.slice(0, descendantRule.indexOf('}'))).toContain('color: rgb(255, 255, 255)')
     expect(QQ_LAYOUT_CSS).not.toMatch(/\[class\$='_bubble'\] code[^\n]*\{[^}]*color: rgb\(255, 255, 255\)/)
   })
+
+  it('switches to dark text and a hairline border on the clean palette light bubble', () => {
+    // 简洁白气泡是纯白底:白字会隐身 → 亮色用深字 + 发丝边;暗色气泡仍为
+    // 深底,靠暗色规则拉回白字。
+    const clean = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, palette: 'clean' })
+    expect(clean).toMatch(/\[class\$='_bubble'\] \{[^}]*color: rgb\(15, 40, 59\)/)
+    expect(clean).not.toMatch(/\[class\$='_bubble'\] \{[^}]*color: rgb\(255, 255, 255\)/)
+    expect(clean).toContain('border: 1px solid var(--dsw-alias-border-l2);')
+    expect(clean).toContain("[class$='_bubble'] :not(pre):not(pre *):not(code) {\n  color: rgb(15, 40, 59);")
+    expect(clean).toContain("body[data-ds-dark-theme] [class$='_bubble'],")
+    const darkRule = clean.slice(clean.indexOf("body[data-ds-dark-theme] [class$='_bubble'],"))
+    expect(darkRule.slice(0, darkRule.indexOf('}'))).toContain('color: rgb(255, 255, 255)')
+    // 其他色板不该带这条例外规则。
+    expect(QQ_LAYOUT_CSS).not.toContain('border: 1px solid var(--dsw-alias-border-l2);')
+  })
 })

@@ -2,7 +2,7 @@
 
 [![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/deepseek-ai/deepseek-harness)
 
-[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`）的 **QQ NT 风格皮肤插件**：亮暗统一为 QQ NT 语言——**亮色白净克制**（表面近白、边框/hover 中性，品牌蓝 `#12B7F5` 与实色气泡（白字）只做辨识度点缀），**暗色沉稳蓝灰**（基座 `#101822`，降饱和耐看，蓝同样只点缀），一眼可辨。内置六种色板变体（经典蓝 / 炫彩紫 / 简洁白 / 经典绿气泡 / 深空黑 / QQ蓝），开关与尺寸均可配置，App 设置面板可视化切换 + 热更新。
+[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`）的 **QQ NT 风格皮肤插件**：亮暗统一为 QQ NT 语言——**亮色白净克制**（表面近白、边框/hover 中性，品牌蓝 `#12B7F5` 与实色气泡（品牌色配白字，简洁白为白底深字）只做辨识度点缀），**暗色沉稳蓝灰**（基座 `#101822`，降饱和耐看，蓝同样只点缀），一眼可辨。内置六种色板变体（经典蓝 / 炫彩紫 / 简洁白 / 经典绿气泡 / 深空黑 / QQ蓝），开关与尺寸均可配置，App 设置面板可视化切换 + 热更新。
 
 [English](README.md)
 
@@ -32,7 +32,7 @@ App 设置里注册的 **「QQ 皮肤」** 设置行，可视化切换色板 / �
 
 | 配置项 | 默认值 | 说明 |
 | --- | --- | --- |
-| `palette` | `'classic'` | 色板变体：`classic` 经典蓝 / `vivid` 炫彩紫 / `clean` 简洁白 / `green` 经典绿气泡 / `black` 深空黑 / `qqblue` QQ蓝（采样自 QQ NT 实色发送气泡 `#2E65D1`，四角均匀圆角，亮色带轻微 135° 渐变） / `custom` 自定义主色 |
+| `palette` | `'classic'` | 色板变体：`classic` 经典蓝 / `vivid` 炫彩紫 / `clean` 简洁白（白底气泡 + 深色文字） / `green` 经典绿气泡 / `black` 深空黑 / `qqblue` QQ蓝（采样自 QQ NT 实色发送气泡 `#2E65D1`，四角均匀圆角，亮色带轻微 135° 渐变） / `custom` 自定义主色 |
 | `customColor` | `'#12B7F5'` | 自定义主色调（十六进制颜色，如 `#FF5722`）；当 `palette: 'custom'` 时所有品牌相关 token 全部跟随——按钮、链接文字、选中态 accent 以及 static blue/deepseek 整条刻度 |
 | `avatarStyle` | `'classic'` | 企鹅头像装扮：`classic` 经典原版 / `sunglasses` 酷炫墨镜 / `scarf` 暖冬红围巾（高精度 SVG 动态图层叠加） |
 | `bubbleTail` | `true` | 用户气泡右侧"尾巴"小三角 |

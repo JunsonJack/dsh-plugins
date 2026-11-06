@@ -323,9 +323,9 @@ const CLEAN_TOKEN_DELTAS: ThemeTokenOverrides = {
   '--dsw-alias-scrollbar-hover-l1': { light: '#C0C7CF', dark: '#38495C' },
   '--dsw-alias-scrollbar-hover-l2': { light: '#C0C7CF', dark: '#38495C' },
 
-  // 会话专属:实色中性深气泡(简洁白极简观感)
-  '--dsw-specific-bubble': { light: '#1F2A35', dark: '#1A3A52' },
-  '--dsw-specific-bubble-highlight': { light: '#3A4A59', dark: '#24517A' },
+  // 会话专属:纯净白气泡(简洁白观感;白底配深字,由布局层按色板切换文字色)
+  '--dsw-specific-bubble': { light: '#FFFFFF', dark: '#1A3A52' },
+  '--dsw-specific-bubble-highlight': { light: '#F1F6FA', dark: '#24517A' },
   '--dsw-specific-input-major': { light: '#FFFFFF', dark: '#16202C' },
   '--dsw-specific-login-input': { light: '#FFFFFF', dark: '#16202C' },
   '--dsw-specific-menu': { light: '#FFFFFF', dark: '#1B2735' },
