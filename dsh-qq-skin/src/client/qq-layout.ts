@@ -220,11 +220,12 @@ ${typing ? typingRule() : ''}
   color: var(--dsw-alias-label-secondary);
 }
 
-/* ── Markdown 表格:太宽时在卡片内横向滚动,不外溢撑破气泡 ─────────────
-    宽表是回复框横向溢出的主要来源:harness 默认让 <table> 按内容宽度
-    撑开,直接把 assistant 卡片顶出可视区。这里让表格自身成为可滚动
-    容器(table{display:block} + overflow-x:auto),单元格允许换行,
-    既不撑破卡片,又保留横向滚动查看宽列。 */
+/* ── Markdown 表格:唯一允许横向滚动的区域 ───────────────────────────
+    需求:表格太宽时可横向滚动查看;其它正常不溢出的文字块不得出现滚动条。
+    做法:把 <table> 自身变成滚动容器(display:block + overflow-x:auto),
+    列宽按内容自然撑开,超出卡片的部分在表格内部滚动。表头保持单行
+    (white-space:nowrap),它的最小宽度会把宽表推出卡片 → 触发横向滚动;
+    表体单元格允许换行,避免一行文字过长时出现极长的滚动距离。 */
 [data-chat-flow-kind='assistant-step'] table {
   display: block;
   max-width: 100%;
@@ -236,11 +237,17 @@ ${typing ? typingRule() : ''}
 }
 [data-chat-flow-kind='assistant-step'] table th,
 [data-chat-flow-kind='assistant-step'] table td {
-  white-space: normal;
-  word-break: break-word;
   vertical-align: top;
   border: 1px solid var(--dsw-alias-border-l1);
   padding: 6px 10px;
+}
+[data-chat-flow-kind='assistant-step'] table th {
+  white-space: nowrap;
+  font-weight: 600;
+}
+[data-chat-flow-kind='assistant-step'] table td {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 /* 表格横向滚动条:细窄 QQ 风,避免默认滚动条挤占行高。 */
 [data-chat-flow-kind='assistant-step'] table::-webkit-scrollbar {
@@ -253,23 +260,35 @@ ${typing ? typingRule() : ''}
 [data-chat-flow-kind='assistant-step'] table::-webkit-scrollbar-thumb:hover {
   background: var(--dsw-alias-scrollbar-hover-l1);
 }
-/* 用户气泡里的表格同样不得撑破气泡。 */
+/* 用户气泡里的表格同样不得撑破气泡(气泡内表格也可横向滚动)。 */
+[data-message-bubble][data-message-bubble] {
+  overflow-x: hidden;
+}
 [data-message-bubble][data-message-bubble] table {
   display: block;
   max-width: 100%;
   width: max-content;
   overflow-x: auto;
 }
-[data-message-bubble][data-message-bubble] table th,
+[data-message-bubble][data-message-bubble] table th {
+  white-space: nowrap;
+}
 [data-message-bubble][data-message-bubble] table td {
   white-space: normal;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
-/* 卡片本身兜底:任何超长内容(超长代码行/无空格长串)也不撑破气泡。 */
+/* ── 卡片兜底:只做"防外溢",不产生滚动条 ─────────────────────────────
+    需求:只有表格区域可以横向滚动;正常不溢出的文字块不应出现任何滚动条。
+    因此卡片用 overflow-x: hidden(裁掉溢出,不生成滚动条),而不是 auto;
+    长文本改为自动换行(overflow-wrap: anywhere)而不是靠滚动查看。
+    代码块 pre 自带 overflow-x: auto,超长代码仍可在块内滚动。 */
 [data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {
-  overflow-x: auto;
+  overflow-x: hidden;
   max-width: 100%;
+}
+[data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] :not(pre):not(pre *) {
+  overflow-wrap: anywhere;
 }
 
 /* ── Markdown 代码块:QQ NT 仿窗口三色圆点装饰 ──────────────────────── */

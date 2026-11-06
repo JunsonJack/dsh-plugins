@@ -190,9 +190,20 @@ describe('QQ NT layout config branches', () => {
     expect(QQ_LAYOUT_CSS).toContain('overflow-x: auto')
     expect(QQ_LAYOUT_CSS).toContain('width: max-content')
     expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] table th,")
-    expect(QQ_LAYOUT_CSS).toContain("word-break: break-word")
-    // 卡片兜底:超长内容不撑破气泡
-    expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {\n  overflow-x: auto;")
+    // 表头不换行 → 宽表必须能横向滚动;表体单元格可换行
+    expect(QQ_LAYOUT_CSS).toContain('white-space: nowrap')
+    expect(QQ_LAYOUT_CSS).toContain('overflow-wrap: anywhere')
+  })
+
+  it('never shows a scrollbar on ordinary text blocks', () => {
+    // 卡片与气泡只是"防外溢"(hidden),不产生滚动条;
+    // 只有 table 允许 overflow-x: auto。
+    expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {\n  overflow-x: hidden;")
+    expect(QQ_LAYOUT_CSS).toContain("[data-message-bubble][data-message-bubble] {\n  overflow-x: hidden;")
+    const autoRules = QQ_LAYOUT_CSS.match(/[^{}]*\{[^{}]*overflow-x: auto[^{}]*\}/g) ?? []
+    for (const rule of autoRules) {
+      expect(rule).toContain('table')
+    }
   })
 
   it('keeps wide tables inside the user bubble too', () => {
