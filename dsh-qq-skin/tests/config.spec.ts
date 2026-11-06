@@ -54,6 +54,16 @@ describe('QQ skin config', () => {
     expect(resolveQQSkinConfig({ typing: 1 as never }).typing).toBe(true)
   })
 
+  it('messageSound and sendSound default to false and toggle via override', () => {
+    expect(resolveQQSkinConfig().messageSound).toBe(false)
+    expect(resolveQQSkinConfig({ messageSound: true }).messageSound).toBe(true)
+    expect(resolveQQSkinConfig({ messageSound: 1 as never }).messageSound).toBe(false)
+
+    expect(resolveQQSkinConfig().sendSound).toBe(false)
+    expect(resolveQQSkinConfig({ sendSound: true }).sendSound).toBe(true)
+    expect(resolveQQSkinConfig({ sendSound: 'yes' as never }).sendSound).toBe(false)
+  })
+
   it('soundVariant defaults to beep and accepts waterdrop or knock', () => {
     expect(resolveQQSkinConfig().soundVariant).toBe('beep')
     expect(resolveQQSkinConfig({ soundVariant: 'waterdrop' }).soundVariant).toBe('waterdrop')

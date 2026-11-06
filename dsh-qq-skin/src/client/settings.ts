@@ -30,6 +30,7 @@ export interface QQSkinSettings {
   assistantAvatar?: boolean | undefined
   chatMaxWidth?: number | undefined
   messageSound?: boolean | undefined
+  sendSound?: boolean | undefined
   soundVariant?: QQSkinSoundVariant | undefined
   windowShake?: boolean | undefined
   frostedGlass?: boolean | undefined
@@ -53,6 +54,7 @@ export function settingsToConfig(
     assistantAvatar: s.assistantAvatar ?? fallback?.assistantAvatar,
     chatMaxWidth: s.chatMaxWidth ?? fallback?.chatMaxWidth,
     messageSound: s.messageSound ?? fallback?.messageSound,
+    sendSound: s.sendSound ?? fallback?.sendSound,
     soundVariant: s.soundVariant ?? fallback?.soundVariant,
     windowShake: s.windowShake ?? fallback?.windowShake,
     frostedGlass: s.frostedGlass ?? fallback?.frostedGlass,

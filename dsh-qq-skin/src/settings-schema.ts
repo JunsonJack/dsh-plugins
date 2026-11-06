@@ -31,6 +31,8 @@ export interface Config {
   chatMaxWidth: Volatile<number>
   /** 新助手消息提示音开关(默认关,避免打扰)。 */
   messageSound: Volatile<boolean>
+  /** 用户发送消息提示音开关(默认关)。 */
+  sendSound: Volatile<boolean>
   /** 提示声音色(beep=经典寻呼机, waterdrop=灵动水滴, knock=清脆敲门)。 */
   soundVariant: Volatile<QQSkinSoundVariant>
   /** 助手消息到达时窗口抖动提醒(默认关)。 */
@@ -48,6 +50,7 @@ export const Config = z.object({
   assistantAvatar: z.boolean().default(true).volatile(),
   chatMaxWidth: z.number().min(480).max(1600).default(880).volatile(),
   messageSound: z.boolean().default(false).volatile(),
+  sendSound: z.boolean().default(false).volatile(),
   soundVariant: z.union([...QQ_SKIN_SOUND_VARIANTS]).default('beep').volatile(),
   windowShake: z.boolean().default(false).volatile(),
   frostedGlass: z.boolean().default(false).volatile(),

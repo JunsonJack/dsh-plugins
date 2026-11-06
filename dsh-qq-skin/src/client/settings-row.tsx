@@ -43,6 +43,8 @@ export interface QQSkinRowInjected {
   setChatMaxWidth: (width: number) => void
   /** 开关消息提示音。 */
   setMessageSound: (value: boolean) => void
+  /** 开关发送消息反馈音。 */
+  setSendSound: (value: boolean) => void
   /** 切换提示声音色。 */
   setSoundVariant: (variant: QQSkinSoundVariant) => void
   /** 开关窗口抖动提醒。 */
@@ -221,7 +223,7 @@ function ToggleRow({ label, checked, onChange }: {
  */
 export function QQSkinSettingsRow({
   t, useStore, setPalette, setBubbleTail, setAssistantAvatar, setChatMaxWidth,
-  setMessageSound, setSoundVariant, setWindowShake, setFrostedGlass, setTyping,
+  setMessageSound, setSendSound, setSoundVariant, setWindowShake, setFrostedGlass, setTyping,
 }: QQSkinRowComponentProps) {
   const config = useStore(s => s.config)
   const [widthDraft, setWidthDraft] = useState(String(config.chatMaxWidth))
@@ -279,6 +281,11 @@ export function QQSkinSettingsRow({
           label={t('row.messageSound')}
           checked={config.messageSound}
           onChange={setMessageSound}
+        />
+        <ToggleRow
+          label={t('row.sendSound')}
+          checked={config.sendSound}
+          onChange={setSendSound}
         />
         <ToggleRow
           label={t('row.windowShake')}

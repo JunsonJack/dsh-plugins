@@ -19,6 +19,7 @@ export type QQSkinSettingsKey =
   | 'row.assistantAvatar'
   | 'row.chatMaxWidth'
   | 'row.messageSound'
+  | 'row.sendSound'
   | 'row.soundVariant'
   | 'sound.beep'
   | 'sound.waterdrop'
@@ -46,7 +47,8 @@ export const zh: Record<QQSkinSettingsKey, string> = {
   'row.bubbleTail': '气泡尾巴',
   'row.assistantAvatar': '企鹅头像',
   'row.chatMaxWidth': '会话宽度',
-  'row.messageSound': '消息提示音',
+  'row.messageSound': '助手消息提示音',
+  'row.sendSound': '发送消息反馈音',
   'row.soundVariant': '提示声音色',
   'sound.beep': '经典寻呼机',
   'sound.waterdrop': '灵动水滴',
@@ -68,7 +70,8 @@ export const en: Record<QQSkinSettingsKey, string> = {
   'row.bubbleTail': 'Bubble tail',
   'row.assistantAvatar': 'Penguin avatar',
   'row.chatMaxWidth': 'Chat width',
-  'row.messageSound': 'Message sound',
+  'row.messageSound': 'Assistant sound',
+  'row.sendSound': 'Sent sound',
   'row.soundVariant': 'Sound tone',
   'sound.beep': 'Classic Pager',
   'sound.waterdrop': 'Water Drop',

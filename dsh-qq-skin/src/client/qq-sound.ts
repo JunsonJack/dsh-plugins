@@ -25,6 +25,11 @@ import type { QQSkinConfig, QQSkinSoundVariant } from './config.ts'
 const FLOW_SELECTOR = '[data-chat-flow]'
 /** 助手消息节点选择器(harness ChatNodeSeat 的 data-chat-flow-kind)。 */
 const STEP_SELECTOR = "[data-chat-flow-kind='assistant-step']"
+/** 用户消息节点选择器(harness ChatNodeSeat 或气泡元素)。 */
+const USER_SELECTOR = "[data-chat-flow-kind='user'], [class$='_bubble']"
+
+/** 发送消息防抖冷却时间(ms)。 */
+const SENT_SOUND_COOLDOWN_MS = 400
 
 /** 各音色提示音防抖冷却时间(ms),避免流式输出连续多 step 造成音效重叠。 */
 const COOLDOWN_BY_VARIANT: Record<QQSkinSoundVariant, number> = {
@@ -47,9 +52,13 @@ export class QQSoundRuntime {
   /** flow observer:监听聊天流新增 assistant-step;未启用时为 undefined。 */
   private observer: MutationObserver | undefined
   /** 已播放/处理过的助手节点集合(避免同一节点重复处理)。 */
-  private readonly played: WeakSet<Element> = new WeakSet()
-  /** 上次播放时间戳,用于冷却防抖。 */
+  private readonly playedAssistant: WeakSet<Element> = new WeakSet()
+  /** 已播放处理过的用户发送节点集合。 */
+  private readonly playedUser: WeakSet<Element> = new WeakSet()
+  /** 上次播放助手提示音的时间戳,用于冷却防抖。 */
   private lastPlayedTime = 0
+  /** 上次播放发送消息提示音的时间戳,用于冷却防抖。 */
+  private lastSentPlayedTime = 0
   /** 复用的 AudioContext 实例,空闲时释放。 */
   private audioCtx: AudioContext | undefined
   /** 自动关闭 AudioContext 的定时器。 */
@@ -69,7 +78,7 @@ export class QQSoundRuntime {
 
   /** 当前是否启用音效或窗口提醒。 */
   isEnabled(): boolean {
-    return this.config.messageSound || this.config.windowShake
+    return this.config.messageSound || this.config.windowShake || this.config.sendSound
   }
 
   /**
@@ -91,19 +100,24 @@ export class QQSoundRuntime {
     this.disposeShake()
   }
 
-  /** 将目标根节点下已有的助手消息记入已读,避免作为新消息误触发。 */
+  /** 将目标根节点下已有的助手消息和用户消息记入已读,避免作为新消息误触发。 */
   private seedExisting(root: Element): void {
-    const existing = typeof root.querySelectorAll === 'function'
-      ? root.querySelectorAll(STEP_SELECTOR)
-      : []
-    for (const el of Array.from(existing)) {
-      this.played.add(el)
+    if (typeof root.querySelectorAll !== 'function') return
+    const steps = root.querySelectorAll(STEP_SELECTOR)
+    for (const el of Array.from(steps)) {
+      this.playedAssistant.add(el)
+    }
+    if (this.config.sendSound) {
+      const userNodes = root.querySelectorAll(USER_SELECTOR)
+      for (const el of Array.from(userNodes)) {
+        this.playedUser.add(el)
+      }
     }
   }
 
   /** 按配置挂载 sentinel(或直接挂 flow observer 如果聊天流已存在)。 */
   private applyObserver(config: QQSkinConfig): void {
-    if (!config.messageSound && !config.windowShake) return
+    if (!config.messageSound && !config.windowShake && !config.sendSound) return
     if (typeof document === 'undefined') return
 
     // 快路径:聊天流已挂载,先记录已有历史消息,再挂载观察。
@@ -134,33 +148,60 @@ export class QQSoundRuntime {
     this.observer.observe(flow, { childList: true, subtree: true })
   }
 
-  /** 从 mutation 记录中提取新增的 assistant-step 并触发提示音/抖动。 */
+  /** 从 mutation 记录中提取新增的 assistant-step 与 user 节点并触发提示音/抖动。 */
   private handleMutations(mutations: MutationRecord[]): void {
-    const targets: Element[] = []
+    const assistantTargets: Element[] = []
+    const userTargets: Element[] = []
     for (const mutation of mutations) {
       for (const node of mutation.addedNodes) {
         if (!(node instanceof Element)) continue
         if (typeof node.matches === 'function' && node.matches(STEP_SELECTOR)) {
-          targets.push(node)
+          assistantTargets.push(node)
         } else if (typeof node.querySelectorAll === 'function') {
-          const nested = node.querySelectorAll(STEP_SELECTOR)
-          for (const item of Array.from(nested)) {
-            targets.push(item)
+          const nestedSteps = node.querySelectorAll(STEP_SELECTOR)
+          for (const item of Array.from(nestedSteps)) {
+            assistantTargets.push(item)
+          }
+        }
+        if (this.config.sendSound) {
+          if (typeof node.matches === 'function' && node.matches(USER_SELECTOR)) {
+            userTargets.push(node)
+          } else if (typeof node.querySelectorAll === 'function') {
+            const nestedUser = node.querySelectorAll(USER_SELECTOR)
+            for (const item of Array.from(nestedUser)) {
+              userTargets.push(item)
+            }
           }
         }
       }
     }
 
-    const unplayed = targets.filter(target => !this.played.has(target))
-    for (const target of unplayed) {
-      this.played.add(target)
+    // 1. 处理用户发送消息提示音(单条且在冷却之外才发声)
+    if (this.config.sendSound) {
+      const unplayedUser = userTargets.filter(target => !this.playedUser.has(target))
+      for (const target of unplayedUser) {
+        this.playedUser.add(target)
+      }
+      if (unplayedUser.length === 1) {
+        const now = Date.now()
+        if (now - this.lastSentPlayedTime >= SENT_SOUND_COOLDOWN_MS) {
+          this.lastSentPlayedTime = now
+          void this.playSentSound()
+        }
+      }
+    }
+
+    // 2. 处理助手新消息提醒
+    const unplayedSteps = assistantTargets.filter(target => !this.playedAssistant.has(target))
+    for (const target of unplayedSteps) {
+      this.playedAssistant.add(target)
     }
 
     // 若未产生未播放的新节点则跳过
-    if (unplayed.length === 0) return
+    if (unplayedSteps.length === 0) return
 
     // 若同批新增多条消息(历史记录批量挂载或会话切换),一律静默不发声不抖动
-    if (unplayed.length > 1) return
+    if (unplayedSteps.length > 1) return
 
     // 单条真实新消息:触发窗口抖动提醒(若开启)
     if (this.config.windowShake) {
@@ -227,6 +268,46 @@ export class QQSoundRuntime {
       target.classList.remove('dsh-qq-shaking')
       this.shakeTimer = undefined
     }, 420)
+  }
+
+  /** 播放发送消息提示音(Web Audio 纯合成正弦频移轻响)。 */
+  private async playSentSound(): Promise<void> {
+    try {
+      const AudioCtor = (typeof window !== 'undefined' && (window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext))
+        || (typeof globalThis !== 'undefined' && (globalThis as unknown as { AudioContext?: typeof AudioContext }).AudioContext)
+      if (!AudioCtor) return
+      if (!this.audioCtx || this.audioCtx.state === 'closed') {
+        this.audioCtx = new AudioCtor()
+      }
+      const audioCtx = this.audioCtx
+      if (audioCtx.state === 'suspended') await audioCtx.resume()
+      const now = audioCtx.currentTime
+
+      const osc = audioCtx.createOscillator()
+      const gain = audioCtx.createGain()
+      osc.type = 'sine'
+      if (typeof osc.frequency?.setValueAtTime === 'function') {
+        osc.frequency.setValueAtTime(880, now)
+        osc.frequency.exponentialRampToValueAtTime?.(1500, now + 0.08)
+      } else {
+        osc.frequency.value = 1200
+      }
+      gain.gain.setValueAtTime(0, now)
+      gain.gain.linearRampToValueAtTime(0.18, now + 0.004)
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12)
+      osc.connect(gain).connect(audioCtx.destination)
+      osc.start(now)
+      osc.stop(now + 0.14)
+
+      if (this.closeTimer !== undefined) {
+        clearTimeout(this.closeTimer)
+      }
+      this.closeTimer = setTimeout(() => {
+        this.disposeAudio()
+      }, 600)
+    } catch {
+      // 忽略自动播放策略拦截
+    }
   }
 
   /** 播放指定音色的提示音(Web Audio 纯合成,零外部资源依赖)。 */

@@ -9,7 +9,7 @@ describe('QQ skin settings', () => {
   it('resolves to defaults when no setting section and no fallback', () => {
     expect(settingsToConfig(undefined)).toEqual({
       palette: 'classic', bubbleTail: true, assistantAvatar: true,
-      chatMaxWidth: 880, messageSound: false, soundVariant: 'beep',
+      chatMaxWidth: 880, messageSound: false, sendSound: false, soundVariant: 'beep',
       windowShake: false, frostedGlass: false, typing: true,
     })
   })
@@ -19,7 +19,7 @@ describe('QQ skin settings', () => {
     const config = settingsToConfig(section, { palette: 'clean', bubbleTail: false, soundVariant: 'knock' })
     expect(config).toEqual({
       palette: 'vivid', bubbleTail: false, assistantAvatar: true,
-      chatMaxWidth: 720, messageSound: false, soundVariant: 'waterdrop',
+      chatMaxWidth: 720, messageSound: false, sendSound: false, soundVariant: 'waterdrop',
       windowShake: false, frostedGlass: false, typing: true,
     })
   })
@@ -29,15 +29,16 @@ describe('QQ skin settings', () => {
     const config = settingsToConfig(section, { palette: 'green', chatMaxWidth: 640, windowShake: true })
     expect(config).toEqual({
       palette: 'green', bubbleTail: false, assistantAvatar: true,
-      chatMaxWidth: 640, messageSound: false, soundVariant: 'beep',
+      chatMaxWidth: 640, messageSound: false, sendSound: false, soundVariant: 'beep',
       windowShake: true, frostedGlass: false, typing: true,
     })
   })
 
-  it('messageSound and typing flow through settings to config', () => {
-    const section: QQSkinSettings = { messageSound: true, typing: false }
+  it('messageSound, sendSound and typing flow through settings to config', () => {
+    const section: QQSkinSettings = { messageSound: true, sendSound: true, typing: false }
     const config = settingsToConfig(section, {})
     expect(config.messageSound).toBe(true)
+    expect(config.sendSound).toBe(true)
     expect(config.typing).toBe(false)
   })
 

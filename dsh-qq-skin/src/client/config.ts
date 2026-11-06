@@ -31,6 +31,8 @@ export interface QQSkinConfig {
   chatMaxWidth: number
   /** 新助手消息提示音开关(默认关,避免打扰)。 */
   messageSound: boolean
+  /** 用户发送消息提示音开关(默认关)。 */
+  sendSound: boolean
   /** 提示声音色(beep=经典寻呼机, waterdrop=灵动水滴, knock=清脆敲门)。 */
   soundVariant: QQSkinSoundVariant
   /** 助手消息到达时窗口抖动提醒(默认关)。 */
@@ -52,6 +54,7 @@ export const QQ_SKIN_DEFAULT_CONFIG: QQSkinConfig = {
   assistantAvatar: true,
   chatMaxWidth: 880,
   messageSound: false,
+  sendSound: false,
   soundVariant: 'beep',
   windowShake: false,
   frostedGlass: false,
@@ -88,6 +91,9 @@ export function resolveQQSkinConfig(config?: PartialQQSkinConfig): QQSkinConfig 
     messageSound: typeof raw.messageSound === 'boolean'
       ? raw.messageSound
       : QQ_SKIN_DEFAULT_CONFIG.messageSound,
+    sendSound: typeof raw.sendSound === 'boolean'
+      ? raw.sendSound
+      : QQ_SKIN_DEFAULT_CONFIG.sendSound,
     soundVariant: QQ_SKIN_SOUND_VARIANTS.includes(raw.soundVariant as QQSkinSoundVariant)
       ? (raw.soundVariant as QQSkinSoundVariant)
       : QQ_SKIN_DEFAULT_CONFIG.soundVariant,

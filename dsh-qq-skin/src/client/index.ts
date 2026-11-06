@@ -59,6 +59,7 @@ function sameConfig(left: QQSkinConfig, right: QQSkinConfig): boolean {
     && left.assistantAvatar === right.assistantAvatar
     && left.chatMaxWidth === right.chatMaxWidth
     && left.messageSound === right.messageSound
+    && left.sendSound === right.sendSound
     && left.soundVariant === right.soundVariant
     && left.windowShake === right.windowShake
     && left.frostedGlass === right.frostedGlass
@@ -118,6 +119,7 @@ export function apply(ctx: ClientContext): void {
       setAssistantAvatar: (value) => write('assistantAvatar', value),
       setChatMaxWidth: (width) => write('chatMaxWidth', width),
       setMessageSound: (value) => write('messageSound', value),
+      setSendSound: (value) => write('sendSound', value),
       setSoundVariant: (variant) => write('soundVariant', variant),
       setWindowShake: (value) => write('windowShake', value),
       setFrostedGlass: (value) => write('frostedGlass', value),

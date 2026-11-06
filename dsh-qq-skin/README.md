@@ -37,6 +37,7 @@ The plugin receives config the cordis function-plugin way (`apply(ctx, config)`)
 | `assistantAvatar` | `true` | Official QQ-penguin avatar disc left of assistant messages |
 | `chatMaxWidth` | `880` | Max width of the chat flow (px, clamped between 480 and 1600) |
 | `messageSound` | `false` | Master switch for synthesized audio prompt on new assistant message (zero network/asset dependency, muted on history load) |
+| `sendSound` | `false` | Immediate audio feedback on sent user message (synthesized upward chirp) |
 | `soundVariant` | `'beep'` | Audio theme: `beep` Classic 6-beep pager / `waterdrop` Crisp water droplet / `knock` Two-tap wooden door knock |
 | `windowShake` | `false` | Subtle window shake animation on incoming assistant message (QQ window nudge effect) |
 | `frostedGlass` | `false` | Acrylic frosted-glass blur on sidebar and top bar (`backdrop-filter: blur(16px)`) |
