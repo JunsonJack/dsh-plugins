@@ -1,0 +1,75 @@
+/**
+ * QQ 皮肤配置:色板变体与布局开关。
+ *
+ * cordis 函数插件以 `(ctx, config)` 调用,`apply` 收到的第二参即为配置。
+ * 为避免引入 schemastery 依赖(workspace 内不可用),这里用纯 TS 类型 +
+ * 默认值合并实现:未提供的字段回落到 `QQ_SKIN_DEFAULT_CONFIG`,非法值在
+ * 合并时兜底为默认值,保证任何畸形输入都不会让皮肤挂掉。
+ */
+
+/** 可选色板:经典蓝(默认)/ 炫彩紫 / 简洁白 / 经典绿气泡 / 深空黑。 */
+export const QQ_SKIN_PALETTES = ['classic', 'vivid', 'clean', 'green', 'black'] as const
+
+/** 色板标识。 */
+export type QQSkinPalette = (typeof QQ_SKIN_PALETTES)[number]
+
+/** 用户可调配置。 */
+export interface QQSkinConfig {
+  /** 色板变体。 */
+  palette: QQSkinPalette
+  /** 用户气泡右侧"尾巴"伪元素开关。 */
+  bubbleTail: boolean
+  /** 助手消息左侧官方 QQ 企鹅头像开关。 */
+  assistantAvatar: boolean
+  /** 聊天流最大宽度(px)。 */
+  chatMaxWidth: number
+  /** 新助手消息"滴滴"提示音开关(默认关,避免打扰)。 */
+  messageSound: boolean
+  /** 助手消息打字机揭示动效开关(默认开)。 */
+  typing: boolean
+}
+
+/** 聊天流最大宽度边界限制(px),与宿主 schema 对齐。 */
+export const CHAT_MAX_WIDTH_MIN = 480
+export const CHAT_MAX_WIDTH_MAX = 1600
+
+/** 默认配置(与旧行为一致:经典蓝、气泡尾巴、企鹅头像、880px 宽)。 */
+export const QQ_SKIN_DEFAULT_CONFIG: QQSkinConfig = {
+  palette: 'classic',
+  bubbleTail: true,
+  assistantAvatar: true,
+  chatMaxWidth: 880,
+  messageSound: false,
+  typing: true,
+}
+
+/** 规范化聊天流最大宽度(px):非法或<=0回落默认值,正数范围钳制在 480~1600。 */
+function normalizeChatMaxWidth(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+    return QQ_SKIN_DEFAULT_CONFIG.chatMaxWidth
+  }
+  return Math.min(CHAT_MAX_WIDTH_MAX, Math.max(CHAT_MAX_WIDTH_MIN, Math.round(value)))
+}
+
+/** 合并用户配置与默认值,非法字段回落默认。 */
+export function resolveQQSkinConfig(config?: Partial<QQSkinConfig>): QQSkinConfig {
+  const raw = config ?? {}
+  return {
+    palette: QQ_SKIN_PALETTES.includes(raw.palette as QQSkinPalette)
+      ? (raw.palette as QQSkinPalette)
+      : QQ_SKIN_DEFAULT_CONFIG.palette,
+    bubbleTail: typeof raw.bubbleTail === 'boolean'
+      ? raw.bubbleTail
+      : QQ_SKIN_DEFAULT_CONFIG.bubbleTail,
+    assistantAvatar: typeof raw.assistantAvatar === 'boolean'
+      ? raw.assistantAvatar
+      : QQ_SKIN_DEFAULT_CONFIG.assistantAvatar,
+    chatMaxWidth: normalizeChatMaxWidth(raw.chatMaxWidth),
+    messageSound: typeof raw.messageSound === 'boolean'
+      ? raw.messageSound
+      : QQ_SKIN_DEFAULT_CONFIG.messageSound,
+    typing: typeof raw.typing === 'boolean'
+      ? raw.typing
+      : QQ_SKIN_DEFAULT_CONFIG.typing,
+  }
+}

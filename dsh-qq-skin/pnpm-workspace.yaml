@@ -1,0 +1,53 @@
+# 本 workspace 跨到本地 deepseek-harness 检出上:dsh 相关依赖走 `workspace:`
+# 协议解析到 harness 源码,插件因此编译针对检出的 dsh(而非已发布的 tarball)。
+#
+# 保持下面的 `packages` 与 `overrides` 与 ../deepseek-harness/pnpm-workspace.yaml
+# (dsh 0.2)同步:本文件缺少 harness 已有的 glob,联合安装会以
+# ERR_PNPM_WORKSPACE_PKG_NOT_FOUND 失败(0.2 新增了 native/system);缺少
+# `link:` override 则 @deepseek-ai/cosmokit 与 schemastery 会解析到 npm
+# 而不是 vendor 树。`link:` 路径以声明它的 workspace 根为锚点,故需重新
+# 锚定到 ../deepseek-harness/。
+packages:
+  - .
+  - ../deepseek-harness/vendor/*
+  - ../deepseek-harness/packages/*/*
+  - ../deepseek-harness/native/system
+  - ../deepseek-harness/native/system/packages/*
+  - ../deepseek-harness/apps/*
+  - ../deepseek-harness/benchmarks
+  - ../deepseek-harness/website
+  - ../deepseek-harness/python/sdk-runtime
+
+overrides:
+  'extract-zip>yauzl': '3.4.0'
+  '@deepseek-ai/cosmokit': 'link:../deepseek-harness/vendor/cosmokit'
+  '@deepseek-ai/schemastery': 'link:../deepseek-harness/vendor/schemastery'
+
+peerDependencyRules:
+  allowedVersions:
+    typescript: '>=5 <7'
+
+# 联合安装也要取 harness 全量依赖,其中 harness 的文档预览包依赖托管在
+# sheetjs 自有 CDN 上的 xlsx:该源在本机极慢(实测 2.4MB 约 60s),pnpm 默认
+# 60s 的 fetchTimeout 会中止整个安装。放宽超时与重试(pnpm 10+ 的网络设置
+# 归 pnpm-workspace.yaml,写进 .npmrc 不生效)。
+fetchTimeout: 300000
+fetchRetries: 5
+fetchRetryMintimeout: 10000
+fetchRetryMaxtimeout: 300000
+
+# pnpm 11:显式声明构建脚本决策——未列出的脚本包是硬失败。这里的取舍与
+# harness 自身不同:原生插件(koffi/node-pty 等)只被 harness 运行时包使用,
+# 本插件不跑它们,故一律拒绝,安装更快且不需本地工具链。esbuild 的
+# postinstall 放行,让 vitest/tsdown 正常工作。
+allowBuilds:
+  '@deepseek-ai/dsh-subprocess-local': false
+  '@google/genai': false
+  electron-winstaller: false
+  esbuild: true
+  koffi: false
+  lefthook: false
+  'msgpackr-extract': false
+  'node-addon-require-builtin': false
+  node-pty: false
+  protobufjs: false
