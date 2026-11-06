@@ -156,8 +156,17 @@ describe('dsh-qq-skin client apply', () => {
     apply(ctx as never)
     injected!.setPalette!('green' as never)
     injected!.setChatMaxWidth!(640 as never)
+    injected!.setSoundVariant!('waterdrop' as never)
+    injected!.setWindowShake!(true as never)
+    injected!.setFrostedGlass!(true as never)
 
-    expect(host.written).toEqual([['palette', 'green'], ['chatMaxWidth', 640]])
+    expect(host.written).toEqual([
+      ['palette', 'green'],
+      ['chatMaxWidth', 640],
+      ['soundVariant', 'waterdrop'],
+      ['windowShake', true],
+      ['frostedGlass', true],
+    ])
   })
 
   it('removes the layer through the effect cleanup on dispose', async () => {

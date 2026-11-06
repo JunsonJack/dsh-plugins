@@ -321,4 +321,252 @@ describe('QQSoundRuntime', () => {
     expect(playCount).toBe(6)
     void ctx.fiber.dispose()
   })
+
+  it('supports waterdrop and knock sound variants', () => {
+    let flow: Element | null = null
+    const observers: Array<{ callback: MutationCallback }> = []
+    vi.stubGlobal('document', {
+      querySelector: vi.fn(() => flow),
+    })
+    vi.stubGlobal('MutationObserver', class {
+      callback: MutationCallback
+      observe = vi.fn()
+      disconnect = vi.fn()
+      constructor(cb: MutationCallback) {
+        this.callback = cb
+        observers.push(this)
+      }
+    })
+    class FakeElement {
+      matches: (sel: string) => boolean
+      querySelectorAll: (sel: string) => FakeElement[]
+      constructor(matches: (sel: string) => boolean, querySelectorAll: (sel: string) => FakeElement[]) {
+        this.matches = matches
+        this.querySelectorAll = querySelectorAll
+      }
+    }
+    vi.stubGlobal('Element', FakeElement)
+
+    const oscTypes: string[] = []
+    vi.stubGlobal('window', {
+      AudioContext: class {
+        state = 'running'
+        currentTime = 0
+        destination = {}
+        createOscillator = () => {
+          const osc = {
+            connect: vi.fn(() => ({ connect: vi.fn() })),
+            start: vi.fn(),
+            stop: vi.fn(),
+            type: '',
+            frequency: { value: 0 },
+          }
+          // capture osc after type is assigned
+          setTimeout(() => { oscTypes.push(osc.type) }, 0)
+          return osc
+        }
+        createGain = () => ({
+          gain: {
+            setValueAtTime: vi.fn(),
+            linearRampToValueAtTime: vi.fn(),
+            exponentialRampToValueAtTime: vi.fn(),
+          },
+          connect: vi.fn(),
+        })
+        close = vi.fn()
+        resume = vi.fn()
+      },
+    })
+
+    // 测试 waterdrop 音色
+    const ctxWater = new Context()
+    new QQSoundRuntime(ctxWater, { ...QQ_SKIN_DEFAULT_CONFIG, messageSound: true, soundVariant: 'waterdrop' })
+    const step1 = new FakeElement((sel) => sel === "[data-chat-flow-kind='assistant-step']", () => [])
+    const flowEl = new FakeElement(() => false, () => [step1])
+    flow = flowEl
+
+    observers[0].callback([{ addedNodes: [flowEl] } as unknown as MutationRecord], observers[0] as unknown as MutationObserver)
+    void ctxWater.fiber.dispose()
+
+    // 测试 knock 音色
+    const ctxKnock = new Context()
+    new QQSoundRuntime(ctxKnock, { ...QQ_SKIN_DEFAULT_CONFIG, messageSound: true, soundVariant: 'knock' })
+    observers[1].callback([{ addedNodes: [flowEl] } as unknown as MutationRecord], observers[1] as unknown as MutationObserver)
+    void ctxKnock.fiber.dispose()
+  })
+
+  it('triggers window shake class on the chat flow element when windowShake is on', () => {
+    const classList = {
+      add: vi.fn(),
+      remove: vi.fn(),
+    }
+    const flowEl = {
+      classList,
+      matches: () => false,
+      querySelectorAll: () => [],
+    }
+    const observers: Array<{ callback: MutationCallback }> = []
+    vi.stubGlobal('document', {
+      querySelector: vi.fn(() => flowEl),
+    })
+    vi.stubGlobal('MutationObserver', class {
+      callback: MutationCallback
+      observe = vi.fn()
+      disconnect = vi.fn()
+      constructor(cb: MutationCallback) {
+        this.callback = cb
+        observers.push(this)
+      }
+    })
+    class FakeElement {
+      matches: (sel: string) => boolean
+      querySelectorAll: (sel: string) => FakeElement[]
+      constructor(matches: (sel: string) => boolean, querySelectorAll: (sel: string) => FakeElement[]) {
+        this.matches = matches
+        this.querySelectorAll = querySelectorAll
+      }
+    }
+    vi.stubGlobal('Element', FakeElement)
+
+    const ctx = new Context()
+    new QQSoundRuntime(ctx, { ...QQ_SKIN_DEFAULT_CONFIG, windowShake: true })
+
+    const step = new FakeElement((sel) => sel === "[data-chat-flow-kind='assistant-step']", () => [])
+    observers[0].callback([{ addedNodes: [step] } as unknown as MutationRecord], observers[0] as unknown as MutationObserver)
+
+    expect(classList.add).toHaveBeenCalledWith('dsh-qq-shaking')
+    void ctx.fiber.dispose()
+  })
+
+  it('plays sent sound when a single user message is added and sendSound is on', async () => {
+    const playCalls: string[] = []
+    class FakeAudioContext {
+      state = 'running'
+      currentTime = 0
+      createOscillator() {
+        return {
+          type: 'sine',
+          frequency: {
+            setValueAtTime: vi.fn(),
+            exponentialRampToValueAtTime: vi.fn(),
+          },
+          connect: vi.fn().mockReturnThis(),
+          start: vi.fn(() => playCalls.push('osc.start')),
+          stop: vi.fn(),
+        }
+      }
+      createGain() {
+        return {
+          gain: {
+            setValueAtTime: vi.fn(),
+            linearRampToValueAtTime: vi.fn(),
+            exponentialRampToValueAtTime: vi.fn(),
+          },
+          connect: vi.fn().mockReturnThis(),
+        }
+      }
+      destination = {}
+      resume = vi.fn().mockResolvedValue(undefined)
+      close = vi.fn().mockResolvedValue(undefined)
+    }
+    vi.stubGlobal('AudioContext', FakeAudioContext)
+
+    const flowEl = {
+      matches: () => false,
+      querySelectorAll: () => [],
+    }
+    const observers: Array<{ callback: MutationCallback }> = []
+    vi.stubGlobal('document', {
+      querySelector: vi.fn(() => flowEl),
+    })
+    vi.stubGlobal('MutationObserver', class {
+      callback: MutationCallback
+      observe = vi.fn()
+      disconnect = vi.fn()
+      constructor(cb: MutationCallback) {
+        this.callback = cb
+        observers.push(this)
+      }
+    })
+    class FakeElement {
+      matches: (sel: string) => boolean
+      querySelectorAll: (sel: string) => FakeElement[]
+      constructor(matches: (sel: string) => boolean, querySelectorAll: (sel: string) => FakeElement[]) {
+        this.matches = matches
+        this.querySelectorAll = querySelectorAll
+      }
+    }
+    vi.stubGlobal('Element', FakeElement)
+
+    const ctx = new Context()
+    new QQSoundRuntime(ctx, { ...QQ_SKIN_DEFAULT_CONFIG, sendSound: true })
+
+    const userNode = new FakeElement((sel) => sel.includes("[data-chat-flow-kind='user']"), () => [])
+    observers[0].callback([{ addedNodes: [userNode] } as unknown as MutationRecord], observers[0] as unknown as MutationObserver)
+
+    expect(playCalls.length).toBeGreaterThan(0)
+    void ctx.fiber.dispose()
+  })
+
+  it('suppresses sent sound during history batch loading', () => {
+    let played = false
+    class FakeAudioContext {
+      state = 'running'
+      currentTime = 0
+      createOscillator() {
+        return {
+          type: 'sine',
+          frequency: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+          connect: vi.fn().mockReturnThis(),
+          start: vi.fn(() => { played = true }),
+          stop: vi.fn(),
+        }
+      }
+      createGain() {
+        return {
+          gain: { setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+          connect: vi.fn().mockReturnThis(),
+        }
+      }
+      destination = {}
+    }
+    vi.stubGlobal('AudioContext', FakeAudioContext)
+
+    const flowEl = {
+      matches: () => false,
+      querySelectorAll: () => [],
+    }
+    const observers: Array<{ callback: MutationCallback }> = []
+    vi.stubGlobal('document', {
+      querySelector: vi.fn(() => flowEl),
+    })
+    vi.stubGlobal('MutationObserver', class {
+      callback: MutationCallback
+      observe = vi.fn()
+      disconnect = vi.fn()
+      constructor(cb: MutationCallback) {
+        this.callback = cb
+        observers.push(this)
+      }
+    })
+    class FakeElement {
+      matches: (sel: string) => boolean
+      querySelectorAll: (sel: string) => FakeElement[]
+      constructor(matches: (sel: string) => boolean, querySelectorAll: (sel: string) => FakeElement[]) {
+        this.matches = matches
+        this.querySelectorAll = querySelectorAll
+      }
+    }
+    vi.stubGlobal('Element', FakeElement)
+
+    const ctx = new Context()
+    new QQSoundRuntime(ctx, { ...QQ_SKIN_DEFAULT_CONFIG, sendSound: true })
+
+    const user1 = new FakeElement((sel) => sel.includes("[data-chat-flow-kind='user']"), () => [])
+    const user2 = new FakeElement((sel) => sel.includes("[data-chat-flow-kind='user']"), () => [])
+    observers[0].callback([{ addedNodes: [user1, user2] } as unknown as MutationRecord], observers[0] as unknown as MutationObserver)
+
+    expect(played).toBe(false)
+    void ctx.fiber.dispose()
+  })
 })

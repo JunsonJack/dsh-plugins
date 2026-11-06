@@ -15,8 +15,10 @@
 import {
   resolveQQSkinConfig,
   type PartialQQSkinConfig,
+  type QQAvatarStyle,
   type QQSkinConfig,
   type QQSkinPalette,
+  type QQSkinSoundVariant,
 } from './config.ts'
 
 /** 设置命名空间 == profile 条目 id(cordis.patch.yml 的 `id`)。 */
@@ -25,10 +27,16 @@ export const QQ_SKIN_SETTINGS_NS = 'qq-skin'
 /** 设置分节里的持久化字段:形状与 QQSkinConfig 一致,全部可缺省。 */
 export interface QQSkinSettings {
   palette?: QQSkinPalette | undefined
+  customColor?: string | undefined
+  avatarStyle?: QQAvatarStyle | undefined
   bubbleTail?: boolean | undefined
   assistantAvatar?: boolean | undefined
   chatMaxWidth?: number | undefined
   messageSound?: boolean | undefined
+  sendSound?: boolean | undefined
+  soundVariant?: QQSkinSoundVariant | undefined
+  windowShake?: boolean | undefined
+  frostedGlass?: boolean | undefined
   typing?: boolean | undefined
 }
 
@@ -45,10 +53,16 @@ export function settingsToConfig(
   const s = section ?? {}
   return resolveQQSkinConfig({
     palette: s.palette ?? fallback?.palette,
+    customColor: s.customColor ?? fallback?.customColor,
+    avatarStyle: s.avatarStyle ?? fallback?.avatarStyle,
     bubbleTail: s.bubbleTail ?? fallback?.bubbleTail,
     assistantAvatar: s.assistantAvatar ?? fallback?.assistantAvatar,
     chatMaxWidth: s.chatMaxWidth ?? fallback?.chatMaxWidth,
     messageSound: s.messageSound ?? fallback?.messageSound,
+    sendSound: s.sendSound ?? fallback?.sendSound,
+    soundVariant: s.soundVariant ?? fallback?.soundVariant,
+    windowShake: s.windowShake ?? fallback?.windowShake,
+    frostedGlass: s.frostedGlass ?? fallback?.frostedGlass,
     typing: s.typing ?? fallback?.typing,
   })
 }

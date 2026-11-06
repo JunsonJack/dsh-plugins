@@ -12,20 +12,39 @@
  */
 import type { Volatile } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { QQ_SKIN_PALETTES, type QQSkinPalette } from './client/config.ts'
+import {
+  QQ_AVATAR_STYLES,
+  QQ_SKIN_PALETTES,
+  QQ_SKIN_SOUND_VARIANTS,
+  type QQAvatarStyle,
+  type QQSkinPalette,
+  type QQSkinSoundVariant,
+} from './client/config.ts'
 
 /** 设置字段的运行时形状:volatile 字段在 Live 配置里以 ref 形式存在。 */
 export interface Config {
   /** 色板变体。 */
   palette: Volatile<QQSkinPalette>
+  /** 自定义主色十六进制色值(如 #12B7F5)。 */
+  customColor: Volatile<string>
+  /** 企鹅头像装扮(classic=经典, sunglasses=墨镜, scarf=围巾)。 */
+  avatarStyle: Volatile<QQAvatarStyle>
   /** 用户气泡右侧"尾巴"伪元素开关。 */
   bubbleTail: Volatile<boolean>
   /** 助手消息左侧官方 QQ 企鹅头像开关。 */
   assistantAvatar: Volatile<boolean>
   /** 聊天流最大宽度(px)。 */
   chatMaxWidth: Volatile<number>
-  /** 新助手消息"滴滴"提示音开关(默认关,避免打扰)。 */
+  /** 新助手消息提示音开关(默认关,避免打扰)。 */
   messageSound: Volatile<boolean>
+  /** 用户发送消息提示音开关(默认关)。 */
+  sendSound: Volatile<boolean>
+  /** 提示声音色(beep=经典寻呼机, waterdrop=灵动水滴, knock=清脆敲门)。 */
+  soundVariant: Volatile<QQSkinSoundVariant>
+  /** 助手消息到达时窗口抖动提醒(默认关)。 */
+  windowShake: Volatile<boolean>
+  /** 侧边栏/顶栏毛玻璃亚克力通透质感(默认关)。 */
+  frostedGlass: Volatile<boolean>
   /** 助手消息打字机揭示动效开关(默认开)。 */
   typing: Volatile<boolean>
 }
@@ -33,9 +52,15 @@ export interface Config {
 /** 设置分节 schema:宿主校验条目配置、设置面板渲染表单共用。 */
 export const Config = z.object({
   palette: z.union([...QQ_SKIN_PALETTES]).default('classic').volatile(),
+  customColor: z.string().default('#12B7F5').volatile(),
+  avatarStyle: z.union([...QQ_AVATAR_STYLES]).default('classic').volatile(),
   bubbleTail: z.boolean().default(true).volatile(),
   assistantAvatar: z.boolean().default(true).volatile(),
   chatMaxWidth: z.number().min(480).max(1600).default(880).volatile(),
   messageSound: z.boolean().default(false).volatile(),
+  sendSound: z.boolean().default(false).volatile(),
+  soundVariant: z.union([...QQ_SKIN_SOUND_VARIANTS]).default('beep').volatile(),
+  windowShake: z.boolean().default(false).volatile(),
+  frostedGlass: z.boolean().default(false).volatile(),
   typing: z.boolean().default(true).volatile(),
 })

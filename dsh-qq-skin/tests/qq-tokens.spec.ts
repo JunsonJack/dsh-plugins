@@ -143,4 +143,12 @@ describe('QQ skin token palettes', () => {
   it('rejects unknown palettes by falling back to classic', () => {
     expect(buildTokenOverrides('neon' as never)).toEqual(QQ_TOKEN_OVERRIDES)
   })
+
+  it('custom palette derives brand and bubble tokens from customColor', () => {
+    const custom = buildTokenOverrides('custom', '#FF5722')
+    expect(custom['--dsw-alias-brand-primary'].light).toBe('#FF5722')
+    expect(custom['--dsw-specific-bubble'].light).toBeDefined()
+    expect(custom['--dsw-specific-bubble'].dark).toBeDefined()
+    expect(custom['--dsw-alias-brand-primary'].dark).not.toBe('#FF5722')
+  })
 })

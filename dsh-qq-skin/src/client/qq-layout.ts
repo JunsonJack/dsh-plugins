@@ -19,14 +19,15 @@
  * 暗色变体统一由 `body[data-ds-dark-theme]`(ui-theme 呈现器写入)门控。
  */
 import type { Context } from '@deepseek-ai/cordis'
-import { QQ_AVATAR_DATA_URI } from './qq-avatar.ts'
-import { QQ_SKIN_DEFAULT_CONFIG, type QQSkinConfig } from './config.ts'
+import { getAvatarBackgroundImage } from './qq-avatar.ts'
+import { QQ_SKIN_DEFAULT_CONFIG, type QQAvatarStyle, type QQSkinConfig } from './config.ts'
 
 /** 注入的 <style> 标签归属标识(便于排查与测试断言)。 */
 export const QQ_LAYOUT_PLUGIN = 'dsh-qq-skin/layout'
 
-/** 企鹅头像圆标(默认开启时注入;关闭后无头像,也不占左侧空间)。 */
-function avatarRule(): string {
+/** 企鹅头像圆标(默认开启时注入;关闭后无头像,也不占左侧空间;支持墨镜/围巾装扮)。 */
+function avatarRule(style: QQAvatarStyle = 'classic'): string {
+  const bgImage = getAvatarBackgroundImage(style)
   return `
 [data-chat-flow-kind='assistant-step'] {
   position: relative;
@@ -41,7 +42,7 @@ function avatarRule(): string {
   height: 22px;
   border-radius: 50%;
   background-color: var(--dsw-alias-bg-layer-1);
-  background-image: url("${QQ_AVATAR_DATA_URI}");
+  background-image: ${bgImage};
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
@@ -80,13 +81,58 @@ function typingRule(): string {
 `
 }
 
+/** 窗口抖动动效(400ms 经典 QQ 窗口震颤)。 */
+function shakeRule(): string {
+  return `
+@keyframes dsh-qq-shake {
+  0%, 100% { transform: translate(0, 0); }
+  15% { transform: translate(-3px, 1px); }
+  30% { transform: translate(3px, -2px); }
+  45% { transform: translate(-3px, -1px); }
+  60% { transform: translate(2px, 1px); }
+  75% { transform: translate(-1px, 2px); }
+  90% { transform: translate(1px, -1px); }
+}
+.dsh-qq-shaking {
+  animation: dsh-qq-shake 0.4s ease-in-out !important;
+}
+`
+}
+
+/** 侧边栏与顶栏毛玻璃亚克力通透质感。 */
+function frostedGlassRule(): string {
+  return `
+[class$='_sidebarCol'],
+[class$='_detailsCol'] {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+body:not([data-ds-dark-theme]) [class$='_sidebarCol'],
+body:not([data-ds-dark-theme]) [class$='_detailsCol'] {
+  background-color: rgba(242, 245, 248, 0.78) !important;
+}
+body[data-ds-dark-theme] [class$='_sidebarCol'],
+body[data-ds-dark-theme] [class$='_detailsCol'] {
+  background-color: rgba(16, 24, 34, 0.78) !important;
+}
+[data-composer-card] {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.85) !important;
+}
+body[data-ds-dark-theme] [data-composer-card] {
+  background: rgba(20, 29, 41, 0.85) !important;
+}
+`
+}
+
 /**
  * 按配置生成 QQ 布局层 CSS。颜色一律走 `--dsw-*` token,几何/开关随
  * 配置变化;所有规则随 <style> 标签移除而还原。
  * @param config - 用户配置(可缺省,回落默认)。
  */
 export function buildQQLayoutCss(config: QQSkinConfig = QQ_SKIN_DEFAULT_CONFIG): string {
-  const { bubbleTail, assistantAvatar, chatMaxWidth, typing } = config
+  const { bubbleTail, assistantAvatar, chatMaxWidth, typing, windowShake, frostedGlass } = config
   return `
 /* ── 消息流:居中收窄,像聊天窗口的画布 ─────────────────────────────── */
 [data-chat-flow] {
@@ -94,6 +140,8 @@ export function buildQQLayoutCss(config: QQSkinConfig = QQ_SKIN_DEFAULT_CONFIG):
   margin: 0 auto;
   padding: 16px 24px 8px;
 }
+${windowShake ? shakeRule() : ''}
+${frostedGlass ? frostedGlassRule() : ''}
 
 /* ── 助手消息:左侧官方 QQ 企鹅头像 + 白色卡片(QQ"对方消息"观感) ──
    harness 的助手节点 kind 是 assistant-step(register-node-renderers
@@ -107,7 +155,7 @@ export function buildQQLayoutCss(config: QQSkinConfig = QQ_SKIN_DEFAULT_CONFIG):
    > [data-slot] > [class$='_root'] 精确命中 AssistantMarkdown 的
    root(避免误伤嵌套的 ReasoningRow 等同名 root)。头像 top 按
    卡片 padding-top 12px + Think 行高 24px 垂直居中:12 + 12 - 11 = 13。 */
-${assistantAvatar ? avatarRule() : ''}
+${assistantAvatar ? avatarRule(config.avatarStyle) : ''}
 [data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {
   border-radius: 16px 16px 16px 6px;
   padding: 12px 16px;
@@ -115,6 +163,34 @@ ${assistantAvatar ? avatarRule() : ''}
   border: 1px solid var(--dsw-alias-border-l1);
 }
 ${typing ? typingRule() : ''}
+
+/* ── Markdown 引用块:主题主色竖条 + 柔和浅底 ───────────────────────── */
+[data-chat-flow-kind='assistant-step'] blockquote {
+  margin: 8px 0;
+  padding: 6px 12px;
+  border-left: 3px solid var(--dsw-alias-brand-primary);
+  border-radius: 0 6px 6px 0;
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* ── Markdown 代码块:QQ NT 仿窗口三色圆点装饰 ──────────────────────── */
+[data-chat-flow-kind='assistant-step'] pre {
+  position: relative;
+  padding-top: 28px !important;
+  border-radius: 8px;
+}
+[data-chat-flow-kind='assistant-step'] pre::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 95, 86, 0.85);
+  box-shadow: 14px 0 0 rgba(255, 189, 46, 0.85), 28px 0 0 rgba(39, 201, 63, 0.85);
+}
 
 /* ── 用户气泡:QQ 蓝底、右上小圆角(尾巴朝右侧头像方向) ───────────── */
 [class$='_bubble'] {

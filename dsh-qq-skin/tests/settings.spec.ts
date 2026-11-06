@@ -8,33 +8,40 @@ describe('QQ skin settings', () => {
 
   it('resolves to defaults when no setting section and no fallback', () => {
     expect(settingsToConfig(undefined)).toEqual({
-      palette: 'classic', bubbleTail: true, assistantAvatar: true,
-      chatMaxWidth: 880, messageSound: false, typing: true,
+      palette: 'classic', customColor: '#12B7F5', avatarStyle: 'classic',
+      bubbleTail: true, assistantAvatar: true,
+      chatMaxWidth: 880, messageSound: false, sendSound: false, soundVariant: 'beep',
+      windowShake: false, frostedGlass: false, typing: true,
     })
   })
 
   it('prefers settings fields over fallback config', () => {
-    const section: QQSkinSettings = { palette: 'vivid', chatMaxWidth: 720 }
-    const config = settingsToConfig(section, { palette: 'clean', bubbleTail: false })
+    const section: QQSkinSettings = { palette: 'vivid', chatMaxWidth: 720, soundVariant: 'waterdrop', avatarStyle: 'sunglasses' }
+    const config = settingsToConfig(section, { palette: 'clean', bubbleTail: false, soundVariant: 'knock', avatarStyle: 'scarf' })
     expect(config).toEqual({
-      palette: 'vivid', bubbleTail: false, assistantAvatar: true,
-      chatMaxWidth: 720, messageSound: false, typing: true,
+      palette: 'vivid', customColor: '#12B7F5', avatarStyle: 'sunglasses',
+      bubbleTail: false, assistantAvatar: true,
+      chatMaxWidth: 720, messageSound: false, sendSound: false, soundVariant: 'waterdrop',
+      windowShake: false, frostedGlass: false, typing: true,
     })
   })
 
   it('fills unset settings fields from the fallback config', () => {
     const section: QQSkinSettings = { bubbleTail: false }
-    const config = settingsToConfig(section, { palette: 'green', chatMaxWidth: 640 })
+    const config = settingsToConfig(section, { palette: 'green', chatMaxWidth: 640, windowShake: true, avatarStyle: 'scarf' })
     expect(config).toEqual({
-      palette: 'green', bubbleTail: false, assistantAvatar: true,
-      chatMaxWidth: 640, messageSound: false, typing: true,
+      palette: 'green', customColor: '#12B7F5', avatarStyle: 'scarf',
+      bubbleTail: false, assistantAvatar: true,
+      chatMaxWidth: 640, messageSound: false, sendSound: false, soundVariant: 'beep',
+      windowShake: true, frostedGlass: false, typing: true,
     })
   })
 
-  it('messageSound and typing flow through settings to config', () => {
-    const section: QQSkinSettings = { messageSound: true, typing: false }
+  it('messageSound, sendSound and typing flow through settings to config', () => {
+    const section: QQSkinSettings = { messageSound: true, sendSound: true, typing: false }
     const config = settingsToConfig(section, {})
     expect(config.messageSound).toBe(true)
+    expect(config.sendSound).toBe(true)
     expect(config.typing).toBe(false)
   })
 
@@ -42,6 +49,14 @@ describe('QQ skin settings', () => {
     const config = settingsToConfig(undefined, { messageSound: true, typing: false })
     expect(config.messageSound).toBe(true)
     expect(config.typing).toBe(false)
+  })
+
+  it('new visual and sound options flow through settings to config', () => {
+    const section: QQSkinSettings = { soundVariant: 'waterdrop', windowShake: true, frostedGlass: true }
+    const config = settingsToConfig(section)
+    expect(config.soundVariant).toBe('waterdrop')
+    expect(config.windowShake).toBe(true)
+    expect(config.frostedGlass).toBe(true)
   })
 
   it('sanitizes invalid or out-of-range fields from settings section', () => {

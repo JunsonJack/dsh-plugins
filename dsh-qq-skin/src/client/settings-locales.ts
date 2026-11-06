@@ -15,10 +15,23 @@ export type QQSkinSettingsKey =
   | 'palette.clean'
   | 'palette.green'
   | 'palette.black'
+  | 'palette.custom'
+  | 'row.customColor'
+  | 'row.avatarStyle'
+  | 'avatar.classic'
+  | 'avatar.sunglasses'
+  | 'avatar.scarf'
   | 'row.bubbleTail'
   | 'row.assistantAvatar'
   | 'row.chatMaxWidth'
   | 'row.messageSound'
+  | 'row.sendSound'
+  | 'row.soundVariant'
+  | 'sound.beep'
+  | 'sound.waterdrop'
+  | 'sound.knock'
+  | 'row.windowShake'
+  | 'row.frostedGlass'
   | 'row.typing'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -37,10 +50,23 @@ export const zh: Record<QQSkinSettingsKey, string> = {
   'palette.clean': '简洁白',
   'palette.green': '经典绿气泡',
   'palette.black': '深空黑',
+  'palette.custom': '自定义主色',
+  'row.customColor': '主色调色盘',
+  'row.avatarStyle': '企鹅装扮',
+  'avatar.classic': '经典企鹅',
+  'avatar.sunglasses': '酷黑墨镜',
+  'avatar.scarf': '冬日暖围巾',
   'row.bubbleTail': '气泡尾巴',
   'row.assistantAvatar': '企鹅头像',
   'row.chatMaxWidth': '会话宽度',
-  'row.messageSound': '消息提示音',
+  'row.messageSound': '助手消息提示音',
+  'row.sendSound': '发送消息反馈音',
+  'row.soundVariant': '提示声音色',
+  'sound.beep': '经典寻呼机',
+  'sound.waterdrop': '灵动水滴',
+  'sound.knock': '清脆敲门',
+  'row.windowShake': '窗口抖动提醒',
+  'row.frostedGlass': '毛玻璃质感',
   'row.typing': '打字机效果',
 }
 
@@ -53,9 +79,22 @@ export const en: Record<QQSkinSettingsKey, string> = {
   'palette.clean': 'Clean White',
   'palette.green': 'Green Bubble',
   'palette.black': 'Deep Black',
+  'palette.custom': 'Custom Color',
+  'row.customColor': 'Accent color',
+  'row.avatarStyle': 'Avatar style',
+  'avatar.classic': 'Classic',
+  'avatar.sunglasses': 'Sunglasses',
+  'avatar.scarf': 'Winter scarf',
   'row.bubbleTail': 'Bubble tail',
   'row.assistantAvatar': 'Penguin avatar',
   'row.chatMaxWidth': 'Chat width',
-  'row.messageSound': 'Message sound',
+  'row.messageSound': 'Assistant sound',
+  'row.sendSound': 'Sent sound',
+  'row.soundVariant': 'Sound tone',
+  'sound.beep': 'Classic Pager',
+  'sound.waterdrop': 'Water Drop',
+  'sound.knock': 'Door Knock',
+  'row.windowShake': 'Window shake',
+  'row.frostedGlass': 'Frosted glass',
   'row.typing': 'Typing effect',
 }

@@ -115,4 +115,42 @@ describe('QQ NT layout config branches', () => {
     expect(QQ_LAYOUT_CSS).toContain("[data-conversation-scroll]")
     expect(QQ_LAYOUT_CSS).toContain("[class$='_tools'] button")
   })
+
+  it('windowShake keyframes appear when enabled', () => {
+    const off = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, windowShake: false })
+    expect(off).not.toContain('dsh-qq-shake')
+
+    const on = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, windowShake: true })
+    expect(on).toContain('@keyframes dsh-qq-shake')
+    expect(on).toContain('.dsh-qq-shaking')
+  })
+
+  it('frostedGlass rules appear when enabled', () => {
+    const off = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, frostedGlass: false })
+    expect(off).not.toContain('backdrop-filter: blur(16px)')
+
+    const on = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, frostedGlass: true })
+    expect(on).toContain('backdrop-filter: blur(16px)')
+    expect(on).toContain('rgba(242, 245, 248, 0.78)')
+  })
+
+  it('decorates assistant markdown blockquotes and codeblocks', () => {
+    expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] blockquote")
+    expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] pre")
+    expect(QQ_LAYOUT_CSS).toContain('rgba(255, 95, 86, 0.85)')
+  })
+
+  it('switches penguin avatar style between classic, sunglasses, and scarf', () => {
+    const classic = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, avatarStyle: 'classic' })
+    expect(classic).toContain('data:image/png;base64')
+    expect(classic).not.toContain('data:image/svg+xml')
+
+    const sunglasses = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, avatarStyle: 'sunglasses' })
+    expect(sunglasses).toContain('data:image/svg+xml')
+    expect(sunglasses).toContain('data:image/png;base64')
+
+    const scarf = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, avatarStyle: 'scarf' })
+    expect(scarf).toContain('data:image/svg+xml')
+    expect(scarf).toContain('data:image/png;base64')
+  })
 })

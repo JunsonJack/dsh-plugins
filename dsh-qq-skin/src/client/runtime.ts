@@ -60,7 +60,7 @@ export class QQSkinRuntime {
   /** 挂载两层:布局 <style> + token override(返回各自的清理函数)。 */
   private applyLayers(config: QQSkinConfig): void {
     this.removeLayout = createQQLayoutTag(config)
-    this.removeTokens = this.ctx.theme.overrideTokens(QQ_SKIN_SOURCE, buildTokenOverrides(config.palette))
+    this.removeTokens = this.ctx.theme.overrideTokens(QQ_SKIN_SOURCE, buildTokenOverrides(config.palette, config.customColor))
   }
 
   /** 卸载两层并清空句柄。 */

@@ -24,7 +24,7 @@ App 设置里注册的 **「QQ 皮肤」** 设置行，可视化切换色板 / �
 
 ## 设置面板
 
-皮肤在 App 设置里注册 **「QQ 皮肤」** 设置行，可视化切换色板 / 气泡尾巴 / 企鹅头像 / 会话宽度 / 提示音 / 打字机动效——变更立即生效（热更新重挂两层，不重启），并持久化到用户设置文档。设置面板改动优先于这里的静态配置。
+皮肤在 App 设置里注册 **「QQ 皮肤」** 设置行，可视化切换色板 / 自定义主色 / 企鹅装扮 / 气泡尾巴 / 企鹅头像 / 会话宽度 / 提示音与音效类型 / 发送音效 / 窗口轻微抖动提醒 / 毛玻璃亚克力质感 / 打字机动效——变更立即生效（热更新重挂两层，不重启），并持久化到用户设置文档。设置面板改动优先于这里的静态配置。
 
 ## 配置
 
@@ -32,17 +32,35 @@ App 设置里注册的 **「QQ 皮肤」** 设置行，可视化切换色板 / �
 
 | 配置项 | 默认值 | 说明 |
 | --- | --- | --- |
-| `palette` | `'classic'` | 色板变体：`classic` 经典蓝 / `vivid` 炫彩紫 / `clean` 简洁白 / `green` 经典绿气泡 / `black` 深空黑 |
+| `palette` | `'classic'` | 色板变体：`classic` 经典蓝 / `vivid` 炫彩紫 / `clean` 简洁白 / `green` 经典绿气泡 / `black` 深空黑 / `custom` 自定义主色 |
+| `customColor` | `'#12B7F5'` | 自定义主色调（十六进制颜色，如 `#FF5722`，当 `palette: 'custom'` 时自动派生亮暗色完整全套 token 阶梯） |
+| `avatarStyle` | `'classic'` | 企鹅头像装扮：`classic` 经典原版 / `sunglasses` 酷炫墨镜 / `scarf` 暖冬红围巾（高精度 SVG 动态图层叠加） |
 | `bubbleTail` | `true` | 用户气泡右侧"尾巴"小三角 |
 | `assistantAvatar` | `true` | 助手消息左侧官方 QQ 企鹅头像圆标 |
 | `chatMaxWidth` | `880` | 聊天流最大宽度（px，约束在 480～1600 之间） |
-| `messageSound` | `false` | 新助手消息“嘀嘀”提示音开关（Web Audio 合成，零外部资源依赖，历史加载静音与 1.2s 防抖保护） |
+| `messageSound` | `false` | 新助手消息提示音总开关（Web Audio 纯合成，零外部资源依赖，历史加载静音保护） |
+| `sendSound` | `false` | 用户发送消息即时反馈音（Web Audio 纯合成清脆正弦轻响，补齐交互闭环） |
+| `soundVariant` | `'beep'` | 提示声音效类型：`beep` 经典寻呼机 6-beep / `waterdrop` 灵动清脆水滴 / `knock` 经典两声敲门 |
+| `windowShake` | `false` | 助手新消息到来时轻微抖动聊天窗口（QQ 经典窗口抖动效果） |
+| `frostedGlass` | `false` | 侧边栏与头部亚克力毛玻璃通透效果（`backdrop-filter: blur(16px)`） |
 | `typing` | `true` | 助手消息打字机揭示动效开关 |
 
 示例（在 profile 的插件配置里指定）：
 
 ```json
-{ "palette": "vivid", "bubbleTail": false, "chatMaxWidth": 720, "messageSound": true, "typing": true }
+{
+  "palette": "custom",
+  "customColor": "#FF5722",
+  "avatarStyle": "sunglasses",
+  "bubbleTail": true,
+  "chatMaxWidth": 880,
+  "messageSound": true,
+  "sendSound": true,
+  "soundVariant": "waterdrop",
+  "windowShake": true,
+  "frostedGlass": true,
+  "typing": true
+}
 ```
 
 ## 覆盖范围
