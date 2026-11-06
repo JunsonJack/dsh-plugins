@@ -16,7 +16,9 @@
  * - **clean 简洁白**——表面纯白、分割更淡,蓝只做点缀,暗色更中性的
  *   蓝灰 #0F1622;
  * - **green 经典绿气泡**——实色绿气泡 #07C160,品牌仍为 QQ 蓝;
- * - **black 深空黑**——基座 #05070B 起近黑,亮暗同值,蓝只做点缀。
+ * - **black 深空黑**——基座 #05070B 起近黑,亮暗同值,蓝只做点缀;
+ * - **qqblue QQ蓝**——采样自 QQ NT 实色发送气泡 #2E65D1,全套品牌刻度
+ *   同色推导(气泡渐变与均匀圆角等几何差异见 qq-layout.ts)。
  *
  * 状态色(QQ 绿 #07C160 / 红 #FA5151 / 琥珀 #FFC300)为 QQ 识别色,
  * 各色板保持一致。几何与结构(圆角、头像、气泡尾巴、输入区胶囊)
@@ -593,6 +595,8 @@ const PALETTE_DELTAS: Record<Exclude<QQSkinPalette, 'custom'>, ThemeTokenOverrid
   clean: CLEAN_TOKEN_DELTAS,
   green: GREEN_TOKEN_DELTAS,
   black: BLACK_TOKEN_DELTAS,
+  /** QQ蓝:采样自 QQ NT 实色发送气泡 #2E65D1,全套品牌刻度同色推导。 */
+  qqblue: buildCustomTokenDeltas('#2E65D1'),
 }
 
 /**

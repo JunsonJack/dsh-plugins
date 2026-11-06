@@ -4,7 +4,7 @@
  * 消息左侧头像圆标 + 白色卡片、输入区胶囊化、会话头部细分割线、消息
  * 时间戳与滚动条 QQ 化。与 token 层分工:本层只管几何与结构(圆角、间距、
  * 伪元素头像、卡片描边、尾巴、白字),颜色一律经 `--dsw-*` token
- * (qq-tokens.ts),跟随当前色板(经典蓝/炫彩紫/简洁白/经典绿/深空黑)在
+ * (qq-tokens.ts),跟随当前色板(经典蓝/炫彩紫/简洁白/经典绿/深空黑/QQ蓝)在
  * 亮暗两态下的高辨识度色板。
  *
  * 样式按配置生成(`buildQQLayoutCss`):气泡尾巴、企鹅头像、聊天流宽度
@@ -142,6 +142,11 @@ export function buildQQLayoutCss(config: QQSkinConfig = QQ_SKIN_DEFAULT_CONFIG):
   const customRgb = isCustom ? parseHexColor(config.customColor) : null
   const glow: [number, number, number] = customRgb ?? [18, 183, 245]
   const shadow: [number, number, number] = customRgb ?? [18, 122, 175]
+  // QQ蓝色板:还原参考图的均匀圆角与轻微 135° 渐变(仅亮色;渐变起止色
+  // 经 parseHexColor 输出 rgb(),遵守布局层不写十六进制色的护栏)。
+  const isQqBlue = config.palette === 'qqblue'
+  const gradStart: [number, number, number] = parseHexColor('#2C6ED6') ?? [44, 110, 214]
+  const gradEnd: [number, number, number] = parseHexColor('#305FCC') ?? [48, 95, 204]
   return `
 /* ── 消息流:居中收窄,像聊天窗口的画布 ─────────────────────────────── */
 [data-chat-flow] {
@@ -207,7 +212,7 @@ ${typing ? typingRule() : ''}
     链接继承白字,避免蓝链接融进蓝底。 */
 [class$='_bubble'] {
   position: relative;
-  border-radius: 16px 6px 16px 16px;
+  border-radius: ${isQqBlue ? '16px' : '16px 6px 16px 16px'};
   color: rgb(255, 255, 255);
   box-shadow: 0 1px 2px rgba(${shadow[0]}, ${shadow[1]}, ${shadow[2]}, 0.12);
 }
@@ -215,6 +220,12 @@ ${typing ? typingRule() : ''}
   color: inherit;
 }
 ${bubbleTail ? bubbleTailRule() : ''}
+${isQqBlue ? `
+/* QQ蓝色板:还原参考图的轻微 135° 渐变(仅亮色;暗色保持实色深底)。 */
+body:not([data-ds-dark-theme]) [class$='_bubble'] {
+  background-image: linear-gradient(135deg, rgb(${gradStart[0]}, ${gradStart[1]}, ${gradStart[2]}) 0%, rgb(${gradEnd[0]}, ${gradEnd[1]}, ${gradEnd[2]}) 100%);
+}
+` : ''}
 
 /* ── 会话头部:QQ 会话窗口顶部的细分割条 ─────────────────────────────
    只命中 ConversationSession 的 <header>(同列面板 header 均为 div,

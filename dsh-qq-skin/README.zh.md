@@ -2,12 +2,12 @@
 
 [![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/deepseek-ai/deepseek-harness)
 
-[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`）的 **QQ NT 风格皮肤插件**：亮暗统一为 QQ NT 语言——**亮色白净克制**（表面近白、边框/hover 中性，品牌蓝 `#12B7F5` 与实色气泡（白字）只做辨识度点缀），**暗色沉稳蓝灰**（基座 `#101822`，降饱和耐看，蓝同样只点缀），一眼可辨。内置五种色板变体（经典蓝 / 炫彩紫 / 简洁白 / 经典绿气泡 / 深空黑），开关与尺寸均可配置，App 设置面板可视化切换 + 热更新。
+[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`）的 **QQ NT 风格皮肤插件**：亮暗统一为 QQ NT 语言——**亮色白净克制**（表面近白、边框/hover 中性，品牌蓝 `#12B7F5` 与实色气泡（白字）只做辨识度点缀），**暗色沉稳蓝灰**（基座 `#101822`，降饱和耐看，蓝同样只点缀），一眼可辨。内置六种色板变体（经典蓝 / 炫彩紫 / 简洁白 / 经典绿气泡 / 深空黑 / QQ蓝），开关与尺寸均可配置，App 设置面板可视化切换 + 热更新。
 
 [English](README.md)
 
 > **原理。** 皮肤由两层可逆贡献组成，不注册新主题 id，也不改动用户的浅色/深色/跟随系统偏好：
-> - **token 层** —— 激活时通过 `ctx.theme.overrideTokens('dsh-qq-skin', ...)` 叠加 `--dsw-*` 语义 token；每个 token 带 `{ light, dark }` 双色值，皮肤跟随当前基座而不是与它对抗。亮色蓝色贯穿表面、边框、交互与滚动条；暗色为 `#101822` 起的沉稳蓝灰刻度，蓝色只做点缀（品牌、气泡、主按钮）。token 集按色板变体生成（`buildTokenOverrides(palette)`）：五种色板共享中性蓝灰骨架，仅在人格 token 上分化。
+> - **token 层** —— 激活时通过 `ctx.theme.overrideTokens('dsh-qq-skin', ...)` 叠加 `--dsw-*` 语义 token；每个 token 带 `{ light, dark }` 双色值，皮肤跟随当前基座而不是与它对抗。亮色蓝色贯穿表面、边框、交互与滚动条；暗色为 `#101822` 起的沉稳蓝灰刻度，蓝色只做点缀（品牌、气泡、主按钮）。token 集按色板变体生成（`buildTokenOverrides(palette)`）：预设色板共享中性蓝灰骨架，仅在人格 token 上分化。
 > - **布局层** —— 注入一个全局 `<style>` 标签（`qq-layout.ts`），负责几何与结构：聊天流居中收窄、用户气泡实色主色 + 白字带"尾巴"、助手消息左侧头像圆标 + 白色卡片（按 `data-chat-flow-kind='assistant-step'` 命中）、输入区胶囊化、会话头部细分割线、时间戳与滚动条、侧边栏会话行悬停/选中态 QQ 化。品牌区保持产品原样，QQ 感完全由蓝色 token 层体现。颜色一律经 `--dsw-*` token，暗色变体由 `body[data-ds-dark-theme]` 门控。CSS 按配置生成（`buildQQLayoutCss`）。
 >
 > 卸载时两层都随 effect 清理完整还原，产品默认外观回归。设置与配置变更经 `QQSkinRuntime.update` 热重挂两层，无需重启插件。
@@ -32,7 +32,7 @@ App 设置里注册的 **「QQ 皮肤」** 设置行，可视化切换色板 / �
 
 | 配置项 | 默认值 | 说明 |
 | --- | --- | --- |
-| `palette` | `'classic'` | 色板变体：`classic` 经典蓝 / `vivid` 炫彩紫 / `clean` 简洁白 / `green` 经典绿气泡 / `black` 深空黑 / `custom` 自定义主色 |
+| `palette` | `'classic'` | 色板变体：`classic` 经典蓝 / `vivid` 炫彩紫 / `clean` 简洁白 / `green` 经典绿气泡 / `black` 深空黑 / `qqblue` QQ蓝（采样自 QQ NT 实色发送气泡 `#2E65D1`，四角均匀圆角，亮色带轻微 135° 渐变） / `custom` 自定义主色 |
 | `customColor` | `'#12B7F5'` | 自定义主色调（十六进制颜色，如 `#FF5722`）；当 `palette: 'custom'` 时所有品牌相关 token 全部跟随——按钮、链接文字、选中态 accent 以及 static blue/deepseek 整条刻度 |
 | `avatarStyle` | `'classic'` | 企鹅头像装扮：`classic` 经典原版 / `sunglasses` 酷炫墨镜 / `scarf` 暖冬红围巾（高精度 SVG 动态图层叠加） |
 | `bubbleTail` | `true` | 用户气泡右侧"尾巴"小三角 |

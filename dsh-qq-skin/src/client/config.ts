@@ -7,8 +7,8 @@
  * 合并时兜底为默认值,保证任何畸形输入都不会让皮肤挂掉。
  */
 
-/** 可选色板:经典蓝(默认)/ 炫彩紫 / 简洁白 / 经典绿气泡 / 深空黑 / 自定义主色。 */
-export const QQ_SKIN_PALETTES = ['classic', 'vivid', 'clean', 'green', 'black', 'custom'] as const
+/** 可选色板:经典蓝(默认)/ 炫彩紫 / 简洁白 / 经典绿气泡 / 深空黑 / QQ蓝 / 自定义主色。 */
+export const QQ_SKIN_PALETTES = ['classic', 'vivid', 'clean', 'green', 'black', 'qqblue', 'custom'] as const
 
 /** 色板标识。 */
 export type QQSkinPalette = (typeof QQ_SKIN_PALETTES)[number]

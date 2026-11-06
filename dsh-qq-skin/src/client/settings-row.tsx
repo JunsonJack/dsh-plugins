@@ -1,5 +1,5 @@
 /**
- * QQ 皮肤设置行(注册进设置 General 区的 item 槽):色板五选一、气泡
+ * QQ 皮肤设置行(注册进设置 General 区的 item 槽):色板七选一、气泡
  * 尾巴/企鹅头像开关、会话宽度输入。
  *
  * 视觉语言与宿主设置行对齐:
@@ -75,6 +75,7 @@ const PALETTE_LABEL_KEYS: Record<QQSkinPalette, QQSkinSettingsKey> = {
   clean: 'palette.clean',
   green: 'palette.green',
   black: 'palette.black',
+  qqblue: 'palette.qqblue',
   custom: 'palette.custom',
 }
 
@@ -99,6 +100,7 @@ const PALETTE_PREVIEW: Record<QQSkinPalette, string> = {
   clean: 'linear-gradient(135deg, #1F2A35 0%, #3A4A59 100%)',
   green: 'linear-gradient(135deg, #07C160 0%, #06B258 100%)',
   black: 'linear-gradient(135deg, #0B0F16 0%, #1D2937 100%)',
+  qqblue: 'linear-gradient(135deg, #2D73D7 0%, #3059CD 100%)',
   custom: 'linear-gradient(135deg, #FF5722 0%, #12B7F5 50%, #9C27B0 100%)',
 }
 

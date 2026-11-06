@@ -7,8 +7,8 @@ import {
 } from '../src/client/config.ts'
 
 describe('QQ skin config', () => {
-  it('declares the six palette variants', () => {
-    expect(QQ_SKIN_PALETTES).toEqual(['classic', 'vivid', 'clean', 'green', 'black', 'custom'])
+  it('declares the seven palette variants', () => {
+    expect(QQ_SKIN_PALETTES).toEqual(['classic', 'vivid', 'clean', 'green', 'black', 'qqblue', 'custom'])
   })
 
   it('declares the three avatar styles', () => {

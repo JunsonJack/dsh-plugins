@@ -130,6 +130,22 @@ describe('QQ skin token palettes', () => {
     })
   })
 
+  it('qqblue palette remaps brand, bubbles and static scale to the sampled QQ NT blue', () => {
+    const qqblue = buildTokenOverrides('qqblue')
+    expect(qqblue['--dsw-alias-brand-primary']).toMatchObject({
+      light: '#2E65D1', dark: mixColors('#2E65D1', '#FFFFFF', 0.28),
+    })
+    expect(qqblue['--dsw-specific-bubble']).toMatchObject({
+      light: '#2E65D1', dark: mixColors('#2E65D1', '#101822', 0.68),
+    })
+    expect(qqblue['--dsw-static-deepseek-500']).toMatchObject({
+      light: '#2E65D1', dark: '#2E65D1',
+    })
+    expect(qqblue['--dsw-static-blue-500']).toMatchObject({
+      light: '#2E65D1', dark: '#2E65D1',
+    })
+  })
+
   it('black palette keeps a near-black base in both modes while keeping blue as accent', () => {
     const black = buildTokenOverrides('black')
     expect(black['--dsw-alias-bg-base']).toEqual({ light: '#05070B', dark: '#05070B' })
@@ -155,7 +171,7 @@ describe('QQ skin token palettes', () => {
 
   it('every palette ships a solid brand bubble, not a pale tint', () => {
     const solid: Record<string, string> = {
-      classic: '#12B7F5', vivid: '#8A5CF5', clean: '#1F2A35', green: '#07C160', black: '#0E2638',
+      classic: '#12B7F5', vivid: '#8A5CF5', clean: '#1F2A35', green: '#07C160', black: '#0E2638', qqblue: '#2E65D1',
     }
     for (const [palette, expected] of Object.entries(solid)) {
       const overrides = buildTokenOverrides(palette as never)

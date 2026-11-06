@@ -186,6 +186,18 @@ describe('QQ NT layout config branches', () => {
     expect(QQ_LAYOUT_CSS).toContain('rgba(18, 122, 175, 0.12)')
   })
 
+  it('qqblue palette renders uniform bubble corners and a subtle light-mode gradient', () => {
+    const qqblue = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, palette: 'qqblue' })
+    expect(qqblue).toMatch(/\[class\$='_bubble'\] \{\s*position: relative;\s*border-radius: 16px;/)
+    expect(qqblue).toContain('linear-gradient(135deg, rgb(44, 110, 214) 0%, rgb(48, 95, 204) 100%)')
+    expect(qqblue).toContain("body:not([data-ds-dark-theme]) [class$='_bubble']")
+  })
+
+  it('classic palette keeps the tail-side small corner and no gradient', () => {
+    expect(QQ_LAYOUT_CSS).toContain('border-radius: 16px 6px 16px 16px;')
+    expect(QQ_LAYOUT_CSS).not.toContain('linear-gradient')
+  })
+
   it('renders user bubbles solid with white text and inherited link color', () => {
     // 实色气泡上深色字不可读:布局层统一指定白字,链接继承白字避免蓝链
     // 接融进蓝底(对应 QQ 发送气泡观感)。
