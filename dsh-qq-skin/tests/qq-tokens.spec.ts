@@ -86,7 +86,7 @@ describe('QQ skin token palettes', () => {
       light: '#8A5CF5', dark: '#A78BFA',
     })
     expect(vivid['--dsw-specific-bubble']).toMatchObject({
-      light: '#E3D9FF', dark: '#322A55',
+      light: '#8A5CF5', dark: '#322A55',
     })
     expect(vivid['--dsw-static-deepseek-500']).toMatchObject({
       light: '#8A5CF5', dark: '#8A5CF5',
@@ -110,13 +110,13 @@ describe('QQ skin token palettes', () => {
     expect(clean['--dsw-alias-brand-primary']).toMatchObject({
       light: '#12B7F5', dark: '#4CB8FF',
     })
-    expect(clean['--dsw-specific-bubble']).toMatchObject({ light: '#EAF4FB' })
+    expect(clean['--dsw-specific-bubble']).toMatchObject({ light: '#1F2A35' })
   })
 
   it('green palette remaps bubbles and static scale to classic QQ green', () => {
     const green = buildTokenOverrides('green')
     expect(green['--dsw-specific-bubble']).toMatchObject({
-      light: '#95EC69', dark: '#1E5C3C',
+      light: '#07C160', dark: '#1E5C3C',
     })
     expect(green['--dsw-static-deepseek-500']).toMatchObject({
       light: '#95EC69', dark: '#95EC69',
@@ -147,9 +147,22 @@ describe('QQ skin token palettes', () => {
   it('custom palette derives brand and bubble tokens from customColor', () => {
     const custom = buildTokenOverrides('custom', '#FF5722')
     expect(custom['--dsw-alias-brand-primary'].light).toBe('#FF5722')
-    expect(custom['--dsw-specific-bubble'].light).toBeDefined()
+    // 气泡实色化:亮色直接取主色(白字由布局层统一指定),不再是浅色调。
+    expect(custom['--dsw-specific-bubble'].light).toBe('#FF5722')
     expect(custom['--dsw-specific-bubble'].dark).toBeDefined()
     expect(custom['--dsw-alias-brand-primary'].dark).not.toBe('#FF5722')
+  })
+
+  it('every palette ships a solid brand bubble, not a pale tint', () => {
+    const solid: Record<string, string> = {
+      classic: '#12B7F5', vivid: '#8A5CF5', clean: '#1F2A35', green: '#07C160', black: '#0E2638',
+    }
+    for (const [palette, expected] of Object.entries(solid)) {
+      const overrides = buildTokenOverrides(palette as never)
+      expect(overrides['--dsw-specific-bubble']!.light, palette).toBe(expected)
+      // 暗色值同样存在且为深基调(实色底统一配白字)。
+      expect(overrides['--dsw-specific-bubble']!.dark, palette).toBeDefined()
+    }
   })
 
   it('custom palette follows customColor across buttons, links, accents and static scales', () => {

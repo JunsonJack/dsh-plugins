@@ -92,12 +92,12 @@ const AVATAR_STYLE_LABEL_KEYS: Record<QQAvatarStyle, QQSkinSettingsKey> = {
   scarf: 'avatar.scarf',
 }
 
-/** 色板卡片的渐变色块预览(亮色代表色,纯辨识度点缀,不参与主题)。 */
+/** 色板卡片的渐变色块预览(实色气泡代表色,纯辨识度点缀,不参与主题)。 */
 const PALETTE_PREVIEW: Record<QQSkinPalette, string> = {
-  classic: 'linear-gradient(135deg, #12B7F5 0%, #A8E3FF 100%)',
-  vivid: 'linear-gradient(135deg, #8A5CF5 0%, #E3D9FF 100%)',
-  clean: 'linear-gradient(135deg, #12B7F5 0%, #EAF4FB 100%)',
-  green: 'linear-gradient(135deg, #95EC69 0%, #E4F7D6 100%)',
+  classic: 'linear-gradient(135deg, #12B7F5 0%, #11A8E1 100%)',
+  vivid: 'linear-gradient(135deg, #8A5CF5 0%, #7F55E1 100%)',
+  clean: 'linear-gradient(135deg, #1F2A35 0%, #3A4A59 100%)',
+  green: 'linear-gradient(135deg, #07C160 0%, #06B258 100%)',
   black: 'linear-gradient(135deg, #0B0F16 0%, #1D2937 100%)',
   custom: 'linear-gradient(135deg, #FF5722 0%, #12B7F5 50%, #9C27B0 100%)',
 }

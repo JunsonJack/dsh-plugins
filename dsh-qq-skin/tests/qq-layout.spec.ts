@@ -167,4 +167,12 @@ describe('QQ NT layout config branches', () => {
     expect(QQ_LAYOUT_CSS).toContain('rgba(18, 183, 245, 0.35)')
     expect(QQ_LAYOUT_CSS).toContain('rgba(18, 122, 175, 0.12)')
   })
+
+  it('renders user bubbles solid with white text and inherited link color', () => {
+    // 实色气泡上深色字不可读:布局层统一指定白字,链接继承白字避免蓝链
+    // 接融进蓝底(对应 QQ 发送气泡观感)。
+    expect(QQ_LAYOUT_CSS).toMatch(/\[class\$='_bubble'\] \{[^}]*color: rgb\(255, 255, 255\)/)
+    expect(QQ_LAYOUT_CSS).toContain("[class$='_bubble'] a {")
+    expect(QQ_LAYOUT_CSS).toContain('color: inherit')
+  })
 })
