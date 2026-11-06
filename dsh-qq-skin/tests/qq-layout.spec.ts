@@ -177,13 +177,35 @@ describe('QQ NT layout config branches', () => {
       ...QQ_SKIN_DEFAULT_CONFIG, palette: 'custom', customColor: '#FF5722',
     })
     expect(custom).toContain('rgba(255, 87, 34, 0.35)')
-    expect(custom).toContain('rgba(255, 87, 34, 0.12)')
+    // 气泡投影改为三层递进(近/中/远)+ 顶部内高光,立体感更强。
+    expect(custom).toContain('rgba(255, 87, 34, 0.22)')
+    expect(custom).toContain('rgba(255, 87, 34, 0.18)')
+    expect(custom).toContain('rgba(255, 87, 34, 0.10)')
+    expect(custom).toContain('inset 0 1px 0 rgba(255, 255, 255, 0.22)')
     expect(custom).not.toContain('rgba(18, 183, 245, 0.35)')
   })
 
   it('keeps classic QQ blue shadows on preset palettes', () => {
     expect(QQ_LAYOUT_CSS).toContain('rgba(18, 183, 245, 0.35)')
-    expect(QQ_LAYOUT_CSS).toContain('rgba(18, 122, 175, 0.12)')
+    expect(QQ_LAYOUT_CSS).toContain('rgba(18, 122, 175, 0.22)')
+    expect(QQ_LAYOUT_CSS).toContain('rgba(18, 122, 175, 0.18)')
+    expect(QQ_LAYOUT_CSS).toContain('rgba(18, 122, 175, 0.10)')
+    expect(QQ_LAYOUT_CSS).toContain('inset 0 1px 0 rgba(255, 255, 255, 0.22)')
+  })
+
+  it('gives each palette its own bubble shadow hue for depth', () => {
+    const green = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, palette: 'green' })
+    expect(green).toContain('rgba(5, 138, 76, 0.22)')
+    const qqblue = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, palette: 'qqblue' })
+    expect(qqblue).toContain('rgba(22, 60, 138, 0.22)')
+    const black = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, palette: 'black' })
+    expect(black).toContain('rgba(4, 20, 32, 0.22)')
+  })
+
+  it('keeps a soft shadow on the bubble tail and dark theme bubbles', () => {
+    expect(QQ_LAYOUT_CSS).toContain('box-shadow: 2px 2px 4px rgba(18, 122, 175, 0.18)')
+    expect(QQ_LAYOUT_CSS).toContain('body[data-ds-dark-theme] [data-message-bubble][data-message-bubble] {')
+    expect(QQ_LAYOUT_CSS).toContain('0 4px 14px rgba(0, 0, 0, 0.30)')
   })
 
   it('qqblue palette renders uniform bubble corners and a subtle light-mode gradient', () => {

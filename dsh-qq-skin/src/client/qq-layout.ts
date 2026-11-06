@@ -74,7 +74,7 @@ function avatarRule(style: QQAvatarStyle = 'classic', glow: [number, number, num
 }
 
 /** 用户气泡"尾巴"(默认开启时注入,QQ 右侧指向头像的小三角)。 */
-function bubbleTailRule(): string {
+function bubbleTailRule(tailShadow: [number, number, number] = [18, 122, 175]): string {
   return `
 [data-message-bubble][data-message-bubble]::after {
   content: '';
@@ -86,6 +86,7 @@ function bubbleTailRule(): string {
   border-radius: 2px;
   background: var(--dsw-specific-bubble);
   transform: rotate(45deg);
+  box-shadow: 2px 2px 4px rgba(${tailShadow[0]}, ${tailShadow[1]}, ${tailShadow[2]}, 0.18);
 }
 `
 }
@@ -148,6 +149,16 @@ body[data-ds-dark-theme] [data-composer-card] {
 `
 }
 
+/** 各色板气泡投影的主色(暗色描边层),与 token 层的品牌色保持一致。 */
+const PALETTE_SHADOW_RGB: Record<string, [number, number, number]> = {
+  classic: [18, 122, 175],
+  vivid: [88, 47, 178],
+  clean: [120, 137, 155],
+  green: [5, 138, 76],
+  black: [4, 20, 32],
+  qqblue: [22, 60, 138],
+}
+
 /**
  * 按配置生成 QQ 布局层 CSS。颜色一律走 `--dsw-*` token,几何/开关随
  * 配置变化;所有规则随 <style> 标签移除而还原。
@@ -155,11 +166,11 @@ body[data-ds-dark-theme] [data-composer-card] {
  */
 export function buildQQLayoutCss(config: QQSkinConfig = QQ_SKIN_DEFAULT_CONFIG): string {
   const { bubbleTail, assistantAvatar, chatMaxWidth, typing, windowShake, frostedGlass } = config
-  // 头像光晕与气泡阴影的主色:custom 色板跟随自定义主色,其余色板保持经典 QQ 蓝。
+  // 头像光晕与气泡阴影的主色:custom 色板跟随自定义主色,其余色板各取本色。
   const isCustom = config.palette === 'custom'
   const customRgb = isCustom ? parseHexColor(config.customColor) : null
   const glow: [number, number, number] = customRgb ?? [18, 183, 245]
-  const shadow: [number, number, number] = customRgb ?? [18, 122, 175]
+  const shadow: [number, number, number] = customRgb ?? PALETTE_SHADOW_RGB[config.palette] ?? [18, 122, 175]
   // QQ蓝色板:还原参考图的均匀圆角与轻微 135° 渐变(仅亮色;渐变起止色
   // 经 parseHexColor 输出 rgb(),遵守布局层不写十六进制色的护栏)。
   const isQqBlue = config.palette === 'qqblue'
@@ -237,7 +248,11 @@ ${typing ? typingRule() : ''}
   border-radius: ${isQqBlue ? '16px' : '16px 6px 16px 16px'};
   color: ${bubbleForeground};
   ${isClean ? 'border: 1px solid var(--dsw-alias-border-l2);' : ''}
-  box-shadow: 0 1px 2px rgba(${shadow[0]}, ${shadow[1]}, ${shadow[2]}, 0.12);
+  box-shadow:
+    0 1px 2px rgba(${shadow[0]}, ${shadow[1]}, ${shadow[2]}, 0.22),
+    0 4px 12px rgba(${shadow[0]}, ${shadow[1]}, ${shadow[2]}, 0.18),
+    0 8px 20px rgba(${shadow[0]}, ${shadow[1]}, ${shadow[2]}, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 /* 气泡内文字一律跟随气泡前景色:气泡里的 markdown 正文各元素会从
    --dsw-alias-label-* 取自己的深色,只给气泡容器上色会被子元素覆盖,
@@ -255,7 +270,7 @@ body[data-ds-dark-theme] [data-message-bubble][data-message-bubble] :not(pre):no
   color: rgb(255, 255, 255);
 }
 ` : ''}
-${bubbleTail ? bubbleTailRule() : ''}
+${bubbleTail ? bubbleTailRule(shadow) : ''}
 ${isQqBlue ? `
 /* QQ蓝色板:还原参考图的轻微 135° 渐变(仅亮色;暗色保持实色深底)。 */
 body:not([data-ds-dark-theme]) [data-message-bubble][data-message-bubble] {
@@ -356,10 +371,13 @@ header[class$='_header'] {
 
 /* ── 暗色微调:阴影与伪元素在深底上降噪 ────────────────────────────── */
 body[data-ds-dark-theme] [data-message-bubble][data-message-bubble] {
-  box-shadow: none;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.35),
+    0 4px 14px rgba(0, 0, 0, 0.30),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 ${bubbleTail ? `body[data-ds-dark-theme] [data-message-bubble][data-message-bubble]::after {
-  box-shadow: none;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.30);
 }
 ` : ''}body[data-ds-dark-theme] [data-composer-card] {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
