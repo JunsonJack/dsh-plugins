@@ -13,6 +13,12 @@ export const QQ_SKIN_PALETTES = ['classic', 'vivid', 'clean', 'green', 'black'] 
 /** 色板标识。 */
 export type QQSkinPalette = (typeof QQ_SKIN_PALETTES)[number]
 
+/** 可选提示声音色:经典寻呼机 6-beep 方波(默认)/ 灵动水滴 / 清脆敲门。 */
+export const QQ_SKIN_SOUND_VARIANTS = ['beep', 'waterdrop', 'knock'] as const
+
+/** 提示声音色标识。 */
+export type QQSkinSoundVariant = (typeof QQ_SKIN_SOUND_VARIANTS)[number]
+
 /** 用户可调配置。 */
 export interface QQSkinConfig {
   /** 色板变体。 */
@@ -23,8 +29,14 @@ export interface QQSkinConfig {
   assistantAvatar: boolean
   /** 聊天流最大宽度(px)。 */
   chatMaxWidth: number
-  /** 新助手消息"滴滴"提示音开关(默认关,避免打扰)。 */
+  /** 新助手消息提示音开关(默认关,避免打扰)。 */
   messageSound: boolean
+  /** 提示声音色(beep=经典寻呼机, waterdrop=灵动水滴, knock=清脆敲门)。 */
+  soundVariant: QQSkinSoundVariant
+  /** 助手消息到达时窗口抖动提醒(默认关)。 */
+  windowShake: boolean
+  /** 侧边栏/顶栏毛玻璃亚克力通透质感(默认关)。 */
+  frostedGlass: boolean
   /** 助手消息打字机揭示动效开关(默认开)。 */
   typing: boolean
 }
@@ -33,13 +45,16 @@ export interface QQSkinConfig {
 export const CHAT_MAX_WIDTH_MIN = 480
 export const CHAT_MAX_WIDTH_MAX = 1600
 
-/** 默认配置(与旧行为一致:经典蓝、气泡尾巴、企鹅头像、880px 宽)。 */
+/** 默认配置(经典蓝、气泡尾巴、企鹅头像、880px 宽、经典音色)。 */
 export const QQ_SKIN_DEFAULT_CONFIG: QQSkinConfig = {
   palette: 'classic',
   bubbleTail: true,
   assistantAvatar: true,
   chatMaxWidth: 880,
   messageSound: false,
+  soundVariant: 'beep',
+  windowShake: false,
+  frostedGlass: false,
   typing: true,
 }
 
@@ -73,6 +88,15 @@ export function resolveQQSkinConfig(config?: PartialQQSkinConfig): QQSkinConfig 
     messageSound: typeof raw.messageSound === 'boolean'
       ? raw.messageSound
       : QQ_SKIN_DEFAULT_CONFIG.messageSound,
+    soundVariant: QQ_SKIN_SOUND_VARIANTS.includes(raw.soundVariant as QQSkinSoundVariant)
+      ? (raw.soundVariant as QQSkinSoundVariant)
+      : QQ_SKIN_DEFAULT_CONFIG.soundVariant,
+    windowShake: typeof raw.windowShake === 'boolean'
+      ? raw.windowShake
+      : QQ_SKIN_DEFAULT_CONFIG.windowShake,
+    frostedGlass: typeof raw.frostedGlass === 'boolean'
+      ? raw.frostedGlass
+      : QQ_SKIN_DEFAULT_CONFIG.frostedGlass,
     typing: typeof raw.typing === 'boolean'
       ? raw.typing
       : QQ_SKIN_DEFAULT_CONFIG.typing,

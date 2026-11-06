@@ -17,6 +17,7 @@ import {
   type PartialQQSkinConfig,
   type QQSkinConfig,
   type QQSkinPalette,
+  type QQSkinSoundVariant,
 } from './config.ts'
 
 /** 设置命名空间 == profile 条目 id(cordis.patch.yml 的 `id`)。 */
@@ -29,6 +30,9 @@ export interface QQSkinSettings {
   assistantAvatar?: boolean | undefined
   chatMaxWidth?: number | undefined
   messageSound?: boolean | undefined
+  soundVariant?: QQSkinSoundVariant | undefined
+  windowShake?: boolean | undefined
+  frostedGlass?: boolean | undefined
   typing?: boolean | undefined
 }
 
@@ -49,6 +53,9 @@ export function settingsToConfig(
     assistantAvatar: s.assistantAvatar ?? fallback?.assistantAvatar,
     chatMaxWidth: s.chatMaxWidth ?? fallback?.chatMaxWidth,
     messageSound: s.messageSound ?? fallback?.messageSound,
+    soundVariant: s.soundVariant ?? fallback?.soundVariant,
+    windowShake: s.windowShake ?? fallback?.windowShake,
+    frostedGlass: s.frostedGlass ?? fallback?.frostedGlass,
     typing: s.typing ?? fallback?.typing,
   })
 }

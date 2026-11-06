@@ -19,6 +19,12 @@ export type QQSkinSettingsKey =
   | 'row.assistantAvatar'
   | 'row.chatMaxWidth'
   | 'row.messageSound'
+  | 'row.soundVariant'
+  | 'sound.beep'
+  | 'sound.waterdrop'
+  | 'sound.knock'
+  | 'row.windowShake'
+  | 'row.frostedGlass'
   | 'row.typing'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -41,6 +47,12 @@ export const zh: Record<QQSkinSettingsKey, string> = {
   'row.assistantAvatar': '企鹅头像',
   'row.chatMaxWidth': '会话宽度',
   'row.messageSound': '消息提示音',
+  'row.soundVariant': '提示声音色',
+  'sound.beep': '经典寻呼机',
+  'sound.waterdrop': '灵动水滴',
+  'sound.knock': '清脆敲门',
+  'row.windowShake': '窗口抖动提醒',
+  'row.frostedGlass': '毛玻璃质感',
   'row.typing': '打字机效果',
 }
 
@@ -57,5 +69,11 @@ export const en: Record<QQSkinSettingsKey, string> = {
   'row.assistantAvatar': 'Penguin avatar',
   'row.chatMaxWidth': 'Chat width',
   'row.messageSound': 'Message sound',
+  'row.soundVariant': 'Sound tone',
+  'sound.beep': 'Classic Pager',
+  'sound.waterdrop': 'Water Drop',
+  'sound.knock': 'Door Knock',
+  'row.windowShake': 'Window shake',
+  'row.frostedGlass': 'Frosted glass',
   'row.typing': 'Typing effect',
 }

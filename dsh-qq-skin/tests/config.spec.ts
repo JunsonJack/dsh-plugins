@@ -53,4 +53,21 @@ describe('QQ skin config', () => {
     expect(resolveQQSkinConfig({ typing: false }).typing).toBe(false)
     expect(resolveQQSkinConfig({ typing: 1 as never }).typing).toBe(true)
   })
+
+  it('soundVariant defaults to beep and accepts waterdrop or knock', () => {
+    expect(resolveQQSkinConfig().soundVariant).toBe('beep')
+    expect(resolveQQSkinConfig({ soundVariant: 'waterdrop' }).soundVariant).toBe('waterdrop')
+    expect(resolveQQSkinConfig({ soundVariant: 'knock' }).soundVariant).toBe('knock')
+    expect(resolveQQSkinConfig({ soundVariant: 'invalid' as never }).soundVariant).toBe('beep')
+  })
+
+  it('windowShake and frostedGlass default to false and toggle via override', () => {
+    expect(resolveQQSkinConfig().windowShake).toBe(false)
+    expect(resolveQQSkinConfig({ windowShake: true }).windowShake).toBe(true)
+    expect(resolveQQSkinConfig({ windowShake: 'yes' as never }).windowShake).toBe(false)
+
+    expect(resolveQQSkinConfig().frostedGlass).toBe(false)
+    expect(resolveQQSkinConfig({ frostedGlass: true }).frostedGlass).toBe(true)
+    expect(resolveQQSkinConfig({ frostedGlass: 1 as never }).frostedGlass).toBe(false)
+  })
 })
