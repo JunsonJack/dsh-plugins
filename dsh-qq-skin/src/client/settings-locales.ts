@@ -15,6 +15,7 @@ export type QQSkinSettingsKey =
   | 'palette.clean'
   | 'palette.green'
   | 'palette.black'
+  | 'palette.qqblue'
   | 'palette.custom'
   | 'row.customColor'
   | 'row.avatarStyle'
@@ -50,6 +51,7 @@ export const zh: Record<QQSkinSettingsKey, string> = {
   'palette.clean': '简洁白',
   'palette.green': '经典绿气泡',
   'palette.black': '深空黑',
+  'palette.qqblue': 'QQ蓝',
   'palette.custom': '自定义主色',
   'row.customColor': '主色调色盘',
   'row.avatarStyle': '企鹅装扮',
@@ -79,6 +81,7 @@ export const en: Record<QQSkinSettingsKey, string> = {
   'palette.clean': 'Clean White',
   'palette.green': 'Green Bubble',
   'palette.black': 'Deep Black',
+  'palette.qqblue': 'QQ Blue',
   'palette.custom': 'Custom Color',
   'row.customColor': 'Accent color',
   'row.avatarStyle': 'Avatar style',

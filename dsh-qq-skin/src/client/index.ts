@@ -68,6 +68,14 @@ function sameConfig(left: QQSkinConfig, right: QQSkinConfig): boolean {
     && left.typing === right.typing
 }
 
+/** 音效运行时消费的字段:其余字段(色板/宽度/尾巴…)变更不必重建观察链。 */
+const SOUND_CONFIG_FIELDS = ['messageSound', 'sendSound', 'soundVariant', 'windowShake'] as const
+
+/** 两份配置的音效相关字段是否等价(等价时跳过音效链重建)。 */
+function sameSoundConfig(left: QQSkinConfig, right: QQSkinConfig): boolean {
+  return SOUND_CONFIG_FIELDS.every(field => left[field] === right[field])
+}
+
 /**
  * 挂载 QQ NT 皮肤(布局层 + token 层,经 QQSkinRuntime 统一生命周期),
  * 并注册「QQ 皮肤」设置行 + 设置变更热更新。
@@ -88,6 +96,8 @@ export function apply(ctx: ClientContext): void {
   const syncRow = (): void => {
     bound?.sync(runtime.getConfig(), host.getSnapshot().revision ?? -1)
   }
+  /** 音效链实际生效的配置:仅音效字段变化时才重建观察链与音频资源。 */
+  let soundConfig = runtime.getConfig()
   /** 采用宿主快照:配置未到达(loading/unavailable)时保持出厂默认值。 */
   const adopt = (): void => {
     const section = host.getSnapshot().value
@@ -96,7 +106,11 @@ export function apply(ctx: ClientContext): void {
     // 快照在激活时已就绪(与首帧同值)则只同步 store,不重挂两层。
     if (!sameConfig(merged, runtime.getConfig())) {
       runtime.update(merged)
+    }
+    // 调色等纯视觉变更不重建音效观察链,避免拖拽拾色时反复拆装 observer。
+    if (!sameSoundConfig(merged, soundConfig)) {
       sound.update(merged)
+      soundConfig = merged
     }
     syncRow()
   }

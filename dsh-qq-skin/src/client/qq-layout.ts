@@ -1,19 +1,23 @@
 /**
  * QQ 经典蓝布局层:以 CSS 注入方式把 harness 三栏客户端改造成经典 QQ 的
- * 会话窗口观感——聊天流居中收窄、用户气泡浅蓝带"尾巴"、助手消息左侧
- * 头像圆标 + 白色卡片、输入区胶囊化、会话头部细分割线、消息时间戳与
- * 滚动条 QQ 化。与 token 层分工:本层只管几何与结构(圆角、间距、伪元素
- * 头像、卡片描边、尾巴),颜色一律经 `--dsw-*` token(qq-tokens.ts),
- * 跟随当前色板(经典蓝/炫彩紫/简洁白)在亮暗两态下的高辨识度色板。
+ * 会话窗口观感——聊天流居中收窄、用户气泡实色主色 + 白字带"尾巴"、助手
+ * 消息左侧头像圆标 + 白色卡片、输入区胶囊化、会话头部细分割线、消息
+ * 时间戳与滚动条 QQ 化。与 token 层分工:本层只管几何与结构(圆角、间距、
+ * 伪元素头像、卡片描边、尾巴、白字),颜色一律经 `--dsw-*` token
+ * (qq-tokens.ts),跟随当前色板(经典蓝/炫彩紫/简洁白/经典绿/深空黑/QQ蓝)在
+ * 亮暗两态下的高辨识度色板。
  *
  * 样式按配置生成(`buildQQLayoutCss`):气泡尾巴、企鹅头像、聊天流宽度
  * 均可开关/调整,未配置字段回落 `QQ_SKIN_DEFAULT_CONFIG`。
  *
- * 选择器策略:客户端 CSS Modules 的类名模式为 `[hash]_[local]`(本地名
- * 保留在类名尾部),因此 `[class$="_localName"]` 可稳定命中组件内部节点;
- * 结构钩子优先使用组件源码里的 `data-*` 属性(`data-chat-flow`、
+ * 选择器策略:优先使用组件源码里的 `data-*` 属性(`data-chat-flow`、
  * `data-composer-card`、`data-chat-flow-kind`、`data-time-hover-root`、
- * `data-conversation-scroll` 等),两者均不依赖 hash。会话头部是
+ * `data-conversation-scroll`、`data-message-bubble` 等),它们与 hash 无关。
+ * CSS Modules 类名有两种形态:多数是 `[hash]_[local]`(本地名在尾部,
+ * `[class$='_localName']` 可稳定命中),但用户消息气泡所在的
+ * @deepseek-ai/dsh-client-ui-primitives 模块是 `_[local]_[hash]`
+ * (本地名在开头,如 `_bubble_1sgyj_1`),因此气泡一律走
+ * `data-message-bubble` 属性锚点。会话头部是
  * ConversationSession 的 `<header>` 元素(同列各面板的 header 均为 div,
  * 用 `header[class$='_header']` 唯一命中,不误伤 DetailsPanel/TodoPanel)。
  * 暗色变体统一由 `body[data-ds-dark-theme]`(ui-theme 呈现器写入)门控。
@@ -21,13 +25,31 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { getAvatarBackgroundImage } from './qq-avatar.ts'
 import { QQ_SKIN_DEFAULT_CONFIG, type QQAvatarStyle, type QQSkinConfig } from './config.ts'
+import { parseHexColor } from './qq-tokens.ts'
 
 /** 注入的 <style> 标签归属标识(便于排查与测试断言)。 */
 export const QQ_LAYOUT_PLUGIN = 'dsh-qq-skin/layout'
 
-/** 企鹅头像圆标(默认开启时注入;关闭后无头像,也不占左侧空间;支持墨镜/围巾装扮)。 */
-function avatarRule(style: QQAvatarStyle = 'classic'): string {
+/**
+ * 用户消息气泡的稳定选择器。
+ *
+ * harness 的 CSS Modules 类名形如 `_bubble_1sgyj_1`(本地名在**开头**),
+ * 与 `[data-message-bubble][data-message-bubble]`(本地名在结尾)的假设相反——早期版本因此从未命中
+ * 真正的用户气泡。UserMessageBubble 组件会把 `data-message-bubble` 属性
+ * 透传到该 <div> 上,这是与 hash 无关的稳定锚点,故以它为准。
+ *
+ * 写法上重复一次属性选择器(`[data-message-bubble][data-message-bubble]`)
+ * 以把特异度提到 (0,2,0),稳定压过 harness 的 `.\_bubble_1sgyj_1`
+ * (0,1,0)——后者声明 `color: var(--dsw-alias-label-primary)`,正是气泡
+ * 文字发黑的根因。
+ */
+export const QQ_USER_BUBBLE_SELECTOR = '[data-message-bubble][data-message-bubble]'
+
+/** 企鹅头像圆标(默认开启时注入;关闭后无头像,也不占左侧空间;支持墨镜/围巾装扮)。
+ * glow 为头像投影的主色 RGB:custom 色板跟随自定义主色,其余色板保持经典 QQ 蓝。 */
+function avatarRule(style: QQAvatarStyle = 'classic', glow: [number, number, number] = [18, 183, 245]): string {
   const bgImage = getAvatarBackgroundImage(style)
+  const [gr, gg, gb] = glow
   return `
 [data-chat-flow-kind='assistant-step'] {
   position: relative;
@@ -46,15 +68,15 @@ function avatarRule(style: QQAvatarStyle = 'classic'): string {
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
-  box-shadow: 0 1px 3px rgba(18, 183, 245, 0.35);
+  box-shadow: 0 1px 3px rgba(${gr}, ${gg}, ${gb}, 0.35);
 }
 `
 }
 
 /** 用户气泡"尾巴"(默认开启时注入,QQ 右侧指向头像的小三角)。 */
-function bubbleTailRule(): string {
+function bubbleTailRule(tailShadow: [number, number, number] = [18, 122, 175]): string {
   return `
-[class$='_bubble']::after {
+[data-message-bubble][data-message-bubble]::after {
   content: '';
   position: absolute;
   right: -5px;
@@ -64,6 +86,7 @@ function bubbleTailRule(): string {
   border-radius: 2px;
   background: var(--dsw-specific-bubble);
   transform: rotate(45deg);
+  box-shadow: 2px 2px 4px rgba(${tailShadow[0]}, ${tailShadow[1]}, ${tailShadow[2]}, 0.18);
 }
 `
 }
@@ -126,6 +149,16 @@ body[data-ds-dark-theme] [data-composer-card] {
 `
 }
 
+/** 各色板气泡投影的主色(暗色描边层),与 token 层的品牌色保持一致。 */
+const PALETTE_SHADOW_RGB: Record<string, [number, number, number]> = {
+  classic: [18, 122, 175],
+  vivid: [88, 47, 178],
+  clean: [120, 137, 155],
+  green: [5, 138, 76],
+  black: [4, 20, 32],
+  qqblue: [22, 60, 138],
+}
+
 /**
  * 按配置生成 QQ 布局层 CSS。颜色一律走 `--dsw-*` token,几何/开关随
  * 配置变化;所有规则随 <style> 标签移除而还原。
@@ -133,6 +166,19 @@ body[data-ds-dark-theme] [data-composer-card] {
  */
 export function buildQQLayoutCss(config: QQSkinConfig = QQ_SKIN_DEFAULT_CONFIG): string {
   const { bubbleTail, assistantAvatar, chatMaxWidth, typing, windowShake, frostedGlass } = config
+  // 头像光晕与气泡阴影的主色:custom 色板跟随自定义主色,其余色板各取本色。
+  const isCustom = config.palette === 'custom'
+  const customRgb = isCustom ? parseHexColor(config.customColor) : null
+  const glow: [number, number, number] = customRgb ?? [18, 183, 245]
+  const shadow: [number, number, number] = customRgb ?? PALETTE_SHADOW_RGB[config.palette] ?? [18, 122, 175]
+  // QQ蓝色板:还原参考图的均匀圆角与轻微 135° 渐变(仅亮色;渐变起止色
+  // 经 parseHexColor 输出 rgb(),遵守布局层不写十六进制色的护栏)。
+  const isQqBlue = config.palette === 'qqblue'
+  const gradStart: [number, number, number] = parseHexColor('#2C6ED6') ?? [44, 110, 214]
+  const gradEnd: [number, number, number] = parseHexColor('#305FCC') ?? [48, 95, 204]
+  // 简洁白色板的亮色气泡是纯白底 → 文字改深色(暗色由下方暗色规则拉回白字)。
+  const isClean = config.palette === 'clean'
+  const bubbleForeground = isClean ? 'rgb(15, 40, 59)' : 'rgb(255, 255, 255)'
   return `
 /* ── 消息流:居中收窄,像聊天窗口的画布 ─────────────────────────────── */
 [data-chat-flow] {
@@ -155,7 +201,7 @@ ${frostedGlass ? frostedGlassRule() : ''}
    > [data-slot] > [class$='_root'] 精确命中 AssistantMarkdown 的
    root(避免误伤嵌套的 ReasoningRow 等同名 root)。头像 top 按
    卡片 padding-top 12px + Think 行高 24px 垂直居中:12 + 12 - 11 = 13。 */
-${assistantAvatar ? avatarRule(config.avatarStyle) : ''}
+${assistantAvatar ? avatarRule(config.avatarStyle, glow) : ''}
 [data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {
   border-radius: 16px 16px 16px 6px;
   padding: 12px 16px;
@@ -192,13 +238,45 @@ ${typing ? typingRule() : ''}
   box-shadow: 14px 0 0 rgba(255, 189, 46, 0.85), 28px 0 0 rgba(39, 201, 63, 0.85);
 }
 
-/* ── 用户气泡:QQ 蓝底、右上小圆角(尾巴朝右侧头像方向) ───────────── */
-[class$='_bubble'] {
+/* ── 用户气泡:实色主色底 + 白字(QQ 发送气泡观感)、右上小圆角(尾巴朝
+    右侧头像方向)。白字硬编码:实色气泡上深色字不可读;暗色气泡同为深色底,
+    白字通用(用 rgb() 而非 #FFF,遵守布局层不写十六进制色的护栏)。气泡内
+    链接继承白字,避免蓝链接融进蓝底。简洁白色板是唯一例外:亮色气泡为纯白
+    底,必须配深字并描一道发丝边,否则白底白字(暗色仍为深底 → 仍用白字)。 */
+[data-message-bubble][data-message-bubble] {
   position: relative;
-  border-radius: 16px 6px 16px 16px;
-  box-shadow: 0 1px 2px rgba(18, 122, 175, 0.12);
+  border-radius: ${isQqBlue ? '16px' : '16px 6px 16px 16px'};
+  color: ${bubbleForeground};
+  ${isClean ? 'border: 1px solid var(--dsw-alias-border-l2);' : ''}
+  box-shadow:
+    0 1px 2px rgba(${shadow[0]}, ${shadow[1]}, ${shadow[2]}, 0.22),
+    0 4px 12px rgba(${shadow[0]}, ${shadow[1]}, ${shadow[2]}, 0.18),
+    0 8px 20px rgba(${shadow[0]}, ${shadow[1]}, ${shadow[2]}, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
-${bubbleTail ? bubbleTailRule() : ''}
+/* 气泡内文字一律跟随气泡前景色:气泡里的 markdown 正文各元素会从
+   --dsw-alias-label-* 取自己的深色,只给气泡容器上色会被子元素覆盖,
+   所以逐元素覆盖(:not(pre)/:not(pre *)/:not(code) 排除代码块,
+   避免白字压在浅色代码底上)。 */
+[data-message-bubble][data-message-bubble] :not(pre):not(pre *):not(code) {
+  color: ${bubbleForeground};
+}
+[data-message-bubble][data-message-bubble] a {
+  color: inherit;
+}
+${isClean ? `/* 简洁白:暗色气泡回到深底,文字回到白字。 */
+body[data-ds-dark-theme] [data-message-bubble][data-message-bubble],
+body[data-ds-dark-theme] [data-message-bubble][data-message-bubble] :not(pre):not(pre *):not(code) {
+  color: rgb(255, 255, 255);
+}
+` : ''}
+${bubbleTail ? bubbleTailRule(shadow) : ''}
+${isQqBlue ? `
+/* QQ蓝色板:还原参考图的轻微 135° 渐变(仅亮色;暗色保持实色深底)。 */
+body:not([data-ds-dark-theme]) [data-message-bubble][data-message-bubble] {
+  background-image: linear-gradient(135deg, rgb(${gradStart[0]}, ${gradStart[1]}, ${gradStart[2]}) 0%, rgb(${gradEnd[0]}, ${gradEnd[1]}, ${gradEnd[2]}) 100%);
+}
+` : ''}
 
 /* ── 会话头部:QQ 会话窗口顶部的细分割条 ─────────────────────────────
    只命中 ConversationSession 的 <header>(同列面板 header 均为 div,
@@ -292,11 +370,14 @@ header[class$='_header'] {
    的 mark/name 插槽)原样呈现,QQ 感完全由蓝色 token 层体现。 */
 
 /* ── 暗色微调:阴影与伪元素在深底上降噪 ────────────────────────────── */
-body[data-ds-dark-theme] [class$='_bubble'] {
-  box-shadow: none;
+body[data-ds-dark-theme] [data-message-bubble][data-message-bubble] {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.35),
+    0 4px 14px rgba(0, 0, 0, 0.30),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
-${bubbleTail ? `body[data-ds-dark-theme] [class$='_bubble']::after {
-  box-shadow: none;
+${bubbleTail ? `body[data-ds-dark-theme] [data-message-bubble][data-message-bubble]::after {
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.30);
 }
 ` : ''}body[data-ds-dark-theme] [data-composer-card] {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
@@ -317,18 +398,42 @@ body[data-ds-dark-theme] [data-time-hover-root] [class$='_timeEnd'] {
 export const QQ_LAYOUT_CSS = buildQQLayoutCss(QQ_SKIN_DEFAULT_CONFIG)
 
 /**
- * 创建并注入一个全局 <style> 标签,返回移除函数。低层原语,供运行时
- * 热更新(重建样式标签)与一次性安装复用;不依赖 effect 生命周期。
- * @param config - 用户配置(气泡尾巴/头像/宽度等,可缺省)。
- * @returns 移除该样式标签的清理函数。
+ * 布局层句柄:持有注入的 `<style>` 标签。热更新走 `set` 原地改写标签
+ * 内容(不移除不重建),避免"先拆后建"的中间裸态造成主题闪回默认色
+ * 的展示抽搐;`remove` 仅在插件卸载时调用。
  */
-export function createQQLayoutTag(config?: QQSkinConfig): () => void {
-  if (typeof document === 'undefined') return () => {}
+export interface QQLayoutLayer {
+  /** 原地替换样式内容(同一 `<style>` 标签,无闪屏)。 */
+  set: (config?: QQSkinConfig) => void
+  /** 移除样式标签。 */
+  remove: () => void
+}
+
+/**
+ * 创建并注入布局层:一个全局 `<style>` 标签 + 原地更新/移除句柄。
+ * @param config - 用户配置(气泡尾巴/头像/宽度等,可缺省)。
+ * @returns 布局层句柄。
+ */
+export function createQQLayoutLayer(config?: QQSkinConfig): QQLayoutLayer {
+  if (typeof document === 'undefined') return { set: () => {}, remove: () => {} }
   const tag = document.createElement('style')
   tag.dataset.plugin = QQ_LAYOUT_PLUGIN
   tag.textContent = buildQQLayoutCss(config)
   document.head.appendChild(tag)
-  return () => { tag.remove() }
+  return {
+    set: (next?: QQSkinConfig) => { tag.textContent = buildQQLayoutCss(next) },
+    remove: () => { tag.remove() },
+  }
+}
+
+/**
+ * 创建并注入一个全局 `<style>` 标签,返回移除函数(一次性安装用)。
+ * 热更新请走 {@link createQQLayoutLayer} 的原地 `set`。
+ * @param config - 用户配置(气泡尾巴/头像/宽度等,可缺省)。
+ * @returns 移除该样式标签的清理函数。
+ */
+export function createQQLayoutTag(config?: QQSkinConfig): () => void {
+  return createQQLayoutLayer(config).remove
 }
 
 /**

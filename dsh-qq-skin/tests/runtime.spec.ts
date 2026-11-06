@@ -40,21 +40,35 @@ describe('QQSkinRuntime', () => {
     runtime.dispose()
   })
 
-  it('re-applies both layers on hot update without disposing the runtime', () => {
+  it('hot-updates both layers in place without a bare-state flash', () => {
     const nodes = stubDocument()
-    const { ctx, overrideTokens } = makeCtx()
+    const disposers: Array<ReturnType<typeof vi.fn>> = []
+    const overrideTokens = vi.fn(() => {
+      const dispose = vi.fn()
+      disposers.push(dispose)
+      return dispose
+    })
+    const { ctx } = makeCtx(overrideTokens)
     const runtime = new QQSkinRuntime(ctx as never)
-    const firstLayout = nodes[0]
-    expect(firstLayout.remove).not.toHaveBeenCalled()
+    const tag = nodes[0]
+    expect(tag.remove).not.toHaveBeenCalled()
 
     runtime.update({ palette: 'vivid', chatMaxWidth: 720 })
 
-    // 旧布局移除、旧 token override 清理,并重新挂载两层。
-    expect(firstLayout.remove).toHaveBeenCalledTimes(1)
-    expect(nodes).toHaveLength(2)
-    expect(nodes[1].textContent).toContain('max-width: 720px')
+    // 布局层:同一个 <style> 标签原地改写内容,不移除不重建(移除会闪回裸题)。
+    expect(nodes).toHaveLength(1)
+    expect(tag.remove).not.toHaveBeenCalled()
+    expect(tag.textContent).toContain('max-width: 720px')
+    // token 层:同源 overrideTokens 原地替换,旧 disposer 自动失效、不被调用。
+    expect(overrideTokens).toHaveBeenCalledTimes(2)
     expect(overrideTokens).toHaveBeenLastCalledWith(QQ_SKIN_SOURCE, buildTokenOverrides('vivid'))
+    expect(disposers[0]).not.toHaveBeenCalled()
+
     runtime.dispose()
+    // 最终卸载:同一标签移除一次,走最新一次 override 的 disposer。
+    expect(tag.remove).toHaveBeenCalledTimes(1)
+    expect(disposers[0]).not.toHaveBeenCalled()
+    expect(disposers[1]).toHaveBeenCalledTimes(1)
   })
 
   it('exposes the resolved config after update', () => {

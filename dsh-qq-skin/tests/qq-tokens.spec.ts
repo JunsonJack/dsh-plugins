@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  buildTokenOverrides, QQ_SKIN_SOURCE, QQ_TOKEN_OVERRIDES,
+  buildCustomTokenDeltas, buildTokenOverrides, mixColors, QQ_SKIN_SOURCE, QQ_TOKEN_OVERRIDES,
 } from '../src/client/qq-tokens.ts'
 import { QQ_SKIN_PALETTES } from '../src/client/config.ts'
 
@@ -86,7 +86,7 @@ describe('QQ skin token palettes', () => {
       light: '#8A5CF5', dark: '#A78BFA',
     })
     expect(vivid['--dsw-specific-bubble']).toMatchObject({
-      light: '#E3D9FF', dark: '#322A55',
+      light: '#8A5CF5', dark: '#322A55',
     })
     expect(vivid['--dsw-static-deepseek-500']).toMatchObject({
       light: '#8A5CF5', dark: '#8A5CF5',
@@ -110,13 +110,14 @@ describe('QQ skin token palettes', () => {
     expect(clean['--dsw-alias-brand-primary']).toMatchObject({
       light: '#12B7F5', dark: '#4CB8FF',
     })
-    expect(clean['--dsw-specific-bubble']).toMatchObject({ light: '#EAF4FB' })
+    expect(clean['--dsw-specific-bubble']).toMatchObject({ light: '#FFFFFF' })
+    expect(clean['--dsw-specific-bubble-highlight']).toMatchObject({ light: '#F1F6FA' })
   })
 
   it('green palette remaps bubbles and static scale to classic QQ green', () => {
     const green = buildTokenOverrides('green')
     expect(green['--dsw-specific-bubble']).toMatchObject({
-      light: '#95EC69', dark: '#1E5C3C',
+      light: '#07C160', dark: '#1E5C3C',
     })
     expect(green['--dsw-static-deepseek-500']).toMatchObject({
       light: '#95EC69', dark: '#95EC69',
@@ -127,6 +128,22 @@ describe('QQ skin token palettes', () => {
     // 品牌仍为 QQ 蓝,绿只做气泡/静态色板点缀。
     expect(green['--dsw-alias-brand-primary']).toMatchObject({
       light: '#12B7F5', dark: '#4CB8FF',
+    })
+  })
+
+  it('qqblue palette remaps brand, bubbles and static scale to the sampled QQ NT blue', () => {
+    const qqblue = buildTokenOverrides('qqblue')
+    expect(qqblue['--dsw-alias-brand-primary']).toMatchObject({
+      light: '#2E65D1', dark: mixColors('#2E65D1', '#FFFFFF', 0.28),
+    })
+    expect(qqblue['--dsw-specific-bubble']).toMatchObject({
+      light: '#2E65D1', dark: mixColors('#2E65D1', '#101822', 0.68),
+    })
+    expect(qqblue['--dsw-static-deepseek-500']).toMatchObject({
+      light: '#2E65D1', dark: '#2E65D1',
+    })
+    expect(qqblue['--dsw-static-blue-500']).toMatchObject({
+      light: '#2E65D1', dark: '#2E65D1',
     })
   })
 
@@ -147,8 +164,69 @@ describe('QQ skin token palettes', () => {
   it('custom palette derives brand and bubble tokens from customColor', () => {
     const custom = buildTokenOverrides('custom', '#FF5722')
     expect(custom['--dsw-alias-brand-primary'].light).toBe('#FF5722')
-    expect(custom['--dsw-specific-bubble'].light).toBeDefined()
+    // 气泡实色化:亮色直接取主色(白字由布局层统一指定),不再是浅色调。
+    expect(custom['--dsw-specific-bubble'].light).toBe('#FF5722')
     expect(custom['--dsw-specific-bubble'].dark).toBeDefined()
     expect(custom['--dsw-alias-brand-primary'].dark).not.toBe('#FF5722')
+  })
+
+  it('every palette ships a solid opaque bubble, not a translucent tint', () => {
+    // 简洁白是唯一例外:气泡为纯白实色(配深字),其余色板为品牌实色(配白字)。
+    const solid: Record<string, string> = {
+      classic: '#12B7F5', vivid: '#8A5CF5', clean: '#FFFFFF', green: '#07C160', black: '#0E2638', qqblue: '#2E65D1',
+    }
+    for (const [palette, expected] of Object.entries(solid)) {
+      const overrides = buildTokenOverrides(palette as never)
+      expect(overrides['--dsw-specific-bubble']!.light, palette).toBe(expected)
+      // 暗色值同样存在且为深基调(实色底统一配白字)。
+      expect(overrides['--dsw-specific-bubble']!.dark, palette).toBeDefined()
+    }
+  })
+
+  it('custom palette follows customColor across buttons, links, accents and static scales', () => {
+    // 修复前:主按钮/链接文字/选中态/static 刻度仍写死 QQ 蓝,导致部分
+    // 带颜色的文字、链接、按钮不跟随自定义主色。
+    const custom = buildTokenOverrides('custom', '#FF5722')
+    expect(custom['--dsw-alias-button-primary-fill']).toMatchObject({ light: '#FF5722' })
+    expect(custom['--dsw-alias-button-primary-hover'].light).toBe(mixColors('#FF5722', '#000000', 0.08))
+    expect(custom['--dsw-alias-button-contrast-fill']).toMatchObject({ light: '#FF5722' })
+    expect(custom['--dsw-alias-button-ghost-active-border']).toMatchObject({ light: '#FF5722' })
+    expect(custom['--dsw-specific-sidebar-nav-item-active-accent']).toMatchObject({ light: '#FF5722' })
+    expect(custom['--dsw-alias-label-primary-bluish'].light).toBe(mixColors('#FF5722', '#000000', 0.30))
+    expect(custom['--dsw-alias-interactive-bg-hover-accent'].light).toBe('rgba(255, 87, 34, 0.10)')
+    expect(custom['--dsw-static-deepseek-500']).toMatchObject({ light: '#FF5722', dark: '#FF5722' })
+    expect(custom['--dsw-static-blue-50'].light).toBe(mixColors('#FF5722', '#FFFFFF', 0.94))
+    expect(custom['--dsw-static-deepseek-900'].light).toBe(mixColors('#FF5722', '#000000', 0.55))
+    // 主色之上的反白文字按亮度自动选择(亮主色配白字,提亮后的暗色配深字)。
+    expect(custom['--dsw-alias-brand-primary-invert'].light).toBe('#FFFFFF')
+    expect(custom['--dsw-alias-brand-primary-invert'].dark).toBe('#101822')
+  })
+
+  it('custom palette overrides every token the classic base hardcodes QQ blue into', () => {
+    const deltas = buildCustomTokenDeltas('#FF5722')
+    const blueBound = Object.entries(QQ_TOKEN_OVERRIDES)
+      .filter(([, modes]) => Object.values(modes).some(
+        (value) => value.includes('#12B7F5') || value.includes('rgba(18, 183, 245'),
+      ))
+      .map(([name]) => name)
+    expect(blueBound.length).toBeGreaterThan(0)
+    for (const name of blueBound) {
+      expect(deltas[name], name).toBeDefined()
+    }
+  })
+
+  it('custom palette leaves no hardcoded QQ blue behind', () => {
+    const merged = buildTokenOverrides('custom', '#FF5722')
+    for (const [name, modes] of Object.entries(merged)) {
+      expect(JSON.stringify(modes), name).not.toContain('#12B7F5')
+      expect(JSON.stringify(modes), name).not.toContain('rgba(18, 183, 245')
+    }
+  })
+
+  it('custom palette falls back to the default QQ blue for invalid colors', () => {
+    const custom = buildTokenOverrides('custom', 'not-a-color')
+    expect(custom['--dsw-alias-brand-primary']).toMatchObject({ light: '#12B7F5' })
+    expect(custom['--dsw-static-deepseek-500']).toMatchObject({ light: '#12B7F5' })
+    expect(custom['--dsw-alias-button-primary-fill']).toMatchObject({ light: '#12B7F5' })
   })
 })

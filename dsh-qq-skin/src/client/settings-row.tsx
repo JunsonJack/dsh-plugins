@@ -1,5 +1,5 @@
 /**
- * QQ 皮肤设置行(注册进设置 General 区的 item 槽):色板五选一、气泡
+ * QQ 皮肤设置行(注册进设置 General 区的 item 槽):色板七选一、气泡
  * 尾巴/企鹅头像开关、会话宽度输入。
  *
  * 视觉语言与宿主设置行对齐:
@@ -13,7 +13,7 @@
  * 样式用内联 style 直读 `--dsw-*` token(跟随色板与亮暗),不依赖构建期
  * CSS Modules 管线——本插件的客户端 bundle 无 CSS 处理步骤。
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls ui-settings 的 SlotMap 声明合并(声明 settings.general.item
@@ -75,6 +75,7 @@ const PALETTE_LABEL_KEYS: Record<QQSkinPalette, QQSkinSettingsKey> = {
   clean: 'palette.clean',
   green: 'palette.green',
   black: 'palette.black',
+  qqblue: 'palette.qqblue',
   custom: 'palette.custom',
 }
 
@@ -92,13 +93,14 @@ const AVATAR_STYLE_LABEL_KEYS: Record<QQAvatarStyle, QQSkinSettingsKey> = {
   scarf: 'avatar.scarf',
 }
 
-/** 色板卡片的渐变色块预览(亮色代表色,纯辨识度点缀,不参与主题)。 */
+/** 色板卡片的渐变色块预览(实色气泡代表色,纯辨识度点缀,不参与主题)。 */
 const PALETTE_PREVIEW: Record<QQSkinPalette, string> = {
-  classic: 'linear-gradient(135deg, #12B7F5 0%, #A8E3FF 100%)',
-  vivid: 'linear-gradient(135deg, #8A5CF5 0%, #E3D9FF 100%)',
-  clean: 'linear-gradient(135deg, #12B7F5 0%, #EAF4FB 100%)',
-  green: 'linear-gradient(135deg, #95EC69 0%, #E4F7D6 100%)',
+  classic: 'linear-gradient(135deg, #12B7F5 0%, #11A8E1 100%)',
+  vivid: 'linear-gradient(135deg, #8A5CF5 0%, #7F55E1 100%)',
+  clean: 'linear-gradient(135deg, #FFFFFF 0%, #E6EEF6 100%)',
+  green: 'linear-gradient(135deg, #07C160 0%, #06B258 100%)',
   black: 'linear-gradient(135deg, #0B0F16 0%, #1D2937 100%)',
+  qqblue: 'linear-gradient(135deg, #2D73D7 0%, #3059CD 100%)',
   custom: 'linear-gradient(135deg, #FF5722 0%, #12B7F5 50%, #9C27B0 100%)',
 }
 
@@ -244,6 +246,19 @@ export function QQSkinSettingsRow({
   const [widthDraft, setWidthDraft] = useState(String(config.chatMaxWidth))
   const [widthFocused, setWidthFocused] = useState(false)
 
+  // 自定义主色:草稿态即时回显 + 40ms 防抖提交。拖拽拾色时输入框不被
+  // 宿主快照的异步回写跳变;主题层由运行时原地热更新(无闪屏),提交只
+  // 负责把最终色持久化。
+  const [colorDraft, setColorDraft] = useState(config.customColor)
+  const colorTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  useEffect(() => { setColorDraft(config.customColor) }, [config.customColor])
+  useEffect(() => () => { if (colorTimer.current) window.clearTimeout(colorTimer.current) }, [])
+  const pickColor = (value: string): void => {
+    setColorDraft(value)
+    if (colorTimer.current) window.clearTimeout(colorTimer.current)
+    colorTimer.current = setTimeout(() => { setCustomColor(value) }, 40)
+  }
+
   useEffect(() => {
     if (!widthFocused) {
       setWidthDraft(String(config.chatMaxWidth))
@@ -287,15 +302,15 @@ export function QQSkinSettingsRow({
           <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <input
               type="color"
-              value={config.customColor}
-              onChange={event => { setCustomColor(event.currentTarget.value) }}
+              value={colorDraft}
+              onChange={event => { pickColor(event.currentTarget.value) }}
               style={{
                 width: '32px', height: '28px', padding: 0, border: 'none',
                 borderRadius: '6px', background: 'transparent', cursor: 'pointer',
               }}
             />
             <span style={{ fontSize: '13px', fontFamily: 'monospace', color: 'var(--dsw-alias-label-secondary)' }}>
-              {config.customColor}
+              {colorDraft.toUpperCase()}
             </span>
           </span>
         </div>
