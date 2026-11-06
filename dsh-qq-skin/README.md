@@ -1,5 +1,7 @@
 # dsh-qq-skin
 
+[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/deepseek-ai/deepseek-harness)
+
 A **QQ NT messenger skin** for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`). Light and dark share one QQ NT language — **light mode is clean and restrained** (near-white surfaces, neutral borders/hover, brand blue `#12B7F5` and light-blue bubbles `#A8E3FF` as recognition accents), **dark mode is a calm blue-gray** (base `#101822`, desaturated, blue reserved for accents), instantly recognizable. Ships with five palette variants (Classic Blue / Vivid Purple / Clean White / Green Bubble / Deep Black), configurable toggles and sizing, plus a settings-panel visual switcher with hot reload.
 
 [中文](README.zh.md)
@@ -22,7 +24,7 @@ The **QQ Skin** settings row in the App settings General section, with the palet
 
 ## Settings panel
 
-The skin registers a **QQ Skin** settings row in the App settings General section, with visual toggles for palette / bubble tail / assistant avatar / chat width. Changes apply immediately (hot reload remounts both layers) and are persisted to the user-settings document. The settings panel overrides the static config below.
+The skin registers a **QQ Skin** settings row in the App settings General section, with visual toggles for palette / bubble tail / assistant avatar / chat width / message sound / typing animation. Changes apply immediately (hot reload remounts both layers) and are persisted to the user-settings document. The settings panel overrides the static config below.
 
 ## Configuration
 
@@ -33,12 +35,14 @@ The plugin receives config the cordis function-plugin way (`apply(ctx, config)`)
 | `palette` | `'classic'` | Palette variant: `classic` Classic Blue / `vivid` Vivid Purple / `clean` Clean White / `green` Green Bubble / `black` Deep Black |
 | `bubbleTail` | `true` | Small triangular "tail" on the right of user bubbles |
 | `assistantAvatar` | `true` | Official QQ-penguin avatar disc left of assistant messages |
-| `chatMaxWidth` | `880` | Max width of the chat flow (px) |
+| `chatMaxWidth` | `880` | Max width of the chat flow (px, clamped between 480 and 1600) |
+| `messageSound` | `false` | Synthesized classic QQ message "di-di" sound prompt on new assistant message (zero network/asset dependency, muted on history load, 1.2s debounce) |
+| `typing` | `true` | Assistant message typing reveal animation |
 
 Example (set in the profile's plugin config):
 
 ```json
-{ "palette": "vivid", "bubbleTail": false, "chatMaxWidth": 720 }
+{ "palette": "vivid", "bubbleTail": false, "chatMaxWidth": 720, "messageSound": true, "typing": true }
 ```
 
 ## What it covers

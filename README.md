@@ -16,6 +16,10 @@ LLM 多模态安全 / 多媒体处理插件，含多语言文案（`locale/`）�
 
 右上角任务面板插件：为 DeepSeek Harness 提供右上角常驻会话任务面板，支持会话任务进度与步骤时间线、交付物文件展示与预览、工具与技能统计、Git Diff 统计及本地分支一键切换、侧边栏联动。
 
+### dsh-qq-skin
+
+QQ NT 风格皮肤插件：为 DeepSeek Harness Web 客户端叠加经典 QQ NT 视觉语言与声学反馈。支持 5 种精调色板（经典蓝、炫彩紫、简洁白、经典绿、深空黑）、可配置气泡尾巴/企鹅头像/会话宽度、Web Audio 合成寻呼机“嘀嘀”提示音（防抖与历史静默）、打字机揭示动效，并在 App 设置中提供可视化实时切换面板与热更新支持。
+
 ## 安装方式
 
 各插件目录下均带 `cordis.patch.yml`，按 DSH 本地插件方式挂载即可（具体见各插件 README）。
@@ -26,5 +30,6 @@ LLM 多模态安全 / 多媒体处理插件，含多语言文案（`locale/`）�
 dsh-plugins/
 ├── dsh-plugin-notebook-grid/   # 笔记本网格插件
 ├── dsh-llm-mmsp/               # LLM 多模态处理插件
-└── dsh-task-panel/             # 右上角任务面板插件
+├── dsh-task-panel/             # 右上角任务面板插件
+└── dsh-qq-skin/                # QQ NT 风格皮肤插件
 ```

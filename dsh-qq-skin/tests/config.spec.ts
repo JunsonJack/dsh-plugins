@@ -34,6 +34,14 @@ describe('QQ skin config', () => {
     expect(config.assistantAvatar).toBe(false)
   })
 
+  it('clamps chatMaxWidth to allowed range [480, 1600]', () => {
+    expect(resolveQQSkinConfig({ chatMaxWidth: 200 }).chatMaxWidth).toBe(480)
+    expect(resolveQQSkinConfig({ chatMaxWidth: 480 }).chatMaxWidth).toBe(480)
+    expect(resolveQQSkinConfig({ chatMaxWidth: 1200 }).chatMaxWidth).toBe(1200)
+    expect(resolveQQSkinConfig({ chatMaxWidth: 1600 }).chatMaxWidth).toBe(1600)
+    expect(resolveQQSkinConfig({ chatMaxWidth: 2400 }).chatMaxWidth).toBe(1600)
+  })
+
   it('messageSound defaults to false and toggles via override', () => {
     expect(resolveQQSkinConfig().messageSound).toBe(false)
     expect(resolveQQSkinConfig({ messageSound: true }).messageSound).toBe(true)
