@@ -507,6 +507,17 @@ describe('QQSoundRuntime', () => {
       querySelector: vi.fn(() => ({ matches: () => false, querySelectorAll: () => [] })),
       visibilityState: 'visible',
     })
+    // handleMutations 里用 Element 判断 addedNodes,happy-dom 未提供,补最小 stub。
+    class FakeElement {
+      matches: (sel: string) => boolean
+      querySelectorAll: (sel: string) => FakeElement[]
+      constructor(matches: (sel: string) => boolean, querySelectorAll: (sel: string) => FakeElement[]) {
+        this.matches = matches
+        this.querySelectorAll = querySelectorAll
+      }
+    }
+    vi.stubGlobal('Element', FakeElement)
+
     const ctx = new Context()
     new QQSoundRuntime(ctx, { ...QQ_SKIN_DEFAULT_CONFIG, messageSound: true, remindOnlyWhenUnfocused: true })
 
@@ -514,7 +525,7 @@ describe('QQSoundRuntime', () => {
     const audioSpy = vi.fn()
     vi.stubGlobal('window', { get AudioContext() { audioSpy(); return undefined } })
 
-    const step = { matches: (sel: string) => sel === "[data-chat-flow-kind='assistant-step']", querySelectorAll: () => [] }
+    const step = new FakeElement((sel) => sel === "[data-chat-flow-kind='assistant-step']", () => [])
     observers[0]!.callback([{ addedNodes: [step] } as unknown as MutationRecord], observers[0] as unknown as MutationObserver)
 
     expect(audioSpy).not.toHaveBeenCalled()
