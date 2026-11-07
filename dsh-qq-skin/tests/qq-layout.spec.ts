@@ -207,6 +207,21 @@ describe('QQ NT layout config branches', () => {
     expect(scarf).toContain('data:image/png;base64')
   })
 
+  it('overrides the penguin layers when avatarCustomImage is set', () => {
+    // 自定义头像优先:输出里出现该 URL,且不再有官方企鹅 PNG / SVG 装扮层。
+    const custom = buildQQLayoutCss({
+      ...QQ_SKIN_DEFAULT_CONFIG, avatarStyle: 'scarf', avatarCustomImage: 'https://example.com/cat.png',
+    })
+    expect(custom).toContain('url("https://example.com/cat.png")')
+    expect(custom).not.toContain('data:image/png;base64')
+    expect(custom).not.toContain('data:image/svg+xml')
+
+    // 空串回落官方企鹅 + 装扮层。
+    const fallback = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, avatarStyle: 'scarf' })
+    expect(fallback).toContain('data:image/png;base64')
+    expect(fallback).toContain('data:image/svg+xml')
+  })
+
   it('derives avatar glow and bubble shadow from customColor on the custom palette', () => {
     const custom = buildQQLayoutCss({
       ...QQ_SKIN_DEFAULT_CONFIG, palette: 'custom', customColor: '#FF5722',

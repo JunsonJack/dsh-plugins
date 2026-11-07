@@ -29,6 +29,8 @@ export interface Config {
   customColor: Volatile<string>
   /** 企鹅头像装扮(classic=经典, sunglasses=墨镜, scarf=围巾)。 */
   avatarStyle: Volatile<QQAvatarStyle>
+  /** 自定义助手头像图片(URL 或 data:image/* URI;空 = 官方企鹅)。 */
+  avatarCustomImage: Volatile<string>
   /** 用户气泡右侧"尾巴"伪元素开关。 */
   bubbleTail: Volatile<boolean>
   /** 助手消息左侧官方 QQ 企鹅头像开关。 */
@@ -62,6 +64,7 @@ export const Config = z.object({
   palette: z.union([...QQ_SKIN_PALETTES]).default('classic').volatile(),
   customColor: z.string().default('#12B7F5').volatile(),
   avatarStyle: z.union([...QQ_AVATAR_STYLES]).default('classic').volatile(),
+  avatarCustomImage: z.string().default('').volatile(),
   bubbleTail: z.boolean().default(true).volatile(),
   assistantAvatar: z.boolean().default(true).volatile(),
   chatMaxWidth: z.number().min(480).max(1600).default(880).volatile(),

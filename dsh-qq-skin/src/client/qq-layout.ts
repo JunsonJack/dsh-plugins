@@ -46,9 +46,10 @@ export const QQ_LAYOUT_PLUGIN = 'dsh-qq-skin/layout'
 export const QQ_USER_BUBBLE_SELECTOR = '[data-message-bubble][data-message-bubble]'
 
 /** 企鹅头像圆标(默认开启时注入;关闭后无头像,也不占左侧空间;支持墨镜/围巾装扮)。
- * glow 为头像投影的主色 RGB:custom 色板跟随自定义主色,其余色板保持经典 QQ 蓝。 */
-function avatarRule(style: QQAvatarStyle = 'classic', glow: [number, number, number] = [18, 183, 245]): string {
-  const bgImage = getAvatarBackgroundImage(style)
+ * glow 为头像投影的主色 RGB:custom 色板跟随自定义主色,其余色板保持经典 QQ 蓝。
+ * avatarImage 为自定义头像图片(非空时优先于官方企鹅与装扮层)。 */
+function avatarRule(style: QQAvatarStyle = 'classic', glow: [number, number, number] = [18, 183, 245], avatarImage = ''): string {
+  const bgImage = getAvatarBackgroundImage(style, avatarImage)
   const [gr, gg, gb] = glow
   return `
 [data-chat-flow-kind='assistant-step'] {
@@ -397,7 +398,7 @@ ${reducedMotionRule()}
    > [data-slot] > [class$='_root'] 精确命中 AssistantMarkdown 的
    root(避免误伤嵌套的 ReasoningRow 等同名 root)。头像 top 按
    卡片 padding-top 12px + Think 行高 24px 垂直居中:12 + 12 - 11 = 13。 */
-${assistantAvatar ? avatarRule(config.avatarStyle, glow) : ''}
+${assistantAvatar ? avatarRule(config.avatarStyle, glow, config.avatarCustomImage) : ''}
 [data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {
   border-radius: 16px 16px 16px 6px;
   padding: 12px 16px;

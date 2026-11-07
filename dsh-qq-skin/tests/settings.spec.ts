@@ -8,10 +8,11 @@ describe('QQ skin settings', () => {
 
   it('resolves to defaults when no setting section and no fallback', () => {
     expect(settingsToConfig(undefined)).toEqual({
-      palette: 'classic', customColor: '#12B7F5', avatarStyle: 'classic',
+      palette: 'classic', customColor: '#12B7F5', avatarStyle: 'classic', avatarCustomImage: '',
       bubbleTail: true, assistantAvatar: true,
       chatMaxWidth: 880, messageSound: false, sendSound: false, soundVariant: 'beep',
-      soundVolume: 1, remindOnlyWhenUnfocused: false, windowShake: false, frostedGlass: false, typing: true,
+      soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
+      windowShake: false, frostedGlass: false, typing: true,
     })
   })
 
@@ -19,10 +20,11 @@ describe('QQ skin settings', () => {
     const section: QQSkinSettings = { palette: 'vivid', chatMaxWidth: 720, soundVariant: 'waterdrop', avatarStyle: 'sunglasses' }
     const config = settingsToConfig(section, { palette: 'clean', bubbleTail: false, soundVariant: 'knock', avatarStyle: 'scarf' })
     expect(config).toEqual({
-      palette: 'vivid', customColor: '#12B7F5', avatarStyle: 'sunglasses',
+      palette: 'vivid', customColor: '#12B7F5', avatarStyle: 'sunglasses', avatarCustomImage: '',
       bubbleTail: false, assistantAvatar: true,
       chatMaxWidth: 720, messageSound: false, sendSound: false, soundVariant: 'waterdrop',
-      soundVolume: 1, remindOnlyWhenUnfocused: false, windowShake: false, frostedGlass: false, typing: true,
+      soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
+      windowShake: false, frostedGlass: false, typing: true,
     })
   })
 
@@ -30,10 +32,11 @@ describe('QQ skin settings', () => {
     const section: QQSkinSettings = { bubbleTail: false }
     const config = settingsToConfig(section, { palette: 'green', chatMaxWidth: 640, windowShake: true, avatarStyle: 'scarf' })
     expect(config).toEqual({
-      palette: 'green', customColor: '#12B7F5', avatarStyle: 'scarf',
+      palette: 'green', customColor: '#12B7F5', avatarStyle: 'scarf', avatarCustomImage: '',
       bubbleTail: false, assistantAvatar: true,
       chatMaxWidth: 640, messageSound: false, sendSound: false, soundVariant: 'beep',
-      soundVolume: 1, remindOnlyWhenUnfocused: false, windowShake: true, frostedGlass: false, typing: true,
+      soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
+      windowShake: true, frostedGlass: false, typing: true,
     })
   })
 
@@ -79,6 +82,14 @@ describe('QQ skin settings', () => {
     expect(config.quietHoursEnd).toBe('08:00')
     expect(settingsToConfig({ quietHoursStart: '25:00' }).quietHoursStart).toBe('')
     expect(settingsToConfig({ quietHoursEnd: 'noon' as never }).quietHoursEnd).toBe('')
+  })
+
+  it('avatarCustomImage flows through settings and rejects insecure sources', () => {
+    expect(settingsToConfig({ avatarCustomImage: 'https://example.com/penguin.png' }).avatarCustomImage).toBe('https://example.com/penguin.png')
+    expect(settingsToConfig({ avatarCustomImage: 'data:image/png;base64,iVBORw0K' }).avatarCustomImage).toBe('data:image/png;base64,iVBORw0K')
+    expect(settingsToConfig({ avatarCustomImage: 'http://example.com/x.png' }).avatarCustomImage).toBe('')
+    expect(settingsToConfig({ avatarCustomImage: 'not a url' }).avatarCustomImage).toBe('')
+    expect(settingsToConfig(undefined, { avatarCustomImage: 'https://fallback.example/y.png' }).avatarCustomImage).toBe('https://fallback.example/y.png')
   })
 
   it('sanitizes invalid or out-of-range fields from settings section', () => {

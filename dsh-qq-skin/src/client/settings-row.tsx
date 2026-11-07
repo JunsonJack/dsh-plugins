@@ -43,6 +43,8 @@ export interface QQSkinRowInjected {
   setCustomColor: (color: string) => void
   /** 切换企鹅头像装扮。 */
   setAvatarStyle: (style: QQAvatarStyle) => void
+  /** 设置自定义助手头像图片(URL 或 data URI,空串 = 官方企鹅)。 */
+  setAvatarCustomImage: (value: string) => void
   /** 开关用户气泡尾巴。 */
   setBubbleTail: (value: boolean) => void
   /** 开关助手企鹅头像。 */
@@ -249,8 +251,8 @@ function ToggleRow({ label, checked, onChange }: {
  * @returns 行元素树。
  */
 export function QQSkinSettingsRow({
-  t, useStore, setPalette, setCustomColor, setAvatarStyle, setBubbleTail, setAssistantAvatar, setChatMaxWidth,
-  setMessageSound, setSendSound, setSoundVariant, setSoundVolume, setRemindOnlyWhenUnfocused,
+  t, useStore, setPalette, setCustomColor, setAvatarStyle, setAvatarCustomImage, setBubbleTail, setAssistantAvatar,
+  setChatMaxWidth, setMessageSound, setSendSound, setSoundVariant, setSoundVolume, setRemindOnlyWhenUnfocused,
   setQuietHoursStart, setQuietHoursEnd, setWindowShake, setFrostedGlass, setTyping,
 }: QQSkinRowComponentProps) {
   const config = useStore(s => s.config)
@@ -258,6 +260,8 @@ export function QQSkinSettingsRow({
   const [widthFocused, setWidthFocused] = useState(false)
   const [volumeDraft, setVolumeDraft] = useState(String(config.soundVolume))
   const [volumeFocused, setVolumeFocused] = useState(false)
+  const [avatarImageDraft, setAvatarImageDraft] = useState(config.avatarCustomImage)
+  const [avatarImageFocused, setAvatarImageFocused] = useState(false)
 
   // 自定义主色:草稿态即时回显 + 40ms 防抖提交。拖拽拾色时输入框不被
   // 宿主快照的异步回写跳变;主题层由运行时原地热更新(无闪屏),提交只
@@ -296,6 +300,23 @@ export function QQSkinSettingsRow({
       setVolumeDraft(String(config.soundVolume))
     }
   }, [config.soundVolume, volumeFocused])
+
+  // 自定义头像输入:未聚焦时跟随外部配置回显(宿主回写/重置时同步)。
+  useEffect(() => {
+    if (!avatarImageFocused) {
+      setAvatarImageDraft(config.avatarCustomImage)
+    }
+  }, [config.avatarCustomImage, avatarImageFocused])
+
+  // 提交自定义头像:trim 后原样上交 —— 空串 = 回官方企鹅;非法 URL 由
+  // config.resolve 的 normalizeAvatarImage 兜底回落,UI 不做重复校验。
+  const commitAvatarImage = (): void => {
+    const trimmed = avatarImageDraft.trim()
+    if (trimmed !== config.avatarCustomImage) {
+      setAvatarCustomImage(trimmed)
+    }
+    setAvatarImageDraft(trimmed)
+  }
 
   const commitVolume = (): void => {
     const parsed = Number(volumeDraft)
@@ -413,7 +434,8 @@ export function QQSkinSettingsRow({
           label={t('row.windowShake')}
           checked={config.windowShake}
           onChange={setWindowShake}
-        />        <ToggleRow
+        />
+        <ToggleRow
           label={t('row.frostedGlass')}
           checked={config.frostedGlass}
           onChange={setFrostedGlass}
@@ -496,6 +518,34 @@ export function QQSkinSettingsRow({
               )
             })}
           </div>
+        </div>
+      )}
+
+      {/* 自定义助手头像:开启助手头像后展开 URL 输入(空 = 官方企鹅) */}
+      {config.assistantAvatar && (
+        <div style={fieldRowStyle}>
+          <span style={fieldLabelStyle}>{t('row.avatarCustomImage')}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <input
+              type="text"
+              value={avatarImageDraft}
+              placeholder="https://… 或 data:image/…"
+              onChange={event => { setAvatarImageDraft(event.currentTarget.value) }}
+              onFocus={() => { setAvatarImageFocused(true) }}
+              onBlur={() => { setAvatarImageFocused(false); commitAvatarImage() }}
+              onKeyDown={event => { if (event.key === 'Enter') commitAvatarImage() }}
+              style={{
+                width: '240px', height: '32px', padding: '0 10px',
+                boxSizing: 'border-box',
+                border: `1px solid ${avatarImageFocused ? 'var(--dsw-alias-brand-primary)' : 'var(--dsw-alias-border-l2)'}`,
+                borderRadius: '10px',
+                background: 'var(--dsw-specific-input-major)',
+                color: 'var(--dsw-alias-label-primary)',
+                fontSize: '13px',
+                outline: 'none',
+              }}
+            />
+          </span>
         </div>
       )}
 

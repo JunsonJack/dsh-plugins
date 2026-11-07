@@ -33,6 +33,8 @@ export interface QQSkinConfig {
   customColor: string
   /** 企鹅头像装扮(classic=经典, sunglasses=墨镜, scarf=围巾)。 */
   avatarStyle: QQAvatarStyle
+  /** 自定义助手头像图片(URL 或 data:image/* URI;空串 = 用官方企鹅)。 */
+  avatarCustomImage: string
   /** 用户气泡右侧"尾巴"伪元素开关。 */
   bubbleTail: boolean
   /** 助手消息左侧官方 QQ 企鹅头像开关。 */
@@ -78,11 +80,20 @@ export const DEFAULT_QUIET_HOURS = ''
 /** HH:mm 时间格式(24 小时制,分钟允许 00/15/30/45 等任意 0~59)。 */
 const HHMM_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/
 
+/**
+ * 自定义头像可接受的图片来源:
+ * - data:image/* URI(内联,零网络依赖,推荐);
+ * - https:// 图片 URL(http:// 不收,避免混合内容与降级风险)。
+ */
+const AVATAR_IMAGE_DATA_URI = /^data:image\/(png|jpeg|gif|webp|svg\+xml|avif);/i
+const AVATAR_IMAGE_HTTPS = /^https:\/\/\S+$/i
+
 /** 默认配置(经典蓝、气泡尾巴、企鹅头像、880px 宽、经典音色)。 */
 export const QQ_SKIN_DEFAULT_CONFIG: QQSkinConfig = {
   palette: 'classic',
   customColor: DEFAULT_CUSTOM_COLOR,
   avatarStyle: 'classic',
+  avatarCustomImage: '',
   bubbleTail: true,
   assistantAvatar: true,
   chatMaxWidth: 880,
@@ -140,6 +151,14 @@ export function normalizeQuietTime(value: unknown): string {
   return HHMM_PATTERN.test(trimmed) ? trimmed : DEFAULT_QUIET_HOURS
 }
 
+/** 规范化自定义头像图片:仅接受 data:image/* URI 或 https:// URL,其余回落空串(用官方企鹅)。 */
+export function normalizeAvatarImage(value: unknown): string {
+  if (typeof value !== 'string') return ''
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  return AVATAR_IMAGE_DATA_URI.test(trimmed) || AVATAR_IMAGE_HTTPS.test(trimmed) ? trimmed : ''
+}
+
 /**
  * 判定"当前时刻"是否落在免打扰时段内(支持跨午夜,如 22:00→08:00)。
  * 起点或终点任一为空 = 功能未启用,返回 false。
@@ -185,6 +204,7 @@ export function resolveQQSkinConfig(config?: PartialQQSkinConfig): QQSkinConfig 
     avatarStyle: QQ_AVATAR_STYLES.includes(raw.avatarStyle as QQAvatarStyle)
       ? (raw.avatarStyle as QQAvatarStyle)
       : QQ_SKIN_DEFAULT_CONFIG.avatarStyle,
+    avatarCustomImage: normalizeAvatarImage(raw.avatarCustomImage),
     bubbleTail: typeof raw.bubbleTail === 'boolean'
       ? raw.bubbleTail
       : QQ_SKIN_DEFAULT_CONFIG.bubbleTail,

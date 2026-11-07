@@ -39,8 +39,14 @@ export const QQ_SCARF_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(S
 /**
  * 根据装扮模式返回对应的 CSS background-image 声明。
  * 墨镜和围巾装扮以 SVG 装饰层叠在官方企鹅 PNG 之上,保持像素级对齐。
+ *
+ * 自定义头像优先:avatarImage 非空时直接用它(装扮层是按企鹅几何绘制的,
+ * 叠在任意图片上会错位,故整体跳过)。
  */
-export function getAvatarBackgroundImage(style: QQAvatarStyle = 'classic'): string {
+export function getAvatarBackgroundImage(style: QQAvatarStyle = 'classic', avatarImage = ''): string {
+  if (avatarImage) {
+    return `url("${avatarImage}")`
+  }
   switch (style) {
     case 'sunglasses':
       return `url("${QQ_SUNGLASSES_DATA_URI}"), url("${QQ_AVATAR_DATA_URI}")`

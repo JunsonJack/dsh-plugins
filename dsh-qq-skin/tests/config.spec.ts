@@ -5,6 +5,7 @@ import {
   QQ_SKIN_PALETTES,
   currentLocalMinutes,
   isWithinQuietHours,
+  normalizeAvatarImage,
   normalizeQuietTime,
   resolveQQSkinConfig,
 } from '../src/client/config.ts'
@@ -146,6 +147,32 @@ describe('QQ skin config', () => {
     expect(currentLocalMinutes(new Date(2026, 10, 7, 0, 0))).toBe(0)
     expect(currentLocalMinutes(new Date(2026, 10, 7, 8, 5))).toBe(8 * 60 + 5)
     expect(currentLocalMinutes(new Date(2026, 10, 7, 23, 59))).toBe(23 * 60 + 59)
+  })
+
+  it('normalizeAvatarImage accepts data URIs and https URLs only', () => {
+    // 空值/非串一律回落空串(= 官方企鹅)。
+    expect(normalizeAvatarImage('')).toBe('')
+    expect(normalizeAvatarImage('   ')).toBe('')
+    expect(normalizeAvatarImage(undefined as never)).toBe('')
+    expect(normalizeAvatarImage(42 as never)).toBe('')
+    // data URI:支持常见光栅与矢量格式。
+    expect(normalizeAvatarImage('data:image/png;base64,iVBORw0K')).toBe('data:image/png;base64,iVBORw0K')
+    expect(normalizeAvatarImage('data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=')).toBe('data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=')
+    expect(normalizeAvatarImage('data:image/webp;base64,UklGR')).toBe('data:image/webp;base64,UklGR')
+    // https URL:原样保留并 trim。
+    expect(normalizeAvatarImage(' https://example.com/penguin.png ')).toBe('https://example.com/penguin.png')
+    // http 明文与未知 scheme 不收。
+    expect(normalizeAvatarImage('http://example.com/penguin.png')).toBe('')
+    expect(normalizeAvatarImage('ftp://example.com/penguin.png')).toBe('')
+    expect(normalizeAvatarImage('javascript:alert(1)')).toBe('')
+  })
+
+  it('avatarCustomImage defaults to empty and normalizes invalid sources', () => {
+    expect(resolveQQSkinConfig().avatarCustomImage).toBe('')
+    expect(resolveQQSkinConfig({ avatarCustomImage: 'https://example.com/cat.png' }).avatarCustomImage).toBe('https://example.com/cat.png')
+    expect(resolveQQSkinConfig({ avatarCustomImage: '  ' }).avatarCustomImage).toBe('')
+    expect(resolveQQSkinConfig({ avatarCustomImage: 'http://insecure.example/x.png' }).avatarCustomImage).toBe('')
+    expect(resolveQQSkinConfig({ avatarCustomImage: 123 as never }).avatarCustomImage).toBe('')
   })
 
   it('remindOnlyWhenUnfocused defaults to false and toggles via override', () => {

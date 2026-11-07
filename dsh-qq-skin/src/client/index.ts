@@ -57,6 +57,7 @@ function sameConfig(left: QQSkinConfig, right: QQSkinConfig): boolean {
   return left.palette === right.palette
     && left.customColor === right.customColor
     && left.avatarStyle === right.avatarStyle
+    && left.avatarCustomImage === right.avatarCustomImage
     && left.bubbleTail === right.bubbleTail
     && left.assistantAvatar === right.assistantAvatar
     && left.chatMaxWidth === right.chatMaxWidth
@@ -137,6 +138,7 @@ export function apply(ctx: ClientContext): void {
       setPalette: (palette) => write('palette', palette),
       setCustomColor: (color) => write('customColor', color),
       setAvatarStyle: (style) => write('avatarStyle', style),
+      setAvatarCustomImage: (value) => write('avatarCustomImage', value),
       setBubbleTail: (value) => write('bubbleTail', value),
       setAssistantAvatar: (value) => write('assistantAvatar', value),
       setChatMaxWidth: (width) => write('chatMaxWidth', width),

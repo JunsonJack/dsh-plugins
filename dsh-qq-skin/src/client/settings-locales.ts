@@ -19,6 +19,7 @@ export type QQSkinSettingsKey =
   | 'palette.custom'
   | 'row.customColor'
   | 'row.avatarStyle'
+  | 'row.avatarCustomImage'
   | 'avatar.classic'
   | 'avatar.sunglasses'
   | 'avatar.scarf'
@@ -58,6 +59,7 @@ export const zh: Record<QQSkinSettingsKey, string> = {
   'palette.custom': '自定义主色',
   'row.customColor': '主色调色盘',
   'row.avatarStyle': '企鹅装扮',
+  'row.avatarCustomImage': '自定义头像',
   'avatar.classic': '经典企鹅',
   'avatar.sunglasses': '酷黑墨镜',
   'avatar.scarf': '冬日暖围巾',
@@ -91,6 +93,7 @@ export const en: Record<QQSkinSettingsKey, string> = {
   'palette.custom': 'Custom Color',
   'row.customColor': 'Accent color',
   'row.avatarStyle': 'Avatar style',
+  'row.avatarCustomImage': 'Custom avatar',
   'avatar.classic': 'Classic',
   'avatar.sunglasses': 'Sunglasses',
   'avatar.scarf': 'Winter scarf',

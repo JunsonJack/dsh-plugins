@@ -29,6 +29,7 @@ export interface QQSkinSettings {
   palette?: QQSkinPalette | undefined
   customColor?: string | undefined
   avatarStyle?: QQAvatarStyle | undefined
+  avatarCustomImage?: string | undefined
   bubbleTail?: boolean | undefined
   assistantAvatar?: boolean | undefined
   chatMaxWidth?: number | undefined
@@ -59,6 +60,7 @@ export function settingsToConfig(
     palette: s.palette ?? fallback?.palette,
     customColor: s.customColor ?? fallback?.customColor,
     avatarStyle: s.avatarStyle ?? fallback?.avatarStyle,
+    avatarCustomImage: s.avatarCustomImage ?? fallback?.avatarCustomImage,
     bubbleTail: s.bubbleTail ?? fallback?.bubbleTail,
     assistantAvatar: s.assistantAvatar ?? fallback?.assistantAvatar,
     chatMaxWidth: s.chatMaxWidth ?? fallback?.chatMaxWidth,
