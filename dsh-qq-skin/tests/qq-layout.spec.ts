@@ -185,6 +185,68 @@ describe('QQ NT layout config branches', () => {
     expect(custom).not.toContain('rgba(18, 183, 245, 0.35)')
   })
 
+  it('renders markdown tables as a rounded GitHub-style grid', () => {
+    expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] table {")
+    expect(QQ_LAYOUT_CSS).toContain('overflow-x: auto')
+    // 不再让 <table> 自己当滚动容器(display:block 会把表格盒拆成匿名盒,
+    // Chromium 直接裁掉右侧列 → "少一列/少两列")。
+    expect(QQ_LAYOUT_CSS).not.toMatch(/table\s*\{[^}]*display:\s*block/)
+    // separate 边框模式 + 圆角:让 overflow 裁切圆角,发丝线只画下/右。
+    expect(QQ_LAYOUT_CSS).toContain('border-collapse: separate')
+    expect(QQ_LAYOUT_CSS).toContain('border-radius: 10px')
+    expect(QQ_LAYOUT_CSS).toContain("border-bottom: 1px solid var(--dsw-alias-border-l1)")
+    expect(QQ_LAYOUT_CSS).toContain("border-right: 1px solid var(--dsw-alias-border-l1)")
+    // 表头浅色带 + 斑马纹。
+    expect(QQ_LAYOUT_CSS).toContain('background: var(--dsw-alias-bg-layer-2)')
+    expect(QQ_LAYOUT_CSS).toContain('nth-child(even)')
+  })
+
+  it('undoes the harness wide-table bleed so no column is cropped', () => {
+    // harness 会用容器查询单位把 ≥4 列的宽表容器撑得比卡片更宽
+    // (--dsh-table-lead / --dsh-table-spare),而卡片是 overflow-x:hidden
+    // → 右侧列被裁掉。这里把撑宽变量与宽度复位,列一个不少,超宽时在
+    // 容器内横向滚动。
+    expect(QQ_LAYOUT_CSS).toContain(".md-table-wide {")
+    expect(QQ_LAYOUT_CSS).toContain('--dsh-table-lead: 0px')
+    expect(QQ_LAYOUT_CSS).toContain('--dsh-table-spare: 0px')
+    expect(QQ_LAYOUT_CSS).toContain('margin-left: 0')
+    expect(QQ_LAYOUT_CSS).toContain('padding-left: 0')
+    expect(QQ_LAYOUT_CSS).toMatch(/\.md-table-wide \{[^}]*overflow-x: auto/)
+  })
+
+  it('keeps table cell text from folding mid-word', () => {
+    // 单元格按词换行(break-word),不用 anywhere——anywhere 会在字符中间
+    // 硬断,让表格右侧的代码/标识符看起来被"折叠"成两半。
+    expect(QQ_LAYOUT_CSS).toContain('overflow-wrap: break-word')
+    expect(QQ_LAYOUT_CSS).not.toContain('overflow-wrap: anywhere')
+  })
+
+  it('keeps inline code inside table cells intact', () => {
+    // 表格内的行内代码/等宽片段整体不折行(命令名不被拆断),并渲染成 chip。
+    expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] table code,")
+    expect(QQ_LAYOUT_CSS).toContain("[data-message-bubble][data-message-bubble] table code,")
+    expect(QQ_LAYOUT_CSS).toContain('word-break: normal')
+  })
+
+  it('never shows a scrollbar on ordinary text blocks', () => {
+    // 卡片与气泡只是"防外溢"(hidden),不产生滚动条;
+    // 只有 table 允许 overflow-x: auto。
+    expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {\n  overflow-x: hidden;")
+    // 气泡不能设 overflow-x: hidden——会裁掉伸出气泡的尾巴,且把 overflow-y
+    // 隐式变成 auto,凭空多出纵向滚动条。
+    expect(QQ_LAYOUT_CSS).not.toMatch(/\[data-message-bubble\]\[data-message-bubble\] \{[^}]*overflow-x: hidden/)
+    const autoRules = QQ_LAYOUT_CSS.match(/[^{}]*\{[^{}]*overflow-x: auto[^{}]*\}/g) ?? []
+    for (const rule of autoRules) {
+      expect(rule).toContain('table')
+    }
+  })
+
+  it('keeps wide tables inside the user bubble too', () => {
+    expect(QQ_LAYOUT_CSS).toContain("[data-message-bubble][data-message-bubble] table {")
+    expect(QQ_LAYOUT_CSS).toContain("[data-message-bubble][data-message-bubble] table td {")
+    expect(QQ_LAYOUT_CSS).toContain("[data-message-bubble][data-message-bubble] table th,")
+  })
+
   it('keeps classic QQ blue shadows on preset palettes', () => {
     expect(QQ_LAYOUT_CSS).toContain('rgba(18, 183, 245, 0.35)')
     expect(QQ_LAYOUT_CSS).toContain('rgba(18, 122, 175, 0.22)')
@@ -203,9 +265,39 @@ describe('QQ NT layout config branches', () => {
   })
 
   it('keeps a soft shadow on the bubble tail and dark theme bubbles', () => {
-    expect(QQ_LAYOUT_CSS).toContain('box-shadow: 2px 2px 4px rgba(18, 122, 175, 0.18)')
+    // 尾巴改用 clip-path 绘制,阴影随之改用 filter: drop-shadow
+    // (clip-path 会裁掉 box-shadow)。
+    expect(QQ_LAYOUT_CSS).toContain('filter: drop-shadow(1px 2px 3px rgba(18, 122, 175, 0.18))')
     expect(QQ_LAYOUT_CSS).toContain('body[data-ds-dark-theme] [data-message-bubble][data-message-bubble] {')
     expect(QQ_LAYOUT_CSS).toContain('0 4px 14px rgba(0, 0, 0, 0.30)')
+  })
+
+  it('draws the bubble tail as a clipped arc that merges with the bubble', () => {
+    // 弧形裁切(贝塞尔采样成 polygon),而不是旋转 45° 的方块——
+    // 方块尾巴与气泡圆角交界会有硬接缝。
+    expect(QQ_LAYOUT_CSS).toContain('clip-path: polygon(')
+    expect(QQ_LAYOUT_CSS).not.toContain('transform: rotate(45deg)')
+    // 尾巴贴在气泡右下角外侧。
+    expect(QQ_LAYOUT_CSS).toMatch(/\[data-message-bubble\]\[data-message-bubble\]::after \{[^}]*right: -6px;/)
+  })
+
+  it('keeps the tail background in sync with the bubble background', () => {
+    // 普通色板:尾巴用气泡同色 token。
+    expect(QQ_LAYOUT_CSS).toMatch(
+      /\[data-message-bubble\]\[data-message-bubble\]::after \{[^}]*background: var\(--dsw-specific-bubble\);/,
+    )
+    // QQ蓝:气泡是渐变,亮色下尾巴取渐变终点实色(尾巴贴合的右下角
+    // 正是渐变 100% 处),暗色回到与气泡相同的实色 token。
+    const qqblue = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, palette: 'qqblue' })
+    expect(qqblue).toMatch(
+      /body:not\(\[data-ds-dark-theme\]\) \[data-message-bubble\]\[data-message-bubble\]::after \{\s*background: rgb\(48, 95, 204\);\s*\}/,
+    )
+    expect(qqblue).not.toContain('rgb(46, 103, 209)')
+  })
+
+  it('outlines the tail on the clean palette where the bubble has a border', () => {
+    const clean = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, palette: 'clean' })
+    expect(clean).toContain('drop-shadow(0 0 0.5px var(--dsw-alias-border-l2))')
   })
 
   it('qqblue palette renders uniform bubble corners and a subtle light-mode gradient', () => {

@@ -73,20 +73,61 @@ function avatarRule(style: QQAvatarStyle = 'classic', glow: [number, number, num
 `
 }
 
-/** 用户气泡"尾巴"(默认开启时注入,QQ 右侧指向头像的小三角)。 */
-function bubbleTailRule(tailShadow: [number, number, number] = [18, 122, 175]): string {
+/**
+ * 尾巴形状:用二次贝塞尔采样出 QQ 经典"弧形小勾"的裁切多边形。
+ * 左边缘贴着气泡(被气泡压住),顶边是一条内凹的弧线向右下延伸,
+ * 尖端落在右下角 —— 与 QQ 桌面端"消息气泡右下角的小尾巴"一致。
+ */
+function tailClipPolygon(): string {
+  const p0: [number, number] = [0, 0]
+  const p1: [number, number] = [0.88, 0.16]
+  const p2: [number, number] = [1, 1]
+  const points: string[] = []
+  for (let i = 0; i <= 10; i++) {
+    const t = i / 10
+    const inv = 1 - t
+    const x = inv * inv * p0[0] + 2 * inv * t * p1[0] + t * t * p2[0]
+    const y = inv * inv * p0[1] + 2 * inv * t * p1[1] + t * t * p2[1]
+    points.push(`${(x * 100).toFixed(1)}% ${(y * 100).toFixed(1)}%`)
+  }
+  points.push('0% 100%')
+  return `polygon(${points.join(', ')})`
+}
+
+/**
+ * 用户气泡"尾巴"(默认开启时注入,QQ 右侧指向头像的小三角)。
+ * @param tailShadow - 尾巴投影的主色 RGB。
+ * @param tailBackground - 尾巴底色(与气泡一致;QQ蓝为渐变)。
+ * @param isClean - 简洁白色板:气泡有 1px 描边,尾巴需要补一道描边避免接缝。
+ */
+function bubbleTailRule(
+  tailShadow: [number, number, number] = [18, 122, 175],
+  tailBackground = 'var(--dsw-specific-bubble)',
+  isClean = false,
+): string {
+  const shadow = `${tailShadow[0]}, ${tailShadow[1]}, ${tailShadow[2]}`
+  // 尾巴尖端落在右下角;圆角一致时(QQ蓝)尾巴要下移一点才贴合圆弧。
+  const offset = isClean ? 'bottom: 3px;' : 'bottom: 2px;'
   return `
+/* ── 气泡尾巴:QQ 经典弧形小勾,贴在气泡右下角指向头像 ────────────────
+   形状用 clip-path 画(而不是旋转 45° 的方块):方块尾巴与气泡圆角
+   交界会出现硬接缝,弧形裁切则与气泡自然融为一体。
+   clip-path 会裁掉 box-shadow,所以阴影改用 filter: drop-shadow。 */
 [data-message-bubble][data-message-bubble]::after {
   content: '';
   position: absolute;
-  right: -5px;
-  bottom: 8px;
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  background: var(--dsw-specific-bubble);
-  transform: rotate(45deg);
-  box-shadow: 2px 2px 4px rgba(${tailShadow[0]}, ${tailShadow[1]}, ${tailShadow[2]}, 0.18);
+  right: -6px;
+  ${offset}
+  width: 16px;
+  height: 16px;
+  background: ${tailBackground};
+  clip-path: ${tailClipPolygon()};
+  filter: drop-shadow(1px 2px 3px rgba(${shadow}, 0.18))${
+    isClean
+      ? ' drop-shadow(0 0 0.5px var(--dsw-alias-border-l2))'
+      : ''
+  };
+  pointer-events: none;
 }
 `
 }
@@ -149,6 +190,97 @@ body[data-ds-dark-theme] [data-composer-card] {
 `
 }
 
+/* ── Markdown 表格:GitHub / Typora 式表格 UI ─────────────────────────
+   背景(harness 自身的 Markdown 表格实现):
+   - 每个 Markdown 表格外面都有一层滚动容器 div:
+     · ≤3 列 → 类名 `tableFill`,表格 `width:100%`(铺满,随容器折行);
+     · ≥4 列 → 类名 `tableScroll` + 字面类名 `md-table-wide`,
+       表格 `width:max-content`(按内容撑开),容器 `overflow-x:auto`。
+   - 宽表容器额外用容器查询单位算宽:
+     `--dsh-table-lead = spare + min(content-width, 100cqw) - 100%`,
+     `--dsh-table-spare = max(0, (100cqw - content-width) / 2)`,
+     于是宽表容器被算成**比卡片还宽**(让它"溢出到气泡之外"),
+     `margin-left:-lead` + `padding-left:lead` 把左边补回来。
+
+   本插件的助手卡片与用户气泡都是 `overflow-x: hidden`(需求:普通文本块
+   不出现滚动条),于是 harness 这套"故意超出卡片"的宽表容器被裁掉右侧 →
+   用户看到的"少一列/少两列"(本轮要修的核心问题)。
+
+   修复策略:
+   1) 把 harness 的撑宽变量归零、宽度压回 100%、margin/padding 复位,
+      容器保留 `overflow-x: auto` → 表格超出部分在容器内横向滚动,
+      **一列都不少**,也不产生卡片级滚动条;
+   2) 不再给 <table> 设 `display:block`——那会把表格盒拆成匿名盒,
+      Chromium 直接裁掉右侧列(更早一版"少列"的成因);
+   3) 宽度交给 harness 自己的 tableFill / tableScroll 机制决定;
+   4) 视觉层做 GitHub/Typora 风:发丝线、圆角、表头浅色带、斑马纹、
+      表格内代码渲染成 chip。 */
+function markdownTableRule(scope: string, wideScope: string): string {
+  return `
+${scope} table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 10px;
+  font-size: 0.94em;
+}
+/* 宽表滚动容器去撑宽:宽度压回卡片内,列一个不少,超宽时容器内滚动。 */
+${wideScope} .md-table-wide {
+  --dsh-table-lead: 0px;
+  --dsh-table-spare: 0px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0;
+  padding-left: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+${wideScope} .md-table-wide:hover,
+${wideScope} .md-table-wide:focus-visible {
+  overflow-x: auto;
+}
+${scope} table th,
+${scope} table td {
+  padding: 8px 14px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--dsw-alias-border-l1);
+  border-right: 1px solid var(--dsw-alias-border-l1);
+}
+${scope} table tr > *:last-child {
+  border-right: none;
+}
+${scope} table tbody tr:last-child > * {
+  border-bottom: none;
+}
+${scope} table th {
+  background: var(--dsw-alias-bg-layer-2);
+  font-weight: 600;
+}
+${scope} table td {
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+${scope} table tbody tr:nth-child(even) td {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+${scope} table code,
+${scope} table kbd,
+${scope} table samp {
+  display: inline-block;
+  max-width: 100%;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--dsw-alias-bg-module-platform);
+  color: var(--dsw-alias-label-primary);
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+`
+}
+
 /** 各色板气泡投影的主色(暗色描边层),与 token 层的品牌色保持一致。 */
 const PALETTE_SHADOW_RGB: Record<string, [number, number, number]> = {
   classic: [18, 122, 175],
@@ -207,6 +339,9 @@ ${assistantAvatar ? avatarRule(config.avatarStyle, glow) : ''}
   padding: 12px 16px;
   background: var(--dsw-alias-bg-layer-1);
   border: 1px solid var(--dsw-alias-border-l1);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 4px 14px rgba(15, 23, 42, 0.05);
 }
 ${typing ? typingRule() : ''}
 
@@ -218,6 +353,53 @@ ${typing ? typingRule() : ''}
   border-radius: 0 6px 6px 0;
   background: var(--dsw-alias-interactive-bg-hover);
   color: var(--dsw-alias-label-secondary);
+}
+
+/* ── Markdown 表格:GitHub / Typora 式表格 UI ────────────────────────
+   见 markdownTableRule() 的设计说明:表格是唯一允许横向滚动的区域,
+   行内代码整体不折行,避免"文字被折叠"的观感。 */
+${markdownTableRule("[data-chat-flow-kind='assistant-step']", "[data-chat-flow-kind='assistant-step']")}
+/* 用户气泡里的表格同样不得撑破气泡:表格由 harness 自己的滚动容器
+   (tableScroll/.md-table-wide)承担横向滚动,宽度压回气泡内。
+   ⚠ 气泡本身不能设 overflow-x: hidden——那会把伸出气泡外侧的
+   尾巴(::after)一起裁掉,而且 overflow-x:hidden 会把 overflow-y
+   隐式变成 auto,给气泡凭空加出纵向滚动条。 */
+${markdownTableRule('[data-message-bubble][data-message-bubble]', '[data-message-bubble][data-message-bubble] .md-table-wide')}
+/* 气泡内的表格 chip 底色改用气泡自身的深浅底,避免灰底压在蓝底上。
+   简洁白色板的亮色气泡是白底(深字),沿用默认浅色表格样式即可。 */
+${isClean ? '' : `
+[data-message-bubble][data-message-bubble] table code,
+[data-message-bubble][data-message-bubble] table kbd,
+[data-message-bubble][data-message-bubble] table samp {
+  background: rgba(0, 0, 0, 0.14);
+  color: inherit;
+}
+[data-message-bubble][data-message-bubble] table th {
+  background: rgba(0, 0, 0, 0.14);
+}
+[data-message-bubble][data-message-bubble] table tbody tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.10);
+}
+[data-message-bubble][data-message-bubble] table th,
+[data-message-bubble][data-message-bubble] table td {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+[data-message-bubble][data-message-bubble] table {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+`}
+
+/* ── 卡片兜底:只做"防外溢",不产生滚动条 ─────────────────────────────
+    需求:只有表格区域可以横向滚动;正常不溢出的文字块不应出现任何滚动条。
+    因此卡片用 overflow-x: hidden(裁掉溢出,不生成滚动条),而不是 auto;
+    长文本改为按词换行(break-word)而不是靠滚动查看。
+    代码块 pre 自带 overflow-x: auto,超长代码仍可在块内滚动。 */
+[data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+[data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] :not(pre):not(pre *):not(table):not(table *) {
+  overflow-wrap: break-word;
 }
 
 /* ── Markdown 代码块:QQ NT 仿窗口三色圆点装饰 ──────────────────────── */
@@ -270,11 +452,25 @@ body[data-ds-dark-theme] [data-message-bubble][data-message-bubble] :not(pre):no
   color: rgb(255, 255, 255);
 }
 ` : ''}
-${bubbleTail ? bubbleTailRule(shadow) : ''}
+${bubbleTail
+  ? bubbleTailRule(
+      shadow,
+      // 尾巴底色一律跟随气泡 token:实色色板天然同色;QQ蓝的气泡是
+      // 渐变,亮色由下方渐变块把尾巴同步到渐变终点色(尾巴贴合的
+      // 右下角正是渐变 100% 处),暗色则回到与气泡相同的实色 token。
+      'var(--dsw-specific-bubble)',
+      isClean,
+    )
+  : ''}
 ${isQqBlue ? `
-/* QQ蓝色板:还原参考图的轻微 135° 渐变(仅亮色;暗色保持实色深底)。 */
+/* QQ蓝色板:还原参考图的轻微 135° 渐变(仅亮色;暗色保持实色深底)。
+   尾巴贴在气泡右下角,该处渐变已走到终点 → 尾巴取同终点实色,
+   接缝处零色差(之前取渐变中点,亮绿偏多一眼可见)。 */
 body:not([data-ds-dark-theme]) [data-message-bubble][data-message-bubble] {
   background-image: linear-gradient(135deg, rgb(${gradStart[0]}, ${gradStart[1]}, ${gradStart[2]}) 0%, rgb(${gradEnd[0]}, ${gradEnd[1]}, ${gradEnd[2]}) 100%);
+}
+body:not([data-ds-dark-theme]) [data-message-bubble][data-message-bubble]::after {
+  background: rgb(${gradEnd[0]}, ${gradEnd[1]}, ${gradEnd[2]});
 }
 ` : ''}
 
@@ -376,15 +572,21 @@ body[data-ds-dark-theme] [data-message-bubble][data-message-bubble] {
     0 4px 14px rgba(0, 0, 0, 0.30),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
-${bubbleTail ? `body[data-ds-dark-theme] [data-message-bubble][data-message-bubble]::after {
-  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.30);
+${bubbleTail
+  ? `/* 暗色下尾巴的投影改用中性黑,避免主色阴影在深底上发脏。 */
+body[data-ds-dark-theme] [data-message-bubble][data-message-bubble]::after {
+  filter: drop-shadow(1px 2px 3px rgba(0, 0, 0, 0.30));
 }
-` : ''}body[data-ds-dark-theme] [data-composer-card] {
+`
+  : ''}body[data-ds-dark-theme] [data-composer-card] {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
 }
 /* 暗色下助手卡片背景收暗(bg-layer-1 偏亮),避免整片发白。 */
 body[data-ds-dark-theme] [data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {
   background: var(--dsw-alias-bg-module-platform);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.30),
+    0 4px 14px rgba(0, 0, 0, 0.25);
 }
 /* 暗色下时间戳圆片与头部分割线同样收暗(token 已随暗色变体生效)。 */
 body[data-ds-dark-theme] [data-time-hover-root] [class$='_timeStart'],
