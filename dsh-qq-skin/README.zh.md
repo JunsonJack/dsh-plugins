@@ -42,7 +42,7 @@ App 设置里注册的 **「QQ 皮肤」** 设置行，可视化切换色板 / �
 | `sendSound` | `false` | 用户发送消息即时反馈音（Web Audio 纯合成清脆正弦轻响，补齐交互闭环） |
 | `soundVariant` | `'beep'` | 提示声音效类型：`beep` 经典寻呼机 6-beep / `waterdrop` 灵动清脆水滴 / `knock` 经典两声敲门 |
 | `windowShake` | `false` | 助手新消息到来时轻微抖动聊天窗口（QQ 经典窗口抖动效果） |
-| `frostedGlass` | `false` | 侧边栏 / 右栏详情 / 输入框的毛玻璃玻璃面板(品牌色晕染渐变 + 半透明底 + `blur(24px)` + 玻璃边缘光) |
+| `frostedGlass` | `false` | 侧边栏 / 右栏详情 / 输入框的毛玻璃玻璃面板(品牌色晕染渐变 + 半透明底 + 玻璃边缘光;输入卡额外 `blur(16px)` 背景模糊——三栏列不加 blur,避免破坏折叠按钮的 fixed 定位) |
 | `typing` | `true` | 助手消息打字机揭示动效开关 |
 
 示例（在 profile 的插件配置里指定）：

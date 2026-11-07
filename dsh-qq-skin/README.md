@@ -42,7 +42,7 @@ The plugin receives config the cordis function-plugin way (`apply(ctx, config)`)
 | `sendSound` | `false` | Immediate audio feedback on sent user message (synthesized upward chirp) |
 | `soundVariant` | `'beep'` | Audio theme: `beep` Classic 6-beep pager / `waterdrop` Crisp water droplet / `knock` Two-tap wooden door knock |
 | `windowShake` | `false` | Subtle window shake animation on incoming assistant message (QQ window nudge effect) |
-| `frostedGlass` | `false` | Tinted frosted-glass panels on the sidebar, right details column, and composer (brand-tint gradient + translucent base + `blur(24px)` + glass-edge highlight) |
+| `frostedGlass` | `false` | Tinted frosted-glass panels on the sidebar, right details column, and composer (brand-tint gradient + translucent base + glass-edge highlight; the composer also gets `blur(16px)` backdrop blur — columns stay blur-free so the fixed-positioned sidebar toggle keeps its window anchoring) |
 | `typing` | `true` | Assistant message typing reveal animation |
 
 Example (set in the profile's plugin config):
