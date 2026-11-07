@@ -159,6 +159,8 @@ describe('dsh-qq-skin client apply', () => {
     injected!.setPalette!('green' as never)
     injected!.setChatMaxWidth!(640 as never)
     injected!.setSoundVariant!('waterdrop' as never)
+    injected!.setSoundVolume!(0.5 as never)
+    injected!.setRemindOnlyWhenUnfocused!(true as never)
     injected!.setWindowShake!(true as never)
     injected!.setFrostedGlass!(true as never)
 
@@ -166,6 +168,8 @@ describe('dsh-qq-skin client apply', () => {
       ['palette', 'green'],
       ['chatMaxWidth', 640],
       ['soundVariant', 'waterdrop'],
+      ['soundVolume', 0.5],
+      ['remindOnlyWhenUnfocused', true],
       ['windowShake', true],
       ['frostedGlass', true],
     ])

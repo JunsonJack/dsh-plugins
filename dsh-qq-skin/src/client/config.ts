@@ -45,6 +45,10 @@ export interface QQSkinConfig {
   sendSound: boolean
   /** 提示声音色(beep=经典寻呼机, waterdrop=灵动水滴, knock=清脆敲门)。 */
   soundVariant: QQSkinSoundVariant
+  /** 提示音音量(0~1,1=原始合成音量;仅影响本插件的音效,默认 1)。 */
+  soundVolume: number
+  /** 仅在窗口失焦/最小化时发声与抖动(QQ 习惯;前台新消息保持安静,默认关)。 */
+  remindOnlyWhenUnfocused: boolean
   /** 助手消息到达时窗口抖动提醒(默认关)。 */
   windowShake: boolean
   /** 侧边栏/顶栏毛玻璃亚克力通透质感(默认关)。 */
@@ -60,6 +64,10 @@ export const CHAT_MAX_WIDTH_MAX = 1600
 /** 默认主色十六进制。 */
 export const DEFAULT_CUSTOM_COLOR = '#12B7F5'
 
+/** 音量边界:0(静音)~1(原始合成音量)。 */
+export const SOUND_VOLUME_MIN = 0
+export const SOUND_VOLUME_MAX = 1
+
 /** 默认配置(经典蓝、气泡尾巴、企鹅头像、880px 宽、经典音色)。 */
 export const QQ_SKIN_DEFAULT_CONFIG: QQSkinConfig = {
   palette: 'classic',
@@ -71,6 +79,8 @@ export const QQ_SKIN_DEFAULT_CONFIG: QQSkinConfig = {
   messageSound: false,
   sendSound: false,
   soundVariant: 'beep',
+  soundVolume: 1,
+  remindOnlyWhenUnfocused: false,
   windowShake: false,
   frostedGlass: false,
   typing: true,
@@ -101,6 +111,14 @@ function normalizeChatMaxWidth(value: unknown): number {
     return QQ_SKIN_DEFAULT_CONFIG.chatMaxWidth
   }
   return Math.min(CHAT_MAX_WIDTH_MAX, Math.max(CHAT_MAX_WIDTH_MIN, Math.round(value)))
+}
+
+/** 规范化提示音音量:非法值回落默认 1,合法值钳制在 [0,1](允许小数)。 */
+export function normalizeSoundVolume(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return QQ_SKIN_DEFAULT_CONFIG.soundVolume
+  }
+  return Math.min(SOUND_VOLUME_MAX, Math.max(SOUND_VOLUME_MIN, value))
 }
 
 /** 用户可调配置(可选/部分)。显式包含 undefined 以兼容 exactOptionalPropertyTypes。 */
@@ -135,6 +153,10 @@ export function resolveQQSkinConfig(config?: PartialQQSkinConfig): QQSkinConfig 
     soundVariant: QQ_SKIN_SOUND_VARIANTS.includes(raw.soundVariant as QQSkinSoundVariant)
       ? (raw.soundVariant as QQSkinSoundVariant)
       : QQ_SKIN_DEFAULT_CONFIG.soundVariant,
+    soundVolume: normalizeSoundVolume(raw.soundVolume),
+    remindOnlyWhenUnfocused: typeof raw.remindOnlyWhenUnfocused === 'boolean'
+      ? raw.remindOnlyWhenUnfocused
+      : QQ_SKIN_DEFAULT_CONFIG.remindOnlyWhenUnfocused,
     windowShake: typeof raw.windowShake === 'boolean'
       ? raw.windowShake
       : QQ_SKIN_DEFAULT_CONFIG.windowShake,

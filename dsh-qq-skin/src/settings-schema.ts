@@ -41,6 +41,10 @@ export interface Config {
   sendSound: Volatile<boolean>
   /** 提示声音色(beep=经典寻呼机, waterdrop=灵动水滴, knock=清脆敲门)。 */
   soundVariant: Volatile<QQSkinSoundVariant>
+  /** 提示音音量(0~1,1=原始合成音量)。 */
+  soundVolume: Volatile<number>
+  /** 仅在窗口失焦/最小化时发声与抖动(默认关)。 */
+  remindOnlyWhenUnfocused: Volatile<boolean>
   /** 助手消息到达时窗口抖动提醒(默认关)。 */
   windowShake: Volatile<boolean>
   /** 侧边栏/顶栏毛玻璃亚克力通透质感(默认关)。 */
@@ -60,6 +64,8 @@ export const Config = z.object({
   messageSound: z.boolean().default(false).volatile(),
   sendSound: z.boolean().default(false).volatile(),
   soundVariant: z.union([...QQ_SKIN_SOUND_VARIANTS]).default('beep').volatile(),
+  soundVolume: z.number().min(0).max(1).default(1).volatile(),
+  remindOnlyWhenUnfocused: z.boolean().default(false).volatile(),
   windowShake: z.boolean().default(false).volatile(),
   frostedGlass: z.boolean().default(false).volatile(),
   typing: z.boolean().default(true).volatile(),

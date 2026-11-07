@@ -41,6 +41,8 @@ The plugin receives config the cordis function-plugin way (`apply(ctx, config)`)
 | `messageSound` | `false` | Master switch for synthesized audio prompt on new assistant message (zero network/asset dependency, muted on history load) |
 | `sendSound` | `false` | Immediate audio feedback on sent user message (synthesized upward chirp) |
 | `soundVariant` | `'beep'` | Audio theme: `beep` Classic 6-beep pager / `waterdrop` Crisp water droplet / `knock` Two-tap wooden door knock |
+| `soundVolume` | `1` | Sound volume (0–1, 1 = full synthesized level; applies to both the assistant sound and the sent sound) |
+| `remindOnlyWhenUnfocused` | `false` | Remind only when unfocused: keep the window silent for new messages while it is visible, and only chime/shake when it is hidden or minimized (classic QQ habit) |
 | `windowShake` | `false` | Subtle window shake animation on incoming assistant message (QQ window nudge effect) |
 | `frostedGlass` | `false` | Tinted frosted-glass panels on the sidebar, right details column, and composer (brand-tint gradient + translucent base + glass-edge highlight; the composer also gets `blur(16px)` backdrop blur — columns stay blur-free so the fixed-positioned sidebar toggle keeps its window anchoring) |
 | `typing` | `true` | Assistant message typing reveal animation |

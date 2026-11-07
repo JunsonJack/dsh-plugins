@@ -23,6 +23,8 @@ import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import {
   CHAT_MAX_WIDTH_MAX,
   CHAT_MAX_WIDTH_MIN,
+  SOUND_VOLUME_MAX,
+  SOUND_VOLUME_MIN,
   QQ_AVATAR_STYLES,
   QQ_SKIN_PALETTES,
   QQ_SKIN_SOUND_VARIANTS,
@@ -53,6 +55,10 @@ export interface QQSkinRowInjected {
   setSendSound: (value: boolean) => void
   /** 切换提示声音色。 */
   setSoundVariant: (variant: QQSkinSoundVariant) => void
+  /** 设置提示音音量(0~1)。 */
+  setSoundVolume: (volume: number) => void
+  /** 开关"仅失焦提醒"模式。 */
+  setRemindOnlyWhenUnfocused: (value: boolean) => void
   /** 开关窗口抖动提醒。 */
   setWindowShake: (value: boolean) => void
   /** 开关毛玻璃质感。 */
@@ -240,11 +246,14 @@ function ToggleRow({ label, checked, onChange }: {
  */
 export function QQSkinSettingsRow({
   t, useStore, setPalette, setCustomColor, setAvatarStyle, setBubbleTail, setAssistantAvatar, setChatMaxWidth,
-  setMessageSound, setSendSound, setSoundVariant, setWindowShake, setFrostedGlass, setTyping,
+  setMessageSound, setSendSound, setSoundVariant, setSoundVolume, setRemindOnlyWhenUnfocused, setWindowShake,
+  setFrostedGlass, setTyping,
 }: QQSkinRowComponentProps) {
   const config = useStore(s => s.config)
   const [widthDraft, setWidthDraft] = useState(String(config.chatMaxWidth))
   const [widthFocused, setWidthFocused] = useState(false)
+  const [volumeDraft, setVolumeDraft] = useState(String(config.soundVolume))
+  const [volumeFocused, setVolumeFocused] = useState(false)
 
   // 自定义主色:草稿态即时回显 + 40ms 防抖提交。拖拽拾色时输入框不被
   // 宿主快照的异步回写跳变;主题层由运行时原地热更新(无闪屏),提交只
@@ -275,6 +284,25 @@ export function QQSkinSettingsRow({
       setWidthDraft(String(clamped))
     } else {
       setWidthDraft(String(config.chatMaxWidth))
+    }
+  }
+
+  useEffect(() => {
+    if (!volumeFocused) {
+      setVolumeDraft(String(config.soundVolume))
+    }
+  }, [config.soundVolume, volumeFocused])
+
+  const commitVolume = (): void => {
+    const parsed = Number(volumeDraft)
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      const clamped = Math.min(SOUND_VOLUME_MAX, Math.max(SOUND_VOLUME_MIN, parsed))
+      if (clamped !== config.soundVolume) {
+        setSoundVolume(clamped)
+      }
+      setVolumeDraft(String(clamped))
+    } else {
+      setVolumeDraft(String(config.soundVolume))
     }
   }
 
@@ -373,6 +401,11 @@ export function QQSkinSettingsRow({
           onChange={setSendSound}
         />
         <ToggleRow
+          label={t('row.remindOnlyWhenUnfocused')}
+          checked={config.remindOnlyWhenUnfocused}
+          onChange={setRemindOnlyWhenUnfocused}
+        />
+        <ToggleRow
           label={t('row.windowShake')}
           checked={config.windowShake}
           onChange={setWindowShake}
@@ -420,6 +453,37 @@ export function QQSkinSettingsRow({
               )
             })}
           </div>
+        </div>
+      )}
+
+      {/* 提示音音量:消息提示音/发送音任一开启时展开,0(静音)~1(原始) */}
+      {(config.messageSound || config.sendSound) && (
+        <div style={fieldRowStyle}>
+          <span style={fieldLabelStyle}>{t('row.soundVolume')}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <input
+              type="number"
+              min={SOUND_VOLUME_MIN}
+              max={SOUND_VOLUME_MAX}
+              step={0.05}
+              value={volumeDraft}
+              onChange={event => { setVolumeDraft(event.currentTarget.value) }}
+              onFocus={() => { setVolumeFocused(true) }}
+              onBlur={() => { setVolumeFocused(false); commitVolume() }}
+              onKeyDown={event => { if (event.key === 'Enter') commitVolume() }}
+              style={{
+                width: '72px', height: '32px', padding: '0 10px',
+                boxSizing: 'border-box',
+                border: `1px solid ${volumeFocused ? 'var(--dsw-alias-brand-primary)' : 'var(--dsw-alias-border-l2)'}`,
+                borderRadius: '10px',
+                background: 'var(--dsw-specific-input-major)',
+                color: 'var(--dsw-alias-label-primary)',
+                fontSize: '13px',
+                outline: 'none',
+              }}
+            />
+            <span style={{ fontSize: '12px', color: 'var(--dsw-alias-label-caption)' }}>0~1</span>
+          </span>
         </div>
       )}
 

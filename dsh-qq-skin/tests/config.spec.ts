@@ -94,6 +94,23 @@ describe('QQ skin config', () => {
     expect(resolveQQSkinConfig({ soundVariant: 'invalid' as never }).soundVariant).toBe('beep')
   })
 
+  it('soundVolume defaults to 1 and clamps into [0, 1]', () => {
+    expect(resolveQQSkinConfig().soundVolume).toBe(1)
+    expect(resolveQQSkinConfig({ soundVolume: 0.5 }).soundVolume).toBe(0.5)
+    expect(resolveQQSkinConfig({ soundVolume: 0 }).soundVolume).toBe(0)
+    expect(resolveQQSkinConfig({ soundVolume: 1 }).soundVolume).toBe(1)
+    expect(resolveQQSkinConfig({ soundVolume: 1.7 }).soundVolume).toBe(1)
+    expect(resolveQQSkinConfig({ soundVolume: -0.5 }).soundVolume).toBe(0)
+    expect(resolveQQSkinConfig({ soundVolume: Number.NaN }).soundVolume).toBe(1)
+    expect(resolveQQSkinConfig({ soundVolume: 'loud' as never }).soundVolume).toBe(1)
+  })
+
+  it('remindOnlyWhenUnfocused defaults to false and toggles via override', () => {
+    expect(resolveQQSkinConfig().remindOnlyWhenUnfocused).toBe(false)
+    expect(resolveQQSkinConfig({ remindOnlyWhenUnfocused: true }).remindOnlyWhenUnfocused).toBe(true)
+    expect(resolveQQSkinConfig({ remindOnlyWhenUnfocused: 1 as never }).remindOnlyWhenUnfocused).toBe(false)
+  })
+
   it('windowShake and frostedGlass default to false and toggle via override', () => {
     expect(resolveQQSkinConfig().windowShake).toBe(false)
     expect(resolveQQSkinConfig({ windowShake: true }).windowShake).toBe(true)

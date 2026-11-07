@@ -63,13 +63,15 @@ function sameConfig(left: QQSkinConfig, right: QQSkinConfig): boolean {
     && left.messageSound === right.messageSound
     && left.sendSound === right.sendSound
     && left.soundVariant === right.soundVariant
+    && left.soundVolume === right.soundVolume
+    && left.remindOnlyWhenUnfocused === right.remindOnlyWhenUnfocused
     && left.windowShake === right.windowShake
     && left.frostedGlass === right.frostedGlass
     && left.typing === right.typing
 }
 
 /** 音效运行时消费的字段:其余字段(色板/宽度/尾巴…)变更不必重建观察链。 */
-const SOUND_CONFIG_FIELDS = ['messageSound', 'sendSound', 'soundVariant', 'windowShake'] as const
+const SOUND_CONFIG_FIELDS = ['messageSound', 'sendSound', 'soundVariant', 'soundVolume', 'remindOnlyWhenUnfocused', 'windowShake'] as const
 
 /** 两份配置的音效相关字段是否等价(等价时跳过音效链重建)。 */
 function sameSoundConfig(left: QQSkinConfig, right: QQSkinConfig): boolean {
@@ -139,6 +141,8 @@ export function apply(ctx: ClientContext): void {
       setMessageSound: (value) => write('messageSound', value),
       setSendSound: (value) => write('sendSound', value),
       setSoundVariant: (variant) => write('soundVariant', variant),
+      setSoundVolume: (volume) => write('soundVolume', volume),
+      setRemindOnlyWhenUnfocused: (value) => write('remindOnlyWhenUnfocused', value),
       setWindowShake: (value) => write('windowShake', value),
       setFrostedGlass: (value) => write('frostedGlass', value),
       setTyping: (value) => write('typing', value),

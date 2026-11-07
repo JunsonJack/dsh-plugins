@@ -28,6 +28,8 @@ export type QQSkinSettingsKey =
   | 'row.messageSound'
   | 'row.sendSound'
   | 'row.soundVariant'
+  | 'row.soundVolume'
+  | 'row.remindOnlyWhenUnfocused'
   | 'sound.beep'
   | 'sound.waterdrop'
   | 'sound.knock'
@@ -64,6 +66,8 @@ export const zh: Record<QQSkinSettingsKey, string> = {
   'row.messageSound': '助手消息提示音',
   'row.sendSound': '发送消息反馈音',
   'row.soundVariant': '提示声音色',
+  'row.soundVolume': '提示音音量',
+  'row.remindOnlyWhenUnfocused': '仅失焦时提醒',
   'sound.beep': '经典寻呼机',
   'sound.waterdrop': '灵动水滴',
   'sound.knock': '清脆敲门',
@@ -94,6 +98,8 @@ export const en: Record<QQSkinSettingsKey, string> = {
   'row.messageSound': 'Assistant sound',
   'row.sendSound': 'Sent sound',
   'row.soundVariant': 'Sound tone',
+  'row.soundVolume': 'Sound volume',
+  'row.remindOnlyWhenUnfocused': 'Remind only when unfocused',
   'sound.beep': 'Classic Pager',
   'sound.waterdrop': 'Water Drop',
   'sound.knock': 'Door Knock',

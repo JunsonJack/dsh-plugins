@@ -11,7 +11,7 @@ describe('QQ skin settings', () => {
       palette: 'classic', customColor: '#12B7F5', avatarStyle: 'classic',
       bubbleTail: true, assistantAvatar: true,
       chatMaxWidth: 880, messageSound: false, sendSound: false, soundVariant: 'beep',
-      windowShake: false, frostedGlass: false, typing: true,
+      soundVolume: 1, remindOnlyWhenUnfocused: false, windowShake: false, frostedGlass: false, typing: true,
     })
   })
 
@@ -22,7 +22,7 @@ describe('QQ skin settings', () => {
       palette: 'vivid', customColor: '#12B7F5', avatarStyle: 'sunglasses',
       bubbleTail: false, assistantAvatar: true,
       chatMaxWidth: 720, messageSound: false, sendSound: false, soundVariant: 'waterdrop',
-      windowShake: false, frostedGlass: false, typing: true,
+      soundVolume: 1, remindOnlyWhenUnfocused: false, windowShake: false, frostedGlass: false, typing: true,
     })
   })
 
@@ -33,7 +33,7 @@ describe('QQ skin settings', () => {
       palette: 'green', customColor: '#12B7F5', avatarStyle: 'scarf',
       bubbleTail: false, assistantAvatar: true,
       chatMaxWidth: 640, messageSound: false, sendSound: false, soundVariant: 'beep',
-      windowShake: true, frostedGlass: false, typing: true,
+      soundVolume: 1, remindOnlyWhenUnfocused: false, windowShake: true, frostedGlass: false, typing: true,
     })
   })
 
@@ -57,6 +57,20 @@ describe('QQ skin settings', () => {
     expect(config.soundVariant).toBe('waterdrop')
     expect(config.windowShake).toBe(true)
     expect(config.frostedGlass).toBe(true)
+  })
+
+  it('soundVolume flows through settings and clamps out-of-range values', () => {
+    expect(settingsToConfig({ soundVolume: 0.4 }).soundVolume).toBe(0.4)
+    expect(settingsToConfig({ soundVolume: 1.5 }).soundVolume).toBe(1)
+    expect(settingsToConfig({ soundVolume: -0.2 }).soundVolume).toBe(0)
+    expect(settingsToConfig({ soundVolume: Number.NaN }).soundVolume).toBe(1)
+    expect(settingsToConfig(undefined, { soundVolume: 0.6 }).soundVolume).toBe(0.6)
+  })
+
+  it('remindOnlyWhenUnfocused flows through settings and rejects non-boolean', () => {
+    expect(settingsToConfig({ remindOnlyWhenUnfocused: true }).remindOnlyWhenUnfocused).toBe(true)
+    expect(settingsToConfig({ remindOnlyWhenUnfocused: 'yes' as never }).remindOnlyWhenUnfocused).toBe(false)
+    expect(settingsToConfig(undefined, { remindOnlyWhenUnfocused: true }).remindOnlyWhenUnfocused).toBe(true)
   })
 
   it('sanitizes invalid or out-of-range fields from settings section', () => {

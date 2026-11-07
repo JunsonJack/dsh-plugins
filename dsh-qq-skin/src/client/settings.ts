@@ -35,6 +35,8 @@ export interface QQSkinSettings {
   messageSound?: boolean | undefined
   sendSound?: boolean | undefined
   soundVariant?: QQSkinSoundVariant | undefined
+  soundVolume?: number | undefined
+  remindOnlyWhenUnfocused?: boolean | undefined
   windowShake?: boolean | undefined
   frostedGlass?: boolean | undefined
   typing?: boolean | undefined
@@ -61,6 +63,8 @@ export function settingsToConfig(
     messageSound: s.messageSound ?? fallback?.messageSound,
     sendSound: s.sendSound ?? fallback?.sendSound,
     soundVariant: s.soundVariant ?? fallback?.soundVariant,
+    soundVolume: s.soundVolume ?? fallback?.soundVolume,
+    remindOnlyWhenUnfocused: s.remindOnlyWhenUnfocused ?? fallback?.remindOnlyWhenUnfocused,
     windowShake: s.windowShake ?? fallback?.windowShake,
     frostedGlass: s.frostedGlass ?? fallback?.frostedGlass,
     typing: s.typing ?? fallback?.typing,
