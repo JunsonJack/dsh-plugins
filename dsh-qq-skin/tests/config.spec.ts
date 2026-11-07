@@ -69,6 +69,18 @@ describe('QQ skin config', () => {
     expect(resolveQQSkinConfig({ chatMaxWidth: 2400 }).chatMaxWidth).toBe(1600)
   })
 
+  it('avatarSize defaults to 22 and clamps into [16, 40]', () => {
+    expect(resolveQQSkinConfig().avatarSize).toBe(22)
+    expect(resolveQQSkinConfig({ avatarSize: 28 }).avatarSize).toBe(28)
+    expect(resolveQQSkinConfig({ avatarSize: 10 }).avatarSize).toBe(16)
+    expect(resolveQQSkinConfig({ avatarSize: 64 }).avatarSize).toBe(40)
+    expect(resolveQQSkinConfig({ avatarSize: 26.4 }).avatarSize).toBe(26)
+    expect(resolveQQSkinConfig({ avatarSize: 0 }).avatarSize).toBe(22)
+    expect(resolveQQSkinConfig({ avatarSize: -8 }).avatarSize).toBe(22)
+    expect(resolveQQSkinConfig({ avatarSize: Number.NaN }).avatarSize).toBe(22)
+    expect(resolveQQSkinConfig({ avatarSize: 'big' as never }).avatarSize).toBe(22)
+  })
+
   it('messageSound defaults to false and toggles via override', () => {
     expect(resolveQQSkinConfig().messageSound).toBe(false)
     expect(resolveQQSkinConfig({ messageSound: true }).messageSound).toBe(true)

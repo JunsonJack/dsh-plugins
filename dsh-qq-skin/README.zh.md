@@ -36,6 +36,7 @@ App 设置里注册的 **「QQ 皮肤」** 设置行，可视化切换色板 / �
 | `customColor` | `'#12B7F5'` | 自定义主色调（十六进制颜色，如 `#FF5722`）；当 `palette: 'custom'` 时所有品牌相关 token 全部跟随——按钮、链接文字、选中态 accent 以及 static blue/deepseek 整条刻度 |
 | `avatarStyle` | `'classic'` | 企鹅头像装扮：`classic` 经典原版 / `sunglasses` 酷炫墨镜 / `scarf` 暖冬红围巾（高精度 SVG 动态图层叠加） |
 | `avatarCustomImage` | `''` | 自定义助手头像图片（`https://` 图片链接或 `data:image/*` URI；设置后完全替代企鹅与装扮层，清空恢复官方企鹅） |
+| `avatarSize` | `22` | 助手头像尺寸（px，16~40；气泡让位随尺寸自动换算，大头像不会顶歪文字） |
 | `bubbleTail` | `true` | 用户气泡右侧"尾巴"小三角 |
 | `assistantAvatar` | `true` | 助手消息左侧官方 QQ 企鹅头像圆标 |
 | `chatMaxWidth` | `880` | 聊天流最大宽度（px，约束在 480～1600 之间） |

@@ -24,7 +24,7 @@
  */
 import type { Context } from '@deepseek-ai/cordis'
 import { getAvatarBackgroundImage } from './qq-avatar.ts'
-import { QQ_SKIN_DEFAULT_CONFIG, type QQAvatarStyle, type QQSkinConfig } from './config.ts'
+import { DEFAULT_AVATAR_SIZE, QQ_SKIN_DEFAULT_CONFIG, type QQAvatarStyle, type QQSkinConfig } from './config.ts'
 import { parseHexColor } from './qq-tokens.ts'
 
 /** 注入的 <style> 标签归属标识(便于排查与测试断言)。 */
@@ -48,21 +48,27 @@ export const QQ_USER_BUBBLE_SELECTOR = '[data-message-bubble][data-message-bubbl
 /** 企鹅头像圆标(默认开启时注入;关闭后无头像,也不占左侧空间;支持墨镜/围巾装扮)。
  * glow 为头像投影的主色 RGB:custom 色板跟随自定义主色,其余色板保持经典 QQ 蓝。
  * avatarImage 为自定义头像图片(非空时优先于官方企鹅与装扮层)。 */
-function avatarRule(style: QQAvatarStyle = 'classic', glow: [number, number, number] = [18, 183, 245], avatarImage = ''): string {
+function avatarRule(style: QQAvatarStyle = 'classic', glow: [number, number, number] = [18, 183, 245], avatarImage = '', avatarSize: number = DEFAULT_AVATAR_SIZE): string {
   const bgImage = getAvatarBackgroundImage(style, avatarImage)
   const [gr, gg, gb] = glow
+  // 尺寸联动:头像变大时气泡整体让出等宽空间,头像垂直位置锚定在
+  // 气泡顶部对齐线附近(QQ 桌面端观感),避免大头像顶歪首行文字。
+  const size = Math.round(avatarSize)
+  const gap = 14 // 头像与气泡的间距(原 36px 偏移 = 22px 头像 + 14px 间距)
+  const offset = size + gap
+  const top = Math.round(13 + (size - 22) / 2)
   return `
 [data-chat-flow-kind='assistant-step'] {
   position: relative;
-  margin-left: 36px;
+  margin-left: ${offset}px;
 }
 [data-chat-flow-kind='assistant-step']::before {
   content: '';
   position: absolute;
-  top: 13px;
-  left: -36px;
-  width: 22px;
-  height: 22px;
+  top: ${top}px;
+  left: -${offset}px;
+  width: ${size}px;
+  height: ${size}px;
   border-radius: 50%;
   background-color: var(--dsw-alias-bg-layer-1);
   background-image: ${bgImage};
@@ -398,7 +404,7 @@ ${reducedMotionRule()}
    > [data-slot] > [class$='_root'] 精确命中 AssistantMarkdown 的
    root(避免误伤嵌套的 ReasoningRow 等同名 root)。头像 top 按
    卡片 padding-top 12px + Think 行高 24px 垂直居中:12 + 12 - 11 = 13。 */
-${assistantAvatar ? avatarRule(config.avatarStyle, glow, config.avatarCustomImage) : ''}
+${assistantAvatar ? avatarRule(config.avatarStyle, glow, config.avatarCustomImage, config.avatarSize) : ''}
 [data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {
   border-radius: 16px 16px 16px 6px;
   padding: 12px 16px;

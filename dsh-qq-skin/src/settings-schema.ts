@@ -35,6 +35,8 @@ export interface Config {
   bubbleTail: Volatile<boolean>
   /** 助手消息左侧官方 QQ 企鹅头像开关。 */
   assistantAvatar: Volatile<boolean>
+  /** 助手头像尺寸(px,16~40)。 */
+  avatarSize: Volatile<number>
   /** 聊天流最大宽度(px)。 */
   chatMaxWidth: Volatile<number>
   /** 新助手消息提示音开关(默认关,避免打扰)。 */
@@ -67,6 +69,7 @@ export const Config = z.object({
   avatarCustomImage: z.string().default('').volatile(),
   bubbleTail: z.boolean().default(true).volatile(),
   assistantAvatar: z.boolean().default(true).volatile(),
+  avatarSize: z.number().min(16).max(40).default(22).volatile(),
   chatMaxWidth: z.number().min(480).max(1600).default(880).volatile(),
   messageSound: z.boolean().default(false).volatile(),
   sendSound: z.boolean().default(false).volatile(),

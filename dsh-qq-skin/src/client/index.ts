@@ -60,6 +60,7 @@ function sameConfig(left: QQSkinConfig, right: QQSkinConfig): boolean {
     && left.avatarCustomImage === right.avatarCustomImage
     && left.bubbleTail === right.bubbleTail
     && left.assistantAvatar === right.assistantAvatar
+    && left.avatarSize === right.avatarSize
     && left.chatMaxWidth === right.chatMaxWidth
     && left.messageSound === right.messageSound
     && left.sendSound === right.sendSound
@@ -141,6 +142,7 @@ export function apply(ctx: ClientContext): void {
       setAvatarCustomImage: (value) => write('avatarCustomImage', value),
       setBubbleTail: (value) => write('bubbleTail', value),
       setAssistantAvatar: (value) => write('assistantAvatar', value),
+      setAvatarSize: (size) => write('avatarSize', size),
       setChatMaxWidth: (width) => write('chatMaxWidth', width),
       setMessageSound: (value) => write('messageSound', value),
       setSendSound: (value) => write('sendSound', value),

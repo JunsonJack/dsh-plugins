@@ -222,6 +222,28 @@ describe('QQ NT layout config branches', () => {
     expect(fallback).toContain('data:image/svg+xml')
   })
 
+  it('scales the avatar bubble offset and size from avatarSize', () => {
+    // 默认 22px:历史写死值(offset = 22 + 14 间距 = 36,top = 13)。
+    const def = buildQQLayoutCss(QQ_SKIN_DEFAULT_CONFIG)
+    expect(def).toContain('margin-left: 36px;')
+    expect(def).toContain('top: 13px;')
+    expect(def).toContain('left: -36px;')
+    expect(def).toContain('width: 22px;')
+
+    // 32px:气泡让出 32 + 14 = 46px,top 随尺寸对齐顶部 (+5)。
+    const big = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, avatarSize: 32 })
+    expect(big).toContain('margin-left: 46px;')
+    expect(big).toContain('top: 18px;')
+    expect(big).toContain('left: -46px;')
+    expect(big).toContain('width: 32px;')
+    expect(big).toContain('height: 32px;')
+
+    // 16px:偏移 30px,top = 10。
+    const small = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, avatarSize: 16 })
+    expect(small).toContain('margin-left: 30px;')
+    expect(small).toContain('top: 10px;')
+  })
+
   it('derives avatar glow and bubble shadow from customColor on the custom palette', () => {
     const custom = buildQQLayoutCss({
       ...QQ_SKIN_DEFAULT_CONFIG, palette: 'custom', customColor: '#FF5722',

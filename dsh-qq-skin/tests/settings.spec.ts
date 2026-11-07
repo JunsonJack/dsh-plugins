@@ -9,7 +9,7 @@ describe('QQ skin settings', () => {
   it('resolves to defaults when no setting section and no fallback', () => {
     expect(settingsToConfig(undefined)).toEqual({
       palette: 'classic', customColor: '#12B7F5', avatarStyle: 'classic', avatarCustomImage: '',
-      bubbleTail: true, assistantAvatar: true,
+      bubbleTail: true, assistantAvatar: true, avatarSize: 22,
       chatMaxWidth: 880, messageSound: false, sendSound: false, soundVariant: 'beep',
       soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
       windowShake: false, frostedGlass: false, typing: true,
@@ -21,7 +21,7 @@ describe('QQ skin settings', () => {
     const config = settingsToConfig(section, { palette: 'clean', bubbleTail: false, soundVariant: 'knock', avatarStyle: 'scarf' })
     expect(config).toEqual({
       palette: 'vivid', customColor: '#12B7F5', avatarStyle: 'sunglasses', avatarCustomImage: '',
-      bubbleTail: false, assistantAvatar: true,
+      bubbleTail: false, assistantAvatar: true, avatarSize: 22,
       chatMaxWidth: 720, messageSound: false, sendSound: false, soundVariant: 'waterdrop',
       soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
       windowShake: false, frostedGlass: false, typing: true,
@@ -33,7 +33,7 @@ describe('QQ skin settings', () => {
     const config = settingsToConfig(section, { palette: 'green', chatMaxWidth: 640, windowShake: true, avatarStyle: 'scarf' })
     expect(config).toEqual({
       palette: 'green', customColor: '#12B7F5', avatarStyle: 'scarf', avatarCustomImage: '',
-      bubbleTail: false, assistantAvatar: true,
+      bubbleTail: false, assistantAvatar: true, avatarSize: 22,
       chatMaxWidth: 640, messageSound: false, sendSound: false, soundVariant: 'beep',
       soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
       windowShake: true, frostedGlass: false, typing: true,
@@ -90,6 +90,15 @@ describe('QQ skin settings', () => {
     expect(settingsToConfig({ avatarCustomImage: 'http://example.com/x.png' }).avatarCustomImage).toBe('')
     expect(settingsToConfig({ avatarCustomImage: 'not a url' }).avatarCustomImage).toBe('')
     expect(settingsToConfig(undefined, { avatarCustomImage: 'https://fallback.example/y.png' }).avatarCustomImage).toBe('https://fallback.example/y.png')
+  })
+
+  it('avatarSize flows through settings and clamps to the 16~40 range', () => {
+    expect(settingsToConfig({ avatarSize: 32 }).avatarSize).toBe(32)
+    expect(settingsToConfig({ avatarSize: 8 }).avatarSize).toBe(16)
+    expect(settingsToConfig({ avatarSize: 96 }).avatarSize).toBe(40)
+    expect(settingsToConfig({ avatarSize: 26.4 }).avatarSize).toBe(26)
+    expect(settingsToConfig({ avatarSize: Number.NaN }).avatarSize).toBe(22)
+    expect(settingsToConfig(undefined, { avatarSize: 28 }).avatarSize).toBe(28)
   })
 
   it('sanitizes invalid or out-of-range fields from settings section', () => {

@@ -39,6 +39,8 @@ export interface QQSkinConfig {
   bubbleTail: boolean
   /** 助手消息左侧官方 QQ 企鹅头像开关。 */
   assistantAvatar: boolean
+  /** 助手头像尺寸(px,16~40;气泡左缘偏移随尺寸自动换算)。 */
+  avatarSize: number
   /** 聊天流最大宽度(px)。 */
   chatMaxWidth: number
   /** 新助手消息提示音开关(默认关,避免打扰)。 */
@@ -66,6 +68,12 @@ export interface QQSkinConfig {
 /** 聊天流最大宽度边界限制(px),与宿主 schema 对齐。 */
 export const CHAT_MAX_WIDTH_MIN = 480
 export const CHAT_MAX_WIDTH_MAX = 1600
+
+/** 助手头像尺寸边界(px):QQ 桌面端观感约 20~24,留出两端余量。 */
+export const AVATAR_SIZE_MIN = 16
+export const AVATAR_SIZE_MAX = 40
+/** 默认头像尺寸(px),与历史版本的写死值一致。 */
+export const DEFAULT_AVATAR_SIZE = 22
 
 /** 默认主色十六进制。 */
 export const DEFAULT_CUSTOM_COLOR = '#12B7F5'
@@ -96,6 +104,7 @@ export const QQ_SKIN_DEFAULT_CONFIG: QQSkinConfig = {
   avatarCustomImage: '',
   bubbleTail: true,
   assistantAvatar: true,
+  avatarSize: DEFAULT_AVATAR_SIZE,
   chatMaxWidth: 880,
   messageSound: false,
   sendSound: false,
@@ -126,6 +135,14 @@ export function normalizeHexColor(value: unknown): string {
     return `#${match6[1] ?? ''}`.toUpperCase()
   }
   return DEFAULT_CUSTOM_COLOR
+}
+
+/** 规范化助手头像尺寸:非法或<=0回落默认 22,正数钳制在 16~40(px,整数)。 */
+function normalizeAvatarSize(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+    return DEFAULT_AVATAR_SIZE
+  }
+  return Math.min(AVATAR_SIZE_MAX, Math.max(AVATAR_SIZE_MIN, Math.round(value)))
 }
 
 /** 规范化聊天流最大宽度(px):非法或<=0回落默认值,正数范围钳制在 480~1600。 */
@@ -211,6 +228,7 @@ export function resolveQQSkinConfig(config?: PartialQQSkinConfig): QQSkinConfig 
     assistantAvatar: typeof raw.assistantAvatar === 'boolean'
       ? raw.assistantAvatar
       : QQ_SKIN_DEFAULT_CONFIG.assistantAvatar,
+    avatarSize: normalizeAvatarSize(raw.avatarSize),
     chatMaxWidth: normalizeChatMaxWidth(raw.chatMaxWidth),
     messageSound: typeof raw.messageSound === 'boolean'
       ? raw.messageSound

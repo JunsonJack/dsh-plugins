@@ -32,6 +32,7 @@ export interface QQSkinSettings {
   avatarCustomImage?: string | undefined
   bubbleTail?: boolean | undefined
   assistantAvatar?: boolean | undefined
+  avatarSize?: number | undefined
   chatMaxWidth?: number | undefined
   messageSound?: boolean | undefined
   sendSound?: boolean | undefined
@@ -63,6 +64,7 @@ export function settingsToConfig(
     avatarCustomImage: s.avatarCustomImage ?? fallback?.avatarCustomImage,
     bubbleTail: s.bubbleTail ?? fallback?.bubbleTail,
     assistantAvatar: s.assistantAvatar ?? fallback?.assistantAvatar,
+    avatarSize: s.avatarSize ?? fallback?.avatarSize,
     chatMaxWidth: s.chatMaxWidth ?? fallback?.chatMaxWidth,
     messageSound: s.messageSound ?? fallback?.messageSound,
     sendSound: s.sendSound ?? fallback?.sendSound,

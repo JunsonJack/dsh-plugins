@@ -25,6 +25,7 @@ export type QQSkinSettingsKey =
   | 'avatar.scarf'
   | 'row.bubbleTail'
   | 'row.assistantAvatar'
+  | 'row.avatarSize'
   | 'row.chatMaxWidth'
   | 'row.messageSound'
   | 'row.sendSound'
@@ -65,6 +66,7 @@ export const zh: Record<QQSkinSettingsKey, string> = {
   'avatar.scarf': '冬日暖围巾',
   'row.bubbleTail': '气泡尾巴',
   'row.assistantAvatar': '企鹅头像',
+  'row.avatarSize': '头像尺寸',
   'row.chatMaxWidth': '会话宽度',
   'row.messageSound': '助手消息提示音',
   'row.sendSound': '发送消息反馈音',
@@ -99,6 +101,7 @@ export const en: Record<QQSkinSettingsKey, string> = {
   'avatar.scarf': 'Winter scarf',
   'row.bubbleTail': 'Bubble tail',
   'row.assistantAvatar': 'Penguin avatar',
+  'row.avatarSize': 'Avatar size',
   'row.chatMaxWidth': 'Chat width',
   'row.messageSound': 'Assistant sound',
   'row.sendSound': 'Sent sound',

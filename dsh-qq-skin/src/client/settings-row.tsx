@@ -21,6 +21,8 @@ import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-cli
 // 客户端 bundle 纯净性门禁不允许 value import。
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import {
+  AVATAR_SIZE_MAX,
+  AVATAR_SIZE_MIN,
   CHAT_MAX_WIDTH_MAX,
   CHAT_MAX_WIDTH_MIN,
   SOUND_VOLUME_MAX,
@@ -49,6 +51,8 @@ export interface QQSkinRowInjected {
   setBubbleTail: (value: boolean) => void
   /** 开关助手企鹅头像。 */
   setAssistantAvatar: (value: boolean) => void
+  /** 设置助手头像尺寸(px,16~40)。 */
+  setAvatarSize: (size: number) => void
   /** 设置会话最大宽度(px)。 */
   setChatMaxWidth: (width: number) => void
   /** 开关消息提示音。 */
@@ -252,12 +256,14 @@ function ToggleRow({ label, checked, onChange }: {
  */
 export function QQSkinSettingsRow({
   t, useStore, setPalette, setCustomColor, setAvatarStyle, setAvatarCustomImage, setBubbleTail, setAssistantAvatar,
-  setChatMaxWidth, setMessageSound, setSendSound, setSoundVariant, setSoundVolume, setRemindOnlyWhenUnfocused,
+  setAvatarSize, setChatMaxWidth, setMessageSound, setSendSound, setSoundVariant, setSoundVolume, setRemindOnlyWhenUnfocused,
   setQuietHoursStart, setQuietHoursEnd, setWindowShake, setFrostedGlass, setTyping,
 }: QQSkinRowComponentProps) {
   const config = useStore(s => s.config)
   const [widthDraft, setWidthDraft] = useState(String(config.chatMaxWidth))
   const [widthFocused, setWidthFocused] = useState(false)
+  const [sizeDraft, setSizeDraft] = useState(String(config.avatarSize))
+  const [sizeFocused, setSizeFocused] = useState(false)
   const [volumeDraft, setVolumeDraft] = useState(String(config.soundVolume))
   const [volumeFocused, setVolumeFocused] = useState(false)
   const [avatarImageDraft, setAvatarImageDraft] = useState(config.avatarCustomImage)
@@ -281,6 +287,25 @@ export function QQSkinSettingsRow({
       setWidthDraft(String(config.chatMaxWidth))
     }
   }, [config.chatMaxWidth, widthFocused])
+
+  useEffect(() => {
+    if (!sizeFocused) {
+      setSizeDraft(String(config.avatarSize))
+    }
+  }, [config.avatarSize, sizeFocused])
+
+  const commitSize = (): void => {
+    const parsed = Number(sizeDraft)
+    if (Number.isFinite(parsed) && parsed > 0) {
+      const clamped = Math.min(AVATAR_SIZE_MAX, Math.max(AVATAR_SIZE_MIN, Math.round(parsed)))
+      if (clamped !== config.avatarSize) {
+        setAvatarSize(clamped)
+      }
+      setSizeDraft(String(clamped))
+    } else {
+      setSizeDraft(String(config.avatarSize))
+    }
+  }
 
   const commitWidth = (): void => {
     const parsed = Number(widthDraft)
@@ -545,6 +570,37 @@ export function QQSkinSettingsRow({
                 outline: 'none',
               }}
             />
+          </span>
+        </div>
+      )}
+
+      {/* 助手头像尺寸:开启助手头像后展开,16~40px,气泡偏移随尺寸自动换算 */}
+      {config.assistantAvatar && (
+        <div style={fieldRowStyle}>
+          <span style={fieldLabelStyle}>{t('row.avatarSize')}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <input
+              type="number"
+              min={AVATAR_SIZE_MIN}
+              max={AVATAR_SIZE_MAX}
+              step={2}
+              value={sizeDraft}
+              onChange={event => { setSizeDraft(event.currentTarget.value) }}
+              onFocus={() => { setSizeFocused(true) }}
+              onBlur={() => { setSizeFocused(false); commitSize() }}
+              onKeyDown={event => { if (event.key === 'Enter') commitSize() }}
+              style={{
+                width: '72px', height: '32px', padding: '0 10px',
+                boxSizing: 'border-box',
+                border: `1px solid ${sizeFocused ? 'var(--dsw-alias-brand-primary)' : 'var(--dsw-alias-border-l2)'}`,
+                borderRadius: '10px',
+                background: 'var(--dsw-specific-input-major)',
+                color: 'var(--dsw-alias-label-primary)',
+                fontSize: '13px',
+                outline: 'none',
+              }}
+            />
+            <span style={{ fontSize: '12px', color: 'var(--dsw-alias-label-caption)' }}>px</span>
           </span>
         </div>
       )}
