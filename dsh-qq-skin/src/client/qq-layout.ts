@@ -150,30 +150,54 @@ body[data-ds-dark-theme] [data-composer-card] {
 }
 
 /* ── Markdown 表格:GitHub / Typora 式表格 UI ─────────────────────────
-   设计目标(对应"表格右边文字被折叠"的反馈):
-   1) 表格本身是**唯一**允许横向滚动的区域,滚动时整张表一起移动,
-      而不是把单元格里的长单词硬折成两三行;
-   2) 单元格正文按词换行(break-word),行内代码/命令整体不折行——
-      `dsh-better-sidebar` 这类标识符宁可让表格变宽横向滚动,也不
-      被拆成"折叠"的两三段;
-   3) 结构用发丝线:只画 border-bottom / border-right,不画四边实框;
-      外框圆角 + separate 边框模式,让 overflow 能裁切圆角;
-   4) 表头浅色带 + 行斑马纹,提供横向对齐的视觉引导;
-   5) 表内代码渲染成 chip(圆角浅底),与正文区分。 */
-function markdownTableRule(scope: string): string {
+   背景(harness 自身的 Markdown 表格实现):
+   - 每个 Markdown 表格外面都有一层滚动容器 div:
+     · ≤3 列 → 类名 `tableFill`,表格 `width:100%`(铺满,随容器折行);
+     · ≥4 列 → 类名 `tableScroll` + 字面类名 `md-table-wide`,
+       表格 `width:max-content`(按内容撑开),容器 `overflow-x:auto`。
+   - 宽表容器额外用容器查询单位算宽:
+     `--dsh-table-lead = spare + min(content-width, 100cqw) - 100%`,
+     `--dsh-table-spare = max(0, (100cqw - content-width) / 2)`,
+     于是宽表容器被算成**比卡片还宽**(让它"溢出到气泡之外"),
+     `margin-left:-lead` + `padding-left:lead` 把左边补回来。
+
+   本插件的助手卡片与用户气泡都是 `overflow-x: hidden`(需求:普通文本块
+   不出现滚动条),于是 harness 这套"故意超出卡片"的宽表容器被裁掉右侧 →
+   用户看到的"少一列/少两列"(本轮要修的核心问题)。
+
+   修复策略:
+   1) 把 harness 的撑宽变量归零、宽度压回 100%、margin/padding 复位,
+      容器保留 `overflow-x: auto` → 表格超出部分在容器内横向滚动,
+      **一列都不少**,也不产生卡片级滚动条;
+   2) 不再给 <table> 设 `display:block`——那会把表格盒拆成匿名盒,
+      Chromium 直接裁掉右侧列(更早一版"少列"的成因);
+   3) 宽度交给 harness 自己的 tableFill / tableScroll 机制决定;
+   4) 视觉层做 GitHub/Typora 风:发丝线、圆角、表头浅色带、斑马纹、
+      表格内代码渲染成 chip。 */
+function markdownTableRule(scope: string, wideScope: string): string {
   return `
 ${scope} table {
-  display: block;
-  width: max-content;
-  min-width: 100%;
-  max-width: 100%;
-  overflow-x: auto;
   border-collapse: separate;
   border-spacing: 0;
   border: 1px solid var(--dsw-alias-border-l1);
   border-radius: 10px;
   font-size: 0.94em;
-  -webkit-overflow-scrolling: touch;
+}
+/* 宽表滚动容器去撑宽:宽度压回卡片内,列一个不少,超宽时容器内滚动。 */
+${wideScope} .md-table-wide {
+  --dsh-table-lead: 0px;
+  --dsh-table-spare: 0px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0;
+  padding-left: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+${wideScope} .md-table-wide:hover,
+${wideScope} .md-table-wide:focus-visible {
+  overflow-x: auto;
 }
 ${scope} table th,
 ${scope} table td {
@@ -192,7 +216,6 @@ ${scope} table tbody tr:last-child > * {
 ${scope} table th {
   background: var(--dsw-alias-bg-layer-2);
   font-weight: 600;
-  white-space: nowrap;
 }
 ${scope} table td {
   white-space: normal;
@@ -213,16 +236,6 @@ ${scope} table samp {
   white-space: nowrap;
   word-break: normal;
   overflow-wrap: normal;
-}
-${scope} table::-webkit-scrollbar {
-  height: 8px;
-}
-${scope} table::-webkit-scrollbar-thumb {
-  border-radius: 4px;
-  background: var(--dsw-alias-scrollbar-bg-l1);
-}
-${scope} table::-webkit-scrollbar-thumb:hover {
-  background: var(--dsw-alias-scrollbar-hover-l1);
 }
 `
 }
@@ -304,12 +317,12 @@ ${typing ? typingRule() : ''}
 /* ── Markdown 表格:GitHub / Typora 式表格 UI ────────────────────────
    见 markdownTableRule() 的设计说明:表格是唯一允许横向滚动的区域,
    行内代码整体不折行,避免"文字被折叠"的观感。 */
-${markdownTableRule("[data-chat-flow-kind='assistant-step']")}
+${markdownTableRule("[data-chat-flow-kind='assistant-step']", "[data-chat-flow-kind='assistant-step']")}
 /* 用户气泡里的表格同样不得撑破气泡(气泡内表格也可横向滚动)。 */
 [data-message-bubble][data-message-bubble] {
   overflow-x: hidden;
 }
-${markdownTableRule('[data-message-bubble][data-message-bubble]')}
+${markdownTableRule('[data-message-bubble][data-message-bubble]', '[data-message-bubble][data-message-bubble] .md-table-wide')}
 /* 气泡内的表格 chip 底色改用气泡自身的深浅底,避免灰底压在蓝底上。
    简洁白色板的亮色气泡是白底(深字),沿用默认浅色表格样式即可。 */
 ${isClean ? '' : `

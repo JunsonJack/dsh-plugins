@@ -188,8 +188,9 @@ describe('QQ NT layout config branches', () => {
   it('renders markdown tables as a rounded GitHub-style grid', () => {
     expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] table {")
     expect(QQ_LAYOUT_CSS).toContain('overflow-x: auto')
-    expect(QQ_LAYOUT_CSS).toContain('width: max-content')
-    expect(QQ_LAYOUT_CSS).toContain('min-width: 100%')
+    // 不再让 <table> 自己当滚动容器(display:block 会把表格盒拆成匿名盒,
+    // Chromium 直接裁掉右侧列 → "少一列/少两列")。
+    expect(QQ_LAYOUT_CSS).not.toMatch(/table\s*\{[^}]*display:\s*block/)
     // separate 边框模式 + 圆角:让 overflow 裁切圆角,发丝线只画下/右。
     expect(QQ_LAYOUT_CSS).toContain('border-collapse: separate')
     expect(QQ_LAYOUT_CSS).toContain('border-radius: 10px')
@@ -198,6 +199,19 @@ describe('QQ NT layout config branches', () => {
     // 表头浅色带 + 斑马纹。
     expect(QQ_LAYOUT_CSS).toContain('background: var(--dsw-alias-bg-layer-2)')
     expect(QQ_LAYOUT_CSS).toContain('nth-child(even)')
+  })
+
+  it('undoes the harness wide-table bleed so no column is cropped', () => {
+    // harness 会用容器查询单位把 ≥4 列的宽表容器撑得比卡片更宽
+    // (--dsh-table-lead / --dsh-table-spare),而卡片是 overflow-x:hidden
+    // → 右侧列被裁掉。这里把撑宽变量与宽度复位,列一个不少,超宽时在
+    // 容器内横向滚动。
+    expect(QQ_LAYOUT_CSS).toContain(".md-table-wide {")
+    expect(QQ_LAYOUT_CSS).toContain('--dsh-table-lead: 0px')
+    expect(QQ_LAYOUT_CSS).toContain('--dsh-table-spare: 0px')
+    expect(QQ_LAYOUT_CSS).toContain('margin-left: 0')
+    expect(QQ_LAYOUT_CSS).toContain('padding-left: 0')
+    expect(QQ_LAYOUT_CSS).toMatch(/\.md-table-wide \{[^}]*overflow-x: auto/)
   })
 
   it('keeps table cell text from folding mid-word', () => {
