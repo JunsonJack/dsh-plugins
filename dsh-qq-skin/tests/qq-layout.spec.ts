@@ -145,10 +145,10 @@ describe('QQ NT layout config branches', () => {
 
   it('frostedGlass rules appear when enabled', () => {
     const off = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, frostedGlass: false })
-    expect(off).not.toContain('backdrop-filter: blur(24px)')
+    expect(off).not.toContain('color-mix(in srgb, var(--dsw-alias-brand-primary) 10%')
 
     const on = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, frostedGlass: true })
-    expect(on).toContain('backdrop-filter: blur(24px) saturate(1.15)')
+    expect(on).toContain('color-mix(in srgb, var(--dsw-alias-brand-primary) 10%')
   })
 
   it('frosts the sidebar, right details column, and composer as tinted glass', () => {
@@ -167,6 +167,12 @@ describe('QQ NT layout config branches', () => {
     // 暗色变体同样覆盖右栏与输入框。
     expect(on).toContain("body[data-ds-dark-theme] [class$='_rightbarCol']")
     expect(on).toContain('body[data-ds-dark-theme] [data-composer-card]')
+    // ⚠ 三栏列绝不加 backdrop-filter:左栏折叠按钮是 position:fixed(窗口
+    // 定位),backdrop-filter 会把列变成 fixed 后代的包含块,按钮被移位/裁掉
+    // (0.3.16"折叠展开按钮消失"回归的根因);输入卡无 fixed 后代,保留。
+    expect(on).toContain('backdrop-filter: blur(16px) saturate(1.15)')
+    const colGlass = on.slice(on.indexOf("body:not([data-ds-dark-theme]) [class$='_sidebarCol']"), on.indexOf('[data-composer-card]'))
+    expect(colGlass).not.toContain('backdrop-filter')
   })
 
   it('decorates assistant markdown blockquotes and codeblocks', () => {

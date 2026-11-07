@@ -168,15 +168,19 @@ function shakeRule(): string {
  *
  * 实现说明(为什么不只是 blur):
  * 桌面端三栏布局里,这三块面板背后都是纯色窗口底,单独 backdrop-filter
- * 对纯色做模糊毫无可见变化(早期版本"开了没变化"的原因)。因此叠加三层
- * 让玻璃在纯色底上也可感知:
- * 1) 品牌色晕染渐变(上浓下淡)——面板色调向当前色板主色偏移,颜色走
- *    --dsw-alias-brand-primary token,自动跟随色板/自定义主色,不硬编码
- *    任何色板色值(color-mix 与 harness 自身 CSS 同源,Chromium 已支持);
- * 2) 半透明底(50%~72%)+ blur(24px) saturate(1.15)——窗口半透明或
- *    面板后有内容滚动时可呈现真正的磨砂模糊;
- * 3) 顶部/侧缘 1px 内高光(inset box-shadow)——玻璃的"边缘光",纯色
- *    底上同样可感知。
+ * 对纯色做模糊毫无可见变化(早期版本"开了没变化"的原因)。因此叠加
+ * "品牌色晕染渐变(上浓下淡)+ 半透明底 + 顶部/侧缘 1px 内高光"三层,
+ * 颜色走 --dsw-alias-brand-primary token,自动跟随色板/自定义主色,
+ * 不硬编码任何色板色值(color-mix 与 harness 自身 CSS 同源,Chromium 已支持)。
+ *
+ * ⚠ 不要给 `_sidebarCol`/`_rightbarCol` 加 backdrop-filter:
+ * 左栏折叠按钮(`.wtg9ga_toggle`,data-sidebar-toggle)是 position:fixed
+ * 悬浮在窗口左上角标题栏条上的,DOM 上却是侧栏列的后代——backdrop-filter
+ * 会把元素变成 fixed 后代的包含块(CSS 规范与 filter/transform 同类),
+ * 按钮的定位基准从窗口变成侧栏列,再叠加列的 overflow:hidden,折叠按钮
+ * 直接被移位/裁掉(0.3.16 引入的"折叠展开按钮消失"回归的根因)。玻璃观感
+ * 由有色渐变底 + 内高光承担即可;输入卡(data-composer-card)内部没有
+ * fixed 后代,backdrop-filter 保留。
  *
  * ⚠ 右栏容器真实类名是 `_rightbarCol`(三栏 grid:sidebarCol=1/1,
  * centerCol=1/2, rightbarCol=1/3)。早期版本写的 `_detailsCol` 在 harness
@@ -184,11 +188,6 @@ function shakeRule(): string {
  */
 function frostedGlassRule(): string {
   return `
-[class$='_sidebarCol'],
-[class$='_rightbarCol'] {
-  backdrop-filter: blur(24px) saturate(1.15);
-  -webkit-backdrop-filter: blur(24px) saturate(1.15);
-}
 body:not([data-ds-dark-theme]) [class$='_sidebarCol'],
 body:not([data-ds-dark-theme]) [class$='_rightbarCol'] {
   background: linear-gradient(168deg,
