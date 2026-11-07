@@ -73,20 +73,61 @@ function avatarRule(style: QQAvatarStyle = 'classic', glow: [number, number, num
 `
 }
 
-/** 用户气泡"尾巴"(默认开启时注入,QQ 右侧指向头像的小三角)。 */
-function bubbleTailRule(tailShadow: [number, number, number] = [18, 122, 175]): string {
+/**
+ * 尾巴形状:用二次贝塞尔采样出 QQ 经典"弧形小勾"的裁切多边形。
+ * 左边缘贴着气泡(被气泡压住),顶边是一条内凹的弧线向右下延伸,
+ * 尖端落在右下角 —— 与 QQ 桌面端"消息气泡右下角的小尾巴"一致。
+ */
+function tailClipPolygon(): string {
+  const p0: [number, number] = [0, 0]
+  const p1: [number, number] = [0.88, 0.16]
+  const p2: [number, number] = [1, 1]
+  const points: string[] = []
+  for (let i = 0; i <= 10; i++) {
+    const t = i / 10
+    const inv = 1 - t
+    const x = inv * inv * p0[0] + 2 * inv * t * p1[0] + t * t * p2[0]
+    const y = inv * inv * p0[1] + 2 * inv * t * p1[1] + t * t * p2[1]
+    points.push(`${(x * 100).toFixed(1)}% ${(y * 100).toFixed(1)}%`)
+  }
+  points.push('0% 100%')
+  return `polygon(${points.join(', ')})`
+}
+
+/**
+ * 用户气泡"尾巴"(默认开启时注入,QQ 右侧指向头像的小三角)。
+ * @param tailShadow - 尾巴投影的主色 RGB。
+ * @param tailBackground - 尾巴底色(与气泡一致;QQ蓝为渐变)。
+ * @param isClean - 简洁白色板:气泡有 1px 描边,尾巴需要补一道描边避免接缝。
+ */
+function bubbleTailRule(
+  tailShadow: [number, number, number] = [18, 122, 175],
+  tailBackground = 'var(--dsw-specific-bubble)',
+  isClean = false,
+): string {
+  const shadow = `${tailShadow[0]}, ${tailShadow[1]}, ${tailShadow[2]}`
+  // 尾巴尖端落在右下角;圆角一致时(QQ蓝)尾巴要下移一点才贴合圆弧。
+  const offset = isClean ? 'bottom: 3px;' : 'bottom: 2px;'
   return `
+/* ── 气泡尾巴:QQ 经典弧形小勾,贴在气泡右下角指向头像 ────────────────
+   形状用 clip-path 画(而不是旋转 45° 的方块):方块尾巴与气泡圆角
+   交界会出现硬接缝,弧形裁切则与气泡自然融为一体。
+   clip-path 会裁掉 box-shadow,所以阴影改用 filter: drop-shadow。 */
 [data-message-bubble][data-message-bubble]::after {
   content: '';
   position: absolute;
-  right: -5px;
-  bottom: 8px;
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  background: var(--dsw-specific-bubble);
-  transform: rotate(45deg);
-  box-shadow: 2px 2px 4px rgba(${tailShadow[0]}, ${tailShadow[1]}, ${tailShadow[2]}, 0.18);
+  right: -6px;
+  ${offset}
+  width: 16px;
+  height: 16px;
+  background: ${tailBackground};
+  clip-path: ${tailClipPolygon()};
+  filter: drop-shadow(1px 2px 3px rgba(${shadow}, 0.18))${
+    isClean
+      ? ' drop-shadow(0 0 0.5px var(--dsw-alias-border-l2))'
+      : ''
+  };
+  pointer-events: none;
 }
 `
 }
@@ -267,6 +308,11 @@ export function buildQQLayoutCss(config: QQSkinConfig = QQ_SKIN_DEFAULT_CONFIG):
   const isQqBlue = config.palette === 'qqblue'
   const gradStart: [number, number, number] = parseHexColor('#2C6ED6') ?? [44, 110, 214]
   const gradEnd: [number, number, number] = parseHexColor('#305FCC') ?? [48, 95, 204]
+  const gradMid: [number, number, number] = [
+    Math.round((gradStart[0] + gradEnd[0]) / 2),
+    Math.round((gradStart[1] + gradEnd[1]) / 2),
+    Math.round((gradStart[2] + gradEnd[2]) / 2),
+  ]
   // 简洁白色板的亮色气泡是纯白底 → 文字改深色(暗色由下方暗色规则拉回白字)。
   const isClean = config.palette === 'clean'
   const bubbleForeground = isClean ? 'rgb(15, 40, 59)' : 'rgb(255, 255, 255)'
@@ -318,10 +364,11 @@ ${typing ? typingRule() : ''}
    见 markdownTableRule() 的设计说明:表格是唯一允许横向滚动的区域,
    行内代码整体不折行,避免"文字被折叠"的观感。 */
 ${markdownTableRule("[data-chat-flow-kind='assistant-step']", "[data-chat-flow-kind='assistant-step']")}
-/* 用户气泡里的表格同样不得撑破气泡(气泡内表格也可横向滚动)。 */
-[data-message-bubble][data-message-bubble] {
-  overflow-x: hidden;
-}
+/* 用户气泡里的表格同样不得撑破气泡:表格由 harness 自己的滚动容器
+   (tableScroll/.md-table-wide)承担横向滚动,宽度压回气泡内。
+   ⚠ 气泡本身不能设 overflow-x: hidden——那会把伸出气泡外侧的
+   尾巴(::after)一起裁掉,而且 overflow-x:hidden 会把 overflow-y
+   隐式变成 auto,给气泡凭空加出纵向滚动条。 */
 ${markdownTableRule('[data-message-bubble][data-message-bubble]', '[data-message-bubble][data-message-bubble] .md-table-wide')}
 /* 气泡内的表格 chip 底色改用气泡自身的深浅底,避免灰底压在蓝底上。
    简洁白色板的亮色气泡是白底(深字),沿用默认浅色表格样式即可。 */
@@ -410,7 +457,17 @@ body[data-ds-dark-theme] [data-message-bubble][data-message-bubble] :not(pre):no
   color: rgb(255, 255, 255);
 }
 ` : ''}
-${bubbleTail ? bubbleTailRule(shadow) : ''}
+${bubbleTail
+  ? bubbleTailRule(
+      shadow,
+      // QQ蓝色板的气泡是 135° 渐变,尾巴只有 16px,直接套同一条渐变会
+      // 与气泡里的色块对不上 → 取渐变中点的实色,接缝最自然。
+      isQqBlue
+        ? `rgb(${gradMid[0]}, ${gradMid[1]}, ${gradMid[2]})`
+        : 'var(--dsw-specific-bubble)',
+      isClean,
+    )
+  : ''}
 ${isQqBlue ? `
 /* QQ蓝色板:还原参考图的轻微 135° 渐变(仅亮色;暗色保持实色深底)。 */
 body:not([data-ds-dark-theme]) [data-message-bubble][data-message-bubble] {
@@ -516,10 +573,13 @@ body[data-ds-dark-theme] [data-message-bubble][data-message-bubble] {
     0 4px 14px rgba(0, 0, 0, 0.30),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
-${bubbleTail ? `body[data-ds-dark-theme] [data-message-bubble][data-message-bubble]::after {
-  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.30);
+${bubbleTail
+  ? `/* 暗色下尾巴的投影改用中性黑,避免主色阴影在深底上发脏。 */
+body[data-ds-dark-theme] [data-message-bubble][data-message-bubble]::after {
+  filter: drop-shadow(1px 2px 3px rgba(0, 0, 0, 0.30));
 }
-` : ''}body[data-ds-dark-theme] [data-composer-card] {
+`
+  : ''}body[data-ds-dark-theme] [data-composer-card] {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
 }
 /* 暗色下助手卡片背景收暗(bg-layer-1 偏亮),避免整片发白。 */

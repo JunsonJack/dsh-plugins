@@ -232,7 +232,9 @@ describe('QQ NT layout config branches', () => {
     // 卡片与气泡只是"防外溢"(hidden),不产生滚动条;
     // 只有 table 允许 overflow-x: auto。
     expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {\n  overflow-x: hidden;")
-    expect(QQ_LAYOUT_CSS).toContain("[data-message-bubble][data-message-bubble] {\n  overflow-x: hidden;")
+    // 气泡不能设 overflow-x: hidden——会裁掉伸出气泡的尾巴,且把 overflow-y
+    // 隐式变成 auto,凭空多出纵向滚动条。
+    expect(QQ_LAYOUT_CSS).not.toMatch(/\[data-message-bubble\]\[data-message-bubble\] \{[^}]*overflow-x: hidden/)
     const autoRules = QQ_LAYOUT_CSS.match(/[^{}]*\{[^{}]*overflow-x: auto[^{}]*\}/g) ?? []
     for (const rule of autoRules) {
       expect(rule).toContain('table')
@@ -263,9 +265,37 @@ describe('QQ NT layout config branches', () => {
   })
 
   it('keeps a soft shadow on the bubble tail and dark theme bubbles', () => {
-    expect(QQ_LAYOUT_CSS).toContain('box-shadow: 2px 2px 4px rgba(18, 122, 175, 0.18)')
+    // 尾巴改用 clip-path 绘制,阴影随之改用 filter: drop-shadow
+    // (clip-path 会裁掉 box-shadow)。
+    expect(QQ_LAYOUT_CSS).toContain('filter: drop-shadow(1px 2px 3px rgba(18, 122, 175, 0.18))')
     expect(QQ_LAYOUT_CSS).toContain('body[data-ds-dark-theme] [data-message-bubble][data-message-bubble] {')
     expect(QQ_LAYOUT_CSS).toContain('0 4px 14px rgba(0, 0, 0, 0.30)')
+  })
+
+  it('draws the bubble tail as a clipped arc that merges with the bubble', () => {
+    // 弧形裁切(贝塞尔采样成 polygon),而不是旋转 45° 的方块——
+    // 方块尾巴与气泡圆角交界会有硬接缝。
+    expect(QQ_LAYOUT_CSS).toContain('clip-path: polygon(')
+    expect(QQ_LAYOUT_CSS).not.toContain('transform: rotate(45deg)')
+    // 尾巴贴在气泡右下角外侧。
+    expect(QQ_LAYOUT_CSS).toMatch(/\[data-message-bubble\]\[data-message-bubble\]::after \{[^}]*right: -6px;/)
+  })
+
+  it('keeps the tail background in sync with the bubble background', () => {
+    // 普通色板:尾巴用气泡同色 token。
+    expect(QQ_LAYOUT_CSS).toMatch(
+      /\[data-message-bubble\]\[data-message-bubble\]::after \{[^}]*background: var\(--dsw-specific-bubble\);/,
+    )
+    // QQ蓝:气泡是渐变,尾巴取渐变中点实色,接缝最自然。
+    const qqblue = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, palette: 'qqblue' })
+    expect(qqblue).toMatch(
+      /\[data-message-bubble\]\[data-message-bubble\]::after \{[^}]*background: rgb\(46, 103, 209\);/,
+    )
+  })
+
+  it('outlines the tail on the clean palette where the bubble has a border', () => {
+    const clean = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, palette: 'clean' })
+    expect(clean).toContain('drop-shadow(0 0 0.5px var(--dsw-alias-border-l2))')
   })
 
   it('qqblue palette renders uniform bubble corners and a subtle light-mode gradient', () => {
