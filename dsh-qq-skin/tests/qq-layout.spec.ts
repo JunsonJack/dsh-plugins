@@ -145,11 +145,28 @@ describe('QQ NT layout config branches', () => {
 
   it('frostedGlass rules appear when enabled', () => {
     const off = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, frostedGlass: false })
-    expect(off).not.toContain('backdrop-filter: blur(16px)')
+    expect(off).not.toContain('backdrop-filter: blur(24px)')
 
     const on = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, frostedGlass: true })
-    expect(on).toContain('backdrop-filter: blur(16px)')
-    expect(on).toContain('rgba(242, 245, 248, 0.78)')
+    expect(on).toContain('backdrop-filter: blur(24px) saturate(1.15)')
+  })
+
+  it('frosts the sidebar, right details column, and composer as tinted glass', () => {
+    const off = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, frostedGlass: false })
+    const on = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, frostedGlass: true })
+
+    // 右栏真实锚点是 _rightbarCol(旧 _detailsCol 在 harness 中不存在,是死选择器)。
+    expect(on).toContain("[class$='_rightbarCol']")
+    expect(on).not.toContain('_detailsCol')
+    expect(off).not.toContain('_detailsCol')
+    // 品牌色晕染走 token,跟随色板/自定义主色,不硬编码色板色值。
+    expect(on).toContain('color-mix(in srgb, var(--dsw-alias-brand-primary) 10%')
+    expect(on).toContain('color-mix(in srgb, var(--dsw-alias-brand-primary) 6%, rgba(255, 255, 255, 0.88) 94%)')
+    // 玻璃边缘光(纯色底上可感知的关键层)。
+    expect(on).toContain('inset 0 1px 0 rgba(255, 255, 255, 0.65)')
+    // 暗色变体同样覆盖右栏与输入框。
+    expect(on).toContain("body[data-ds-dark-theme] [class$='_rightbarCol']")
+    expect(on).toContain('body[data-ds-dark-theme] [data-composer-card]')
   })
 
   it('decorates assistant markdown blockquotes and codeblocks', () => {

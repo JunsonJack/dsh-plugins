@@ -163,29 +163,74 @@ function shakeRule(): string {
 `
 }
 
-/** 侧边栏与顶栏毛玻璃亚克力通透质感。 */
+/**
+ * 毛玻璃亚克力质感:把侧边栏 / 右栏(详情面板) / 输入框做成"有色玻璃面板"。
+ *
+ * 实现说明(为什么不只是 blur):
+ * 桌面端三栏布局里,这三块面板背后都是纯色窗口底,单独 backdrop-filter
+ * 对纯色做模糊毫无可见变化(早期版本"开了没变化"的原因)。因此叠加三层
+ * 让玻璃在纯色底上也可感知:
+ * 1) 品牌色晕染渐变(上浓下淡)——面板色调向当前色板主色偏移,颜色走
+ *    --dsw-alias-brand-primary token,自动跟随色板/自定义主色,不硬编码
+ *    任何色板色值(color-mix 与 harness 自身 CSS 同源,Chromium 已支持);
+ * 2) 半透明底(50%~72%)+ blur(24px) saturate(1.15)——窗口半透明或
+ *    面板后有内容滚动时可呈现真正的磨砂模糊;
+ * 3) 顶部/侧缘 1px 内高光(inset box-shadow)——玻璃的"边缘光",纯色
+ *    底上同样可感知。
+ *
+ * ⚠ 右栏容器真实类名是 `_rightbarCol`(三栏 grid:sidebarCol=1/1,
+ * centerCol=1/2, rightbarCol=1/3)。早期版本写的 `_detailsCol` 在 harness
+ * 里不存在,是死选择器,详情栏从未参与毛玻璃。
+ */
 function frostedGlassRule(): string {
   return `
 [class$='_sidebarCol'],
-[class$='_detailsCol'] {
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+[class$='_rightbarCol'] {
+  backdrop-filter: blur(24px) saturate(1.15);
+  -webkit-backdrop-filter: blur(24px) saturate(1.15);
 }
 body:not([data-ds-dark-theme]) [class$='_sidebarCol'],
-body:not([data-ds-dark-theme]) [class$='_detailsCol'] {
-  background-color: rgba(242, 245, 248, 0.78) !important;
+body:not([data-ds-dark-theme]) [class$='_rightbarCol'] {
+  background: linear-gradient(168deg,
+    color-mix(in srgb, var(--dsw-alias-brand-primary) 10%, rgba(238, 243, 249, 0.72) 90%) 0%,
+    color-mix(in srgb, var(--dsw-alias-brand-primary) 4%, rgba(238, 243, 249, 0.60) 96%) 42%,
+    rgba(238, 243, 249, 0.50) 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.28),
+    inset 1px 0 0 rgba(255, 255, 255, 0.35);
 }
 body[data-ds-dark-theme] [class$='_sidebarCol'],
-body[data-ds-dark-theme] [class$='_detailsCol'] {
-  background-color: rgba(16, 24, 34, 0.78) !important;
+body[data-ds-dark-theme] [class$='_rightbarCol'] {
+  background: linear-gradient(168deg,
+    color-mix(in srgb, var(--dsw-alias-brand-primary) 16%, rgba(15, 22, 32, 0.72) 84%) 0%,
+    color-mix(in srgb, var(--dsw-alias-brand-primary) 7%, rgba(15, 22, 32, 0.60) 93%) 42%,
+    rgba(15, 22, 32, 0.50) 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    inset 1px 0 0 rgba(255, 255, 255, 0.07);
 }
 [data-composer-card] {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--dsw-alias-brand-primary) 6%, rgba(255, 255, 255, 0.88) 94%) 0%,
+    rgba(255, 255, 255, 0.78) 100%) !important;
+  /* 本规则在样式表里先于输入框基础规则(同样声明 box-shadow),
+     同特异度下后者会盖掉前者,故高光整条加 !important,
+     并把基础外阴影一并并入,避免丢失投影。 */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 2px 10px rgba(14, 22, 32, 0.10) !important;
 }
 body[data-ds-dark-theme] [data-composer-card] {
-  background: rgba(20, 29, 41, 0.85) !important;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--dsw-alias-brand-primary) 10%, rgba(20, 29, 41, 0.88) 90%) 0%,
+    rgba(20, 29, 41, 0.78) 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 2px 10px rgba(0, 0, 0, 0.35) !important;
 }
 `
 }
@@ -518,7 +563,7 @@ header[class$='_header'] {
 [class$='_sidebarCol'] {
   border-right: 1px solid var(--dsw-alias-border-l1);
 }
-[class$='_detailsCol'] {
+[class$='_rightbarCol'] {
   border-left: 1px solid var(--dsw-alias-border-l2);
 }
 
