@@ -21,8 +21,12 @@ import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-cli
 // 客户端 bundle 纯净性门禁不允许 value import。
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import {
+  AVATAR_SIZE_MAX,
+  AVATAR_SIZE_MIN,
   CHAT_MAX_WIDTH_MAX,
   CHAT_MAX_WIDTH_MIN,
+  SOUND_VOLUME_MAX,
+  SOUND_VOLUME_MIN,
   QQ_AVATAR_STYLES,
   QQ_SKIN_PALETTES,
   QQ_SKIN_SOUND_VARIANTS,
@@ -41,10 +45,14 @@ export interface QQSkinRowInjected {
   setCustomColor: (color: string) => void
   /** 切换企鹅头像装扮。 */
   setAvatarStyle: (style: QQAvatarStyle) => void
+  /** 设置自定义助手头像图片(URL 或 data URI,空串 = 官方企鹅)。 */
+  setAvatarCustomImage: (value: string) => void
   /** 开关用户气泡尾巴。 */
   setBubbleTail: (value: boolean) => void
   /** 开关助手企鹅头像。 */
   setAssistantAvatar: (value: boolean) => void
+  /** 设置助手头像尺寸(px,16~40)。 */
+  setAvatarSize: (size: number) => void
   /** 设置会话最大宽度(px)。 */
   setChatMaxWidth: (width: number) => void
   /** 开关消息提示音。 */
@@ -53,6 +61,14 @@ export interface QQSkinRowInjected {
   setSendSound: (value: boolean) => void
   /** 切换提示声音色。 */
   setSoundVariant: (variant: QQSkinSoundVariant) => void
+  /** 设置提示音音量(0~1)。 */
+  setSoundVolume: (volume: number) => void
+  /** 开关"仅失焦提醒"模式。 */
+  setRemindOnlyWhenUnfocused: (value: boolean) => void
+  /** 设置免打扰时段起点(HH:mm,空串 = 不启用)。 */
+  setQuietHoursStart: (value: string) => void
+  /** 设置免打扰时段终点(HH:mm,空串 = 不启用)。 */
+  setQuietHoursEnd: (value: string) => void
   /** 开关窗口抖动提醒。 */
   setWindowShake: (value: boolean) => void
   /** 开关毛玻璃质感。 */
@@ -239,12 +255,19 @@ function ToggleRow({ label, checked, onChange }: {
  * @returns 行元素树。
  */
 export function QQSkinSettingsRow({
-  t, useStore, setPalette, setCustomColor, setAvatarStyle, setBubbleTail, setAssistantAvatar, setChatMaxWidth,
-  setMessageSound, setSendSound, setSoundVariant, setWindowShake, setFrostedGlass, setTyping,
+  t, useStore, setPalette, setCustomColor, setAvatarStyle, setAvatarCustomImage, setBubbleTail, setAssistantAvatar,
+  setAvatarSize, setChatMaxWidth, setMessageSound, setSendSound, setSoundVariant, setSoundVolume, setRemindOnlyWhenUnfocused,
+  setQuietHoursStart, setQuietHoursEnd, setWindowShake, setFrostedGlass, setTyping,
 }: QQSkinRowComponentProps) {
   const config = useStore(s => s.config)
   const [widthDraft, setWidthDraft] = useState(String(config.chatMaxWidth))
   const [widthFocused, setWidthFocused] = useState(false)
+  const [sizeDraft, setSizeDraft] = useState(String(config.avatarSize))
+  const [sizeFocused, setSizeFocused] = useState(false)
+  const [volumeDraft, setVolumeDraft] = useState(String(config.soundVolume))
+  const [volumeFocused, setVolumeFocused] = useState(false)
+  const [avatarImageDraft, setAvatarImageDraft] = useState(config.avatarCustomImage)
+  const [avatarImageFocused, setAvatarImageFocused] = useState(false)
 
   // 自定义主色:草稿态即时回显 + 40ms 防抖提交。拖拽拾色时输入框不被
   // 宿主快照的异步回写跳变;主题层由运行时原地热更新(无闪屏),提交只
@@ -265,6 +288,25 @@ export function QQSkinSettingsRow({
     }
   }, [config.chatMaxWidth, widthFocused])
 
+  useEffect(() => {
+    if (!sizeFocused) {
+      setSizeDraft(String(config.avatarSize))
+    }
+  }, [config.avatarSize, sizeFocused])
+
+  const commitSize = (): void => {
+    const parsed = Number(sizeDraft)
+    if (Number.isFinite(parsed) && parsed > 0) {
+      const clamped = Math.min(AVATAR_SIZE_MAX, Math.max(AVATAR_SIZE_MIN, Math.round(parsed)))
+      if (clamped !== config.avatarSize) {
+        setAvatarSize(clamped)
+      }
+      setSizeDraft(String(clamped))
+    } else {
+      setSizeDraft(String(config.avatarSize))
+    }
+  }
+
   const commitWidth = (): void => {
     const parsed = Number(widthDraft)
     if (Number.isFinite(parsed) && parsed > 0) {
@@ -275,6 +317,42 @@ export function QQSkinSettingsRow({
       setWidthDraft(String(clamped))
     } else {
       setWidthDraft(String(config.chatMaxWidth))
+    }
+  }
+
+  useEffect(() => {
+    if (!volumeFocused) {
+      setVolumeDraft(String(config.soundVolume))
+    }
+  }, [config.soundVolume, volumeFocused])
+
+  // 自定义头像输入:未聚焦时跟随外部配置回显(宿主回写/重置时同步)。
+  useEffect(() => {
+    if (!avatarImageFocused) {
+      setAvatarImageDraft(config.avatarCustomImage)
+    }
+  }, [config.avatarCustomImage, avatarImageFocused])
+
+  // 提交自定义头像:trim 后原样上交 —— 空串 = 回官方企鹅;非法 URL 由
+  // config.resolve 的 normalizeAvatarImage 兜底回落,UI 不做重复校验。
+  const commitAvatarImage = (): void => {
+    const trimmed = avatarImageDraft.trim()
+    if (trimmed !== config.avatarCustomImage) {
+      setAvatarCustomImage(trimmed)
+    }
+    setAvatarImageDraft(trimmed)
+  }
+
+  const commitVolume = (): void => {
+    const parsed = Number(volumeDraft)
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      const clamped = Math.min(SOUND_VOLUME_MAX, Math.max(SOUND_VOLUME_MIN, parsed))
+      if (clamped !== config.soundVolume) {
+        setSoundVolume(clamped)
+      }
+      setVolumeDraft(String(clamped))
+    } else {
+      setVolumeDraft(String(config.soundVolume))
     }
   }
 
@@ -373,6 +451,11 @@ export function QQSkinSettingsRow({
           onChange={setSendSound}
         />
         <ToggleRow
+          label={t('row.remindOnlyWhenUnfocused')}
+          checked={config.remindOnlyWhenUnfocused}
+          onChange={setRemindOnlyWhenUnfocused}
+        />
+        <ToggleRow
           label={t('row.windowShake')}
           checked={config.windowShake}
           onChange={setWindowShake}
@@ -387,6 +470,46 @@ export function QQSkinSettingsRow({
           checked={config.typing}
           onChange={setTyping}
         />
+      </div>
+
+      {/* 免打扰时段:两端都有合法时间才生效;跨午夜(22:00→08:00)也支持 */}
+      <div style={fieldRowStyle}>
+        <span style={fieldLabelStyle}>{t('row.quietHours')}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <input
+            type="time"
+            value={config.quietHoursStart || ''}
+            onChange={event => { setQuietHoursStart(event.currentTarget.value) }}
+            aria-label={t('row.quietHours')}
+            style={{
+              width: '92px', height: '32px', padding: '0 8px',
+              boxSizing: 'border-box',
+              border: '1px solid var(--dsw-alias-border-l2)',
+              borderRadius: '10px',
+              background: 'var(--dsw-specific-input-major)',
+              color: 'var(--dsw-alias-label-primary)',
+              fontSize: '13px',
+              outline: 'none',
+            }}
+          />
+          <span style={{ fontSize: '12px', color: 'var(--dsw-alias-label-caption)' }}>→</span>
+          <input
+            type="time"
+            value={config.quietHoursEnd || ''}
+            onChange={event => { setQuietHoursEnd(event.currentTarget.value) }}
+            aria-label={t('row.quietHours')}
+            style={{
+              width: '92px', height: '32px', padding: '0 8px',
+              boxSizing: 'border-box',
+              border: '1px solid var(--dsw-alias-border-l2)',
+              borderRadius: '10px',
+              background: 'var(--dsw-specific-input-major)',
+              color: 'var(--dsw-alias-label-primary)',
+              fontSize: '13px',
+              outline: 'none',
+            }}
+          />
+        </span>
       </div>
 
       {/* 提示声音色:在开启消息提示音时展开音色选择药丸组 */}
@@ -420,6 +543,96 @@ export function QQSkinSettingsRow({
               )
             })}
           </div>
+        </div>
+      )}
+
+      {/* 自定义助手头像:开启助手头像后展开 URL 输入(空 = 官方企鹅) */}
+      {config.assistantAvatar && (
+        <div style={fieldRowStyle}>
+          <span style={fieldLabelStyle}>{t('row.avatarCustomImage')}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <input
+              type="text"
+              value={avatarImageDraft}
+              placeholder="https://… 或 data:image/…"
+              onChange={event => { setAvatarImageDraft(event.currentTarget.value) }}
+              onFocus={() => { setAvatarImageFocused(true) }}
+              onBlur={() => { setAvatarImageFocused(false); commitAvatarImage() }}
+              onKeyDown={event => { if (event.key === 'Enter') commitAvatarImage() }}
+              style={{
+                width: '240px', height: '32px', padding: '0 10px',
+                boxSizing: 'border-box',
+                border: `1px solid ${avatarImageFocused ? 'var(--dsw-alias-brand-primary)' : 'var(--dsw-alias-border-l2)'}`,
+                borderRadius: '10px',
+                background: 'var(--dsw-specific-input-major)',
+                color: 'var(--dsw-alias-label-primary)',
+                fontSize: '13px',
+                outline: 'none',
+              }}
+            />
+          </span>
+        </div>
+      )}
+
+      {/* 助手头像尺寸:开启助手头像后展开,16~40px,气泡偏移随尺寸自动换算 */}
+      {config.assistantAvatar && (
+        <div style={fieldRowStyle}>
+          <span style={fieldLabelStyle}>{t('row.avatarSize')}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <input
+              type="number"
+              min={AVATAR_SIZE_MIN}
+              max={AVATAR_SIZE_MAX}
+              step={2}
+              value={sizeDraft}
+              onChange={event => { setSizeDraft(event.currentTarget.value) }}
+              onFocus={() => { setSizeFocused(true) }}
+              onBlur={() => { setSizeFocused(false); commitSize() }}
+              onKeyDown={event => { if (event.key === 'Enter') commitSize() }}
+              style={{
+                width: '72px', height: '32px', padding: '0 10px',
+                boxSizing: 'border-box',
+                border: `1px solid ${sizeFocused ? 'var(--dsw-alias-brand-primary)' : 'var(--dsw-alias-border-l2)'}`,
+                borderRadius: '10px',
+                background: 'var(--dsw-specific-input-major)',
+                color: 'var(--dsw-alias-label-primary)',
+                fontSize: '13px',
+                outline: 'none',
+              }}
+            />
+            <span style={{ fontSize: '12px', color: 'var(--dsw-alias-label-caption)' }}>px</span>
+          </span>
+        </div>
+      )}
+
+      {/* 提示音音量:消息提示音/发送音任一开启时展开,0(静音)~1(原始) */}
+      {(config.messageSound || config.sendSound) && (
+        <div style={fieldRowStyle}>
+          <span style={fieldLabelStyle}>{t('row.soundVolume')}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <input
+              type="number"
+              min={SOUND_VOLUME_MIN}
+              max={SOUND_VOLUME_MAX}
+              step={0.05}
+              value={volumeDraft}
+              onChange={event => { setVolumeDraft(event.currentTarget.value) }}
+              onFocus={() => { setVolumeFocused(true) }}
+              onBlur={() => { setVolumeFocused(false); commitVolume() }}
+              onKeyDown={event => { if (event.key === 'Enter') commitVolume() }}
+              style={{
+                width: '72px', height: '32px', padding: '0 10px',
+                boxSizing: 'border-box',
+                border: `1px solid ${volumeFocused ? 'var(--dsw-alias-brand-primary)' : 'var(--dsw-alias-border-l2)'}`,
+                borderRadius: '10px',
+                background: 'var(--dsw-specific-input-major)',
+                color: 'var(--dsw-alias-label-primary)',
+                fontSize: '13px',
+                outline: 'none',
+              }}
+            />
+            <span style={{ fontSize: '12px', color: 'var(--dsw-alias-label-caption)' }}>0~1</span>
+          </span>
         </div>
       )}
 

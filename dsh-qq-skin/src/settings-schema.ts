@@ -29,10 +29,14 @@ export interface Config {
   customColor: Volatile<string>
   /** 企鹅头像装扮(classic=经典, sunglasses=墨镜, scarf=围巾)。 */
   avatarStyle: Volatile<QQAvatarStyle>
+  /** 自定义助手头像图片(URL 或 data:image/* URI;空 = 官方企鹅)。 */
+  avatarCustomImage: Volatile<string>
   /** 用户气泡右侧"尾巴"伪元素开关。 */
   bubbleTail: Volatile<boolean>
   /** 助手消息左侧官方 QQ 企鹅头像开关。 */
   assistantAvatar: Volatile<boolean>
+  /** 助手头像尺寸(px,16~40)。 */
+  avatarSize: Volatile<number>
   /** 聊天流最大宽度(px)。 */
   chatMaxWidth: Volatile<number>
   /** 新助手消息提示音开关(默认关,避免打扰)。 */
@@ -41,6 +45,14 @@ export interface Config {
   sendSound: Volatile<boolean>
   /** 提示声音色(beep=经典寻呼机, waterdrop=灵动水滴, knock=清脆敲门)。 */
   soundVariant: Volatile<QQSkinSoundVariant>
+  /** 提示音音量(0~1,1=原始合成音量)。 */
+  soundVolume: Volatile<number>
+  /** 仅在窗口失焦/最小化时发声与抖动(默认关)。 */
+  remindOnlyWhenUnfocused: Volatile<boolean>
+  /** 免打扰时段起点(HH:mm,空 = 不启用)。 */
+  quietHoursStart: Volatile<string>
+  /** 免打扰时段终点(HH:mm,空 = 不启用)。 */
+  quietHoursEnd: Volatile<string>
   /** 助手消息到达时窗口抖动提醒(默认关)。 */
   windowShake: Volatile<boolean>
   /** 侧边栏/顶栏毛玻璃亚克力通透质感(默认关)。 */
@@ -54,12 +66,18 @@ export const Config = z.object({
   palette: z.union([...QQ_SKIN_PALETTES]).default('classic').volatile(),
   customColor: z.string().default('#12B7F5').volatile(),
   avatarStyle: z.union([...QQ_AVATAR_STYLES]).default('classic').volatile(),
+  avatarCustomImage: z.string().default('').volatile(),
   bubbleTail: z.boolean().default(true).volatile(),
   assistantAvatar: z.boolean().default(true).volatile(),
+  avatarSize: z.number().min(16).max(40).default(22).volatile(),
   chatMaxWidth: z.number().min(480).max(1600).default(880).volatile(),
   messageSound: z.boolean().default(false).volatile(),
   sendSound: z.boolean().default(false).volatile(),
   soundVariant: z.union([...QQ_SKIN_SOUND_VARIANTS]).default('beep').volatile(),
+  soundVolume: z.number().min(0).max(1).default(1).volatile(),
+  remindOnlyWhenUnfocused: z.boolean().default(false).volatile(),
+  quietHoursStart: z.string().default('').volatile(),
+  quietHoursEnd: z.string().default('').volatile(),
   windowShake: z.boolean().default(false).volatile(),
   frostedGlass: z.boolean().default(false).volatile(),
   typing: z.boolean().default(true).volatile(),

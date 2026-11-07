@@ -33,10 +33,14 @@ export interface QQSkinConfig {
   customColor: string
   /** 企鹅头像装扮(classic=经典, sunglasses=墨镜, scarf=围巾)。 */
   avatarStyle: QQAvatarStyle
+  /** 自定义助手头像图片(URL 或 data:image/* URI;空串 = 用官方企鹅)。 */
+  avatarCustomImage: string
   /** 用户气泡右侧"尾巴"伪元素开关。 */
   bubbleTail: boolean
   /** 助手消息左侧官方 QQ 企鹅头像开关。 */
   assistantAvatar: boolean
+  /** 助手头像尺寸(px,16~40;气泡左缘偏移随尺寸自动换算)。 */
+  avatarSize: number
   /** 聊天流最大宽度(px)。 */
   chatMaxWidth: number
   /** 新助手消息提示音开关(默认关,避免打扰)。 */
@@ -45,6 +49,14 @@ export interface QQSkinConfig {
   sendSound: boolean
   /** 提示声音色(beep=经典寻呼机, waterdrop=灵动水滴, knock=清脆敲门)。 */
   soundVariant: QQSkinSoundVariant
+  /** 提示音音量(0~1,1=原始合成音量;仅影响本插件的音效,默认 1)。 */
+  soundVolume: number
+  /** 仅在窗口失焦/最小化时发声与抖动(QQ 习惯;前台新消息保持安静,默认关)。 */
+  remindOnlyWhenUnfocused: boolean
+  /** 免打扰时段起点(HH:mm,24 小时制;为空表示不启用。支持跨午夜区间)。 */
+  quietHoursStart: string
+  /** 免打扰时段终点(HH:mm,24 小时制;为空表示不启用。支持跨午夜区间)。 */
+  quietHoursEnd: string
   /** 助手消息到达时窗口抖动提醒(默认关)。 */
   windowShake: boolean
   /** 侧边栏/顶栏毛玻璃亚克力通透质感(默认关)。 */
@@ -57,20 +69,50 @@ export interface QQSkinConfig {
 export const CHAT_MAX_WIDTH_MIN = 480
 export const CHAT_MAX_WIDTH_MAX = 1600
 
+/** 助手头像尺寸边界(px):QQ 桌面端观感约 20~24,留出两端余量。 */
+export const AVATAR_SIZE_MIN = 16
+export const AVATAR_SIZE_MAX = 40
+/** 默认头像尺寸(px),与历史版本的写死值一致。 */
+export const DEFAULT_AVATAR_SIZE = 22
+
 /** 默认主色十六进制。 */
 export const DEFAULT_CUSTOM_COLOR = '#12B7F5'
+
+/** 音量边界:0(静音)~1(原始合成音量)。 */
+export const SOUND_VOLUME_MIN = 0
+export const SOUND_VOLUME_MAX = 1
+
+/** 免打扰时段默认值:空串 = 不启用。 */
+export const DEFAULT_QUIET_HOURS = ''
+
+/** HH:mm 时间格式(24 小时制,分钟允许 00/15/30/45 等任意 0~59)。 */
+const HHMM_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/
+
+/**
+ * 自定义头像可接受的图片来源:
+ * - data:image/* URI(内联,零网络依赖,推荐);
+ * - https:// 图片 URL(http:// 不收,避免混合内容与降级风险)。
+ */
+const AVATAR_IMAGE_DATA_URI = /^data:image\/(png|jpeg|gif|webp|svg\+xml|avif);/i
+const AVATAR_IMAGE_HTTPS = /^https:\/\/\S+$/i
 
 /** 默认配置(经典蓝、气泡尾巴、企鹅头像、880px 宽、经典音色)。 */
 export const QQ_SKIN_DEFAULT_CONFIG: QQSkinConfig = {
   palette: 'classic',
   customColor: DEFAULT_CUSTOM_COLOR,
   avatarStyle: 'classic',
+  avatarCustomImage: '',
   bubbleTail: true,
   assistantAvatar: true,
+  avatarSize: DEFAULT_AVATAR_SIZE,
   chatMaxWidth: 880,
   messageSound: false,
   sendSound: false,
   soundVariant: 'beep',
+  soundVolume: 1,
+  remindOnlyWhenUnfocused: false,
+  quietHoursStart: DEFAULT_QUIET_HOURS,
+  quietHoursEnd: DEFAULT_QUIET_HOURS,
   windowShake: false,
   frostedGlass: false,
   typing: true,
@@ -95,12 +137,72 @@ export function normalizeHexColor(value: unknown): string {
   return DEFAULT_CUSTOM_COLOR
 }
 
+/** 规范化助手头像尺寸:非法或<=0回落默认 22,正数钳制在 16~40(px,整数)。 */
+function normalizeAvatarSize(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+    return DEFAULT_AVATAR_SIZE
+  }
+  return Math.min(AVATAR_SIZE_MAX, Math.max(AVATAR_SIZE_MIN, Math.round(value)))
+}
+
 /** 规范化聊天流最大宽度(px):非法或<=0回落默认值,正数范围钳制在 480~1600。 */
 function normalizeChatMaxWidth(value: unknown): number {
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
     return QQ_SKIN_DEFAULT_CONFIG.chatMaxWidth
   }
   return Math.min(CHAT_MAX_WIDTH_MAX, Math.max(CHAT_MAX_WIDTH_MIN, Math.round(value)))
+}
+
+/** 规范化提示音音量:非法值回落默认 1,合法值钳制在 [0,1](允许小数)。 */
+export function normalizeSoundVolume(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return QQ_SKIN_DEFAULT_CONFIG.soundVolume
+  }
+  return Math.min(SOUND_VOLUME_MAX, Math.max(SOUND_VOLUME_MIN, value))
+}
+
+/** 规范化 HH:mm 时段:空/非串/格式非法回落空串(不启用);合法值原样返回。 */
+export function normalizeQuietTime(value: unknown): string {
+  if (typeof value !== 'string') return DEFAULT_QUIET_HOURS
+  const trimmed = value.trim()
+  return HHMM_PATTERN.test(trimmed) ? trimmed : DEFAULT_QUIET_HOURS
+}
+
+/** 规范化自定义头像图片:仅接受 data:image/* URI 或 https:// URL,其余回落空串(用官方企鹅)。 */
+export function normalizeAvatarImage(value: unknown): string {
+  if (typeof value !== 'string') return ''
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  return AVATAR_IMAGE_DATA_URI.test(trimmed) || AVATAR_IMAGE_HTTPS.test(trimmed) ? trimmed : ''
+}
+
+/**
+ * 判定"当前时刻"是否落在免打扰时段内(支持跨午夜,如 22:00→08:00)。
+ * 起点或终点任一为空 = 功能未启用,返回 false。
+ * @param nowMinutes - 当前时刻(自当日 0 点起的分钟数,便于测试注入)。
+ * @param start - 起点 HH:mm。
+ * @param end - 终点 HH:mm。
+ */
+export function isWithinQuietHours(nowMinutes: number, start: string, end: string): boolean {
+  const s = normalizeQuietTime(start)
+  const e = normalizeQuietTime(end)
+  if (!s || !e) return false
+  const parse = (t: string): number => {
+    const [h, m] = t.split(':')
+    return Number(h) * 60 + Number(m)
+  }
+  const startM = parse(s)
+  const endM = parse(e)
+  if (startM === endM) return true // 起止相同视为全天免打扰
+  // 普通区间(如 09:00→12:00)与跨午夜区间(如 22:00→08:00)分别判定。
+  return startM < endM
+    ? nowMinutes >= startM && nowMinutes < endM
+    : nowMinutes >= startM || nowMinutes < endM
+}
+
+/** 当前本地时刻的自 0 点起分钟数(测试可注入 Date,运行时用真实时钟)。 */
+export function currentLocalMinutes(date: Date = new Date()): number {
+  return date.getHours() * 60 + date.getMinutes()
 }
 
 /** 用户可调配置(可选/部分)。显式包含 undefined 以兼容 exactOptionalPropertyTypes。 */
@@ -119,12 +221,14 @@ export function resolveQQSkinConfig(config?: PartialQQSkinConfig): QQSkinConfig 
     avatarStyle: QQ_AVATAR_STYLES.includes(raw.avatarStyle as QQAvatarStyle)
       ? (raw.avatarStyle as QQAvatarStyle)
       : QQ_SKIN_DEFAULT_CONFIG.avatarStyle,
+    avatarCustomImage: normalizeAvatarImage(raw.avatarCustomImage),
     bubbleTail: typeof raw.bubbleTail === 'boolean'
       ? raw.bubbleTail
       : QQ_SKIN_DEFAULT_CONFIG.bubbleTail,
     assistantAvatar: typeof raw.assistantAvatar === 'boolean'
       ? raw.assistantAvatar
       : QQ_SKIN_DEFAULT_CONFIG.assistantAvatar,
+    avatarSize: normalizeAvatarSize(raw.avatarSize),
     chatMaxWidth: normalizeChatMaxWidth(raw.chatMaxWidth),
     messageSound: typeof raw.messageSound === 'boolean'
       ? raw.messageSound
@@ -135,6 +239,12 @@ export function resolveQQSkinConfig(config?: PartialQQSkinConfig): QQSkinConfig 
     soundVariant: QQ_SKIN_SOUND_VARIANTS.includes(raw.soundVariant as QQSkinSoundVariant)
       ? (raw.soundVariant as QQSkinSoundVariant)
       : QQ_SKIN_DEFAULT_CONFIG.soundVariant,
+    soundVolume: normalizeSoundVolume(raw.soundVolume),
+    remindOnlyWhenUnfocused: typeof raw.remindOnlyWhenUnfocused === 'boolean'
+      ? raw.remindOnlyWhenUnfocused
+      : QQ_SKIN_DEFAULT_CONFIG.remindOnlyWhenUnfocused,
+    quietHoursStart: normalizeQuietTime(raw.quietHoursStart),
+    quietHoursEnd: normalizeQuietTime(raw.quietHoursEnd),
     windowShake: typeof raw.windowShake === 'boolean'
       ? raw.windowShake
       : QQ_SKIN_DEFAULT_CONFIG.windowShake,

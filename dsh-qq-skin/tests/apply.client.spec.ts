@@ -158,14 +158,20 @@ describe('dsh-qq-skin client apply', () => {
     apply(ctx as never)
     injected!.setPalette!('green' as never)
     injected!.setChatMaxWidth!(640 as never)
+    injected!.setAvatarSize!(32 as never)
     injected!.setSoundVariant!('waterdrop' as never)
+    injected!.setSoundVolume!(0.5 as never)
+    injected!.setRemindOnlyWhenUnfocused!(true as never)
     injected!.setWindowShake!(true as never)
     injected!.setFrostedGlass!(true as never)
 
     expect(host.written).toEqual([
       ['palette', 'green'],
       ['chatMaxWidth', 640],
+      ['avatarSize', 32],
       ['soundVariant', 'waterdrop'],
+      ['soundVolume', 0.5],
+      ['remindOnlyWhenUnfocused', true],
       ['windowShake', true],
       ['frostedGlass', true],
     ])

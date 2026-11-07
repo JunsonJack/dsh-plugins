@@ -35,14 +35,19 @@ The plugin receives config the cordis function-plugin way (`apply(ctx, config)`)
 | `palette` | `'classic'` | Palette variant: `classic` Classic Blue / `vivid` Vivid Purple / `clean` Clean White (white bubble with dark text) / `green` Green Bubble / `black` Deep Black / `qqblue` QQ Blue (sampled QQ NT outgoing-bubble blue `#2E65D1`, uniform corners, subtle 135° gradient in light mode) / `custom` Custom Accent Color |
 | `customColor` | `'#12B7F5'` | Hex custom brand color (e.g. `#FF5722`); when `palette: 'custom'` every brand-bound token follows it — buttons, links, selected accents, and the static blue/deepseek scales |
 | `avatarStyle` | `'classic'` | Penguin avatar decoration: `classic` Original penguin / `sunglasses` Cool black sunglasses / `scarf` Warm winter red scarf |
+| `avatarCustomImage` | `''` | Custom assistant avatar image (an `https://` image URL or `data:image/*` URI; when set it fully replaces the penguin and its decoration layers, clearing it restores the official penguin) |
+| `avatarSize` | `22` | Assistant avatar size in px (16~40; the bubble shifts by the same amount so larger avatars stay aligned) |
 | `bubbleTail` | `true` | Small triangular "tail" on the right of user bubbles |
 | `assistantAvatar` | `true` | Official QQ-penguin avatar disc left of assistant messages |
 | `chatMaxWidth` | `880` | Max width of the chat flow (px, clamped between 480 and 1600) |
 | `messageSound` | `false` | Master switch for synthesized audio prompt on new assistant message (zero network/asset dependency, muted on history load) |
 | `sendSound` | `false` | Immediate audio feedback on sent user message (synthesized upward chirp) |
 | `soundVariant` | `'beep'` | Audio theme: `beep` Classic 6-beep pager / `waterdrop` Crisp water droplet / `knock` Two-tap wooden door knock |
+| `soundVolume` | `1` | Sound volume (0–1, 1 = full synthesized level; applies to both the assistant sound and the sent sound) |
+| `remindOnlyWhenUnfocused` | `false` | Remind only when unfocused: keep the window silent for new messages while it is visible, and only chime/shake when it is hidden or minimized (classic QQ habit) |
+| `quietHoursStart` / `quietHoursEnd` | `''` / `''` | Do-not-disturb window (24-hour `HH:mm`, both ends required; overnight ranges like `22:00`→`08:00` work, and all sounds/shakes stay silent inside the window) |
 | `windowShake` | `false` | Subtle window shake animation on incoming assistant message (QQ window nudge effect) |
-| `frostedGlass` | `false` | Acrylic frosted-glass blur on sidebar and top bar (`backdrop-filter: blur(16px)`) |
+| `frostedGlass` | `false` | Tinted frosted-glass panels on the sidebar, right details column, and composer (brand-tint gradient + translucent base + glass-edge highlight; the composer also gets `blur(16px)` backdrop blur — columns stay blur-free so the fixed-positioned sidebar toggle keeps its window anchoring) |
 | `typing` | `true` | Assistant message typing reveal animation |
 
 Example (set in the profile's plugin config):

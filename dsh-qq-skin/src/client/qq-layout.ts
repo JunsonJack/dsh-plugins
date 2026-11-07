@@ -24,7 +24,7 @@
  */
 import type { Context } from '@deepseek-ai/cordis'
 import { getAvatarBackgroundImage } from './qq-avatar.ts'
-import { QQ_SKIN_DEFAULT_CONFIG, type QQAvatarStyle, type QQSkinConfig } from './config.ts'
+import { DEFAULT_AVATAR_SIZE, QQ_SKIN_DEFAULT_CONFIG, type QQAvatarStyle, type QQSkinConfig } from './config.ts'
 import { parseHexColor } from './qq-tokens.ts'
 
 /** 注入的 <style> 标签归属标识(便于排查与测试断言)。 */
@@ -46,22 +46,29 @@ export const QQ_LAYOUT_PLUGIN = 'dsh-qq-skin/layout'
 export const QQ_USER_BUBBLE_SELECTOR = '[data-message-bubble][data-message-bubble]'
 
 /** 企鹅头像圆标(默认开启时注入;关闭后无头像,也不占左侧空间;支持墨镜/围巾装扮)。
- * glow 为头像投影的主色 RGB:custom 色板跟随自定义主色,其余色板保持经典 QQ 蓝。 */
-function avatarRule(style: QQAvatarStyle = 'classic', glow: [number, number, number] = [18, 183, 245]): string {
-  const bgImage = getAvatarBackgroundImage(style)
+ * glow 为头像投影的主色 RGB:custom 色板跟随自定义主色,其余色板保持经典 QQ 蓝。
+ * avatarImage 为自定义头像图片(非空时优先于官方企鹅与装扮层)。 */
+function avatarRule(style: QQAvatarStyle = 'classic', glow: [number, number, number] = [18, 183, 245], avatarImage = '', avatarSize: number = DEFAULT_AVATAR_SIZE): string {
+  const bgImage = getAvatarBackgroundImage(style, avatarImage)
   const [gr, gg, gb] = glow
+  // 尺寸联动:头像变大时气泡整体让出等宽空间,头像垂直位置锚定在
+  // 气泡顶部对齐线附近(QQ 桌面端观感),避免大头像顶歪首行文字。
+  const size = Math.round(avatarSize)
+  const gap = 14 // 头像与气泡的间距(原 36px 偏移 = 22px 头像 + 14px 间距)
+  const offset = size + gap
+  const top = Math.round(13 + (size - 22) / 2)
   return `
 [data-chat-flow-kind='assistant-step'] {
   position: relative;
-  margin-left: 36px;
+  margin-left: ${offset}px;
 }
 [data-chat-flow-kind='assistant-step']::before {
   content: '';
   position: absolute;
-  top: 13px;
-  left: -36px;
-  width: 22px;
-  height: 22px;
+  top: ${top}px;
+  left: -${offset}px;
+  width: ${size}px;
+  height: ${size}px;
   border-radius: 50%;
   background-color: var(--dsw-alias-bg-layer-1);
   background-image: ${bgImage};
@@ -163,29 +170,92 @@ function shakeRule(): string {
 `
 }
 
-/** 侧边栏与顶栏毛玻璃亚克力通透质感。 */
+/**
+ * 无障碍:系统开启"减弱动态效果"(prefers-reduced-motion: reduce)时,
+ * 本插件注入的所有装饰动画(打字机揭示、窗口抖动)一律停播,直接呈现
+ * 最终状态。动画只是视觉点缀,停掉不影响任何功能;这是操作系统的
+ * 用户偏好,插件应当尊重。
+ */
+function reducedMotionRule(): string {
+  return `
+@media (prefers-reduced-motion: reduce) {
+  [data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {
+    animation: none !important;
+  }
+  .dsh-qq-shaking {
+    animation: none !important;
+  }
+}
+`
+}
+
+/**
+ * 毛玻璃亚克力质感:把侧边栏 / 右栏(详情面板) / 输入框做成"有色玻璃面板"。
+ *
+ * 实现说明(为什么不只是 blur):
+ * 桌面端三栏布局里,这三块面板背后都是纯色窗口底,单独 backdrop-filter
+ * 对纯色做模糊毫无可见变化(早期版本"开了没变化"的原因)。因此叠加
+ * "品牌色晕染渐变(上浓下淡)+ 半透明底 + 顶部/侧缘 1px 内高光"三层,
+ * 颜色走 --dsw-alias-brand-primary token,自动跟随色板/自定义主色,
+ * 不硬编码任何色板色值(color-mix 与 harness 自身 CSS 同源,Chromium 已支持)。
+ *
+ * ⚠ 不要给 `_sidebarCol`/`_rightbarCol` 加 backdrop-filter:
+ * 左栏折叠按钮(`.wtg9ga_toggle`,data-sidebar-toggle)是 position:fixed
+ * 悬浮在窗口左上角标题栏条上的,DOM 上却是侧栏列的后代——backdrop-filter
+ * 会把元素变成 fixed 后代的包含块(CSS 规范与 filter/transform 同类),
+ * 按钮的定位基准从窗口变成侧栏列,再叠加列的 overflow:hidden,折叠按钮
+ * 直接被移位/裁掉(0.3.16 引入的"折叠展开按钮消失"回归的根因)。玻璃观感
+ * 由有色渐变底 + 内高光承担即可;输入卡(data-composer-card)内部没有
+ * fixed 后代,backdrop-filter 保留。
+ *
+ * ⚠ 右栏容器真实类名是 `_rightbarCol`(三栏 grid:sidebarCol=1/1,
+ * centerCol=1/2, rightbarCol=1/3)。早期版本写的 `_detailsCol` 在 harness
+ * 里不存在,是死选择器,详情栏从未参与毛玻璃。
+ */
 function frostedGlassRule(): string {
   return `
-[class$='_sidebarCol'],
-[class$='_detailsCol'] {
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-}
 body:not([data-ds-dark-theme]) [class$='_sidebarCol'],
-body:not([data-ds-dark-theme]) [class$='_detailsCol'] {
-  background-color: rgba(242, 245, 248, 0.78) !important;
+body:not([data-ds-dark-theme]) [class$='_rightbarCol'] {
+  background: linear-gradient(168deg,
+    color-mix(in srgb, var(--dsw-alias-brand-primary) 10%, rgba(238, 243, 249, 0.72) 90%) 0%,
+    color-mix(in srgb, var(--dsw-alias-brand-primary) 4%, rgba(238, 243, 249, 0.60) 96%) 42%,
+    rgba(238, 243, 249, 0.50) 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.28),
+    inset 1px 0 0 rgba(255, 255, 255, 0.35);
 }
 body[data-ds-dark-theme] [class$='_sidebarCol'],
-body[data-ds-dark-theme] [class$='_detailsCol'] {
-  background-color: rgba(16, 24, 34, 0.78) !important;
+body[data-ds-dark-theme] [class$='_rightbarCol'] {
+  background: linear-gradient(168deg,
+    color-mix(in srgb, var(--dsw-alias-brand-primary) 16%, rgba(15, 22, 32, 0.72) 84%) 0%,
+    color-mix(in srgb, var(--dsw-alias-brand-primary) 7%, rgba(15, 22, 32, 0.60) 93%) 42%,
+    rgba(15, 22, 32, 0.50) 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    inset 1px 0 0 rgba(255, 255, 255, 0.07);
 }
 [data-composer-card] {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--dsw-alias-brand-primary) 6%, rgba(255, 255, 255, 0.88) 94%) 0%,
+    rgba(255, 255, 255, 0.78) 100%) !important;
+  /* 本规则在样式表里先于输入框基础规则(同样声明 box-shadow),
+     同特异度下后者会盖掉前者,故高光整条加 !important,
+     并把基础外阴影一并并入,避免丢失投影。 */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 2px 10px rgba(14, 22, 32, 0.10) !important;
 }
 body[data-ds-dark-theme] [data-composer-card] {
-  background: rgba(20, 29, 41, 0.85) !important;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--dsw-alias-brand-primary) 10%, rgba(20, 29, 41, 0.88) 90%) 0%,
+    rgba(20, 29, 41, 0.78) 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 2px 10px rgba(0, 0, 0, 0.35) !important;
 }
 `
 }
@@ -320,6 +390,7 @@ export function buildQQLayoutCss(config: QQSkinConfig = QQ_SKIN_DEFAULT_CONFIG):
 }
 ${windowShake ? shakeRule() : ''}
 ${frostedGlass ? frostedGlassRule() : ''}
+${reducedMotionRule()}
 
 /* ── 助手消息:左侧官方 QQ 企鹅头像 + 白色卡片(QQ"对方消息"观感) ──
    harness 的助手节点 kind 是 assistant-step(register-node-renderers
@@ -333,7 +404,7 @@ ${frostedGlass ? frostedGlassRule() : ''}
    > [data-slot] > [class$='_root'] 精确命中 AssistantMarkdown 的
    root(避免误伤嵌套的 ReasoningRow 等同名 root)。头像 top 按
    卡片 padding-top 12px + Think 行高 24px 垂直居中:12 + 12 - 11 = 13。 */
-${assistantAvatar ? avatarRule(config.avatarStyle, glow) : ''}
+${assistantAvatar ? avatarRule(config.avatarStyle, glow, config.avatarCustomImage, config.avatarSize) : ''}
 [data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {
   border-radius: 16px 16px 16px 6px;
   padding: 12px 16px;
@@ -518,7 +589,7 @@ header[class$='_header'] {
 [class$='_sidebarCol'] {
   border-right: 1px solid var(--dsw-alias-border-l1);
 }
-[class$='_detailsCol'] {
+[class$='_rightbarCol'] {
   border-left: 1px solid var(--dsw-alias-border-l2);
 }
 

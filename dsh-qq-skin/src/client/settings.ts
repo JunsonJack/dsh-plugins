@@ -29,12 +29,18 @@ export interface QQSkinSettings {
   palette?: QQSkinPalette | undefined
   customColor?: string | undefined
   avatarStyle?: QQAvatarStyle | undefined
+  avatarCustomImage?: string | undefined
   bubbleTail?: boolean | undefined
   assistantAvatar?: boolean | undefined
+  avatarSize?: number | undefined
   chatMaxWidth?: number | undefined
   messageSound?: boolean | undefined
   sendSound?: boolean | undefined
   soundVariant?: QQSkinSoundVariant | undefined
+  soundVolume?: number | undefined
+  remindOnlyWhenUnfocused?: boolean | undefined
+  quietHoursStart?: string | undefined
+  quietHoursEnd?: string | undefined
   windowShake?: boolean | undefined
   frostedGlass?: boolean | undefined
   typing?: boolean | undefined
@@ -55,12 +61,18 @@ export function settingsToConfig(
     palette: s.palette ?? fallback?.palette,
     customColor: s.customColor ?? fallback?.customColor,
     avatarStyle: s.avatarStyle ?? fallback?.avatarStyle,
+    avatarCustomImage: s.avatarCustomImage ?? fallback?.avatarCustomImage,
     bubbleTail: s.bubbleTail ?? fallback?.bubbleTail,
     assistantAvatar: s.assistantAvatar ?? fallback?.assistantAvatar,
+    avatarSize: s.avatarSize ?? fallback?.avatarSize,
     chatMaxWidth: s.chatMaxWidth ?? fallback?.chatMaxWidth,
     messageSound: s.messageSound ?? fallback?.messageSound,
     sendSound: s.sendSound ?? fallback?.sendSound,
     soundVariant: s.soundVariant ?? fallback?.soundVariant,
+    soundVolume: s.soundVolume ?? fallback?.soundVolume,
+    remindOnlyWhenUnfocused: s.remindOnlyWhenUnfocused ?? fallback?.remindOnlyWhenUnfocused,
+    quietHoursStart: s.quietHoursStart ?? fallback?.quietHoursStart,
+    quietHoursEnd: s.quietHoursEnd ?? fallback?.quietHoursEnd,
     windowShake: s.windowShake ?? fallback?.windowShake,
     frostedGlass: s.frostedGlass ?? fallback?.frostedGlass,
     typing: s.typing ?? fallback?.typing,

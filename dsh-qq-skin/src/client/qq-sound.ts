@@ -19,6 +19,7 @@
  * observer + audio + timer 一并清理。
  */
 import type { Context } from '@deepseek-ai/cordis'
+import { currentLocalMinutes, isWithinQuietHours } from './config.ts'
 import type { QQSkinConfig, QQSkinSoundVariant } from './config.ts'
 
 /** 聊天流容器选择器(harness ChatView 的 data-chat-flow 属性)。 */
@@ -81,6 +82,13 @@ export class QQSoundRuntime {
   /** 当前是否启用音效或窗口提醒。 */
   isEnabled(): boolean {
     return this.config.messageSound || this.config.windowShake || this.config.sendSound
+  }
+
+  /** 当前时刻是否处于免打扰时段(起止任一为空 = 未启用,永不静默)。 */
+  private isQuietNow(): boolean {
+    const { quietHoursStart, quietHoursEnd } = this.config
+    if (!quietHoursStart || !quietHoursEnd) return false
+    return isWithinQuietHours(currentLocalMinutes(), quietHoursStart, quietHoursEnd)
   }
 
   /**
@@ -178,6 +186,15 @@ export class QQSoundRuntime {
       }
     }
 
+    // 免打扰时段内:全部提醒(发送音/提示音/抖动)静默,但节点照常记已读,
+    // 时段结束后不会被补响。
+    if (this.isQuietNow()) {
+      for (const target of userTargets) {
+        this.playedUser.add(target)
+      }
+      return
+    }
+
     // 1. 处理用户发送消息提示音(单条且在冷却之外才发声)
     if (this.config.sendSound) {
       const unplayedUser = userTargets.filter(target => !this.playedUser.has(target))
@@ -204,6 +221,12 @@ export class QQSoundRuntime {
 
     // 若同批新增多条消息(历史记录批量挂载或会话切换),一律静默不发声不抖动
     if (unplayedSteps.length > 1) return
+
+    // 仅失焦提醒模式(QQ 习惯):窗口在前台时的新消息不打扰,只标记已读;
+    // 失焦/最小化时才发声抖动。document 判定不可用时(极端环境)按聚焦处理。
+    if (this.config.remindOnlyWhenUnfocused && typeof document !== 'undefined' && document.visibilityState === 'visible') {
+      return
+    }
 
     // 单条真实新消息:触发窗口抖动提醒(若开启)
     if (this.config.windowShake) {
@@ -284,6 +307,7 @@ export class QQSoundRuntime {
       const audioCtx = this.audioCtx
       if (audioCtx.state === 'suspended') await audioCtx.resume()
       const now = audioCtx.currentTime
+      const volume = this.config.soundVolume
 
       const osc = audioCtx.createOscillator()
       const gain = audioCtx.createGain()
@@ -295,7 +319,7 @@ export class QQSoundRuntime {
         osc.frequency.value = 1200
       }
       gain.gain.setValueAtTime(0, now)
-      gain.gain.linearRampToValueAtTime(0.18, now + 0.004)
+      gain.gain.linearRampToValueAtTime(0.18 * volume, now + 0.004)
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12)
       osc.connect(gain).connect(audioCtx.destination)
       osc.start(now)
@@ -325,6 +349,7 @@ export class QQSoundRuntime {
       const audioCtx = this.audioCtx
       if (audioCtx.state === 'suspended') await audioCtx.resume()
       const now = audioCtx.currentTime
+      const volume = this.config.soundVolume
 
       if (variant === 'waterdrop') {
         // 灵动水滴声: 正弦波频移下行 (1400Hz -> 750Hz) + 指数快速衰减包络
@@ -338,7 +363,7 @@ export class QQSoundRuntime {
           osc.frequency.value = 1400
         }
         gain.gain.setValueAtTime(0, now)
-        gain.gain.linearRampToValueAtTime(0.22, now + 0.005)
+        gain.gain.linearRampToValueAtTime(0.22 * volume, now + 0.005)
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22)
         osc.connect(gain).connect(audioCtx.destination)
         osc.start(now)
@@ -362,8 +387,8 @@ export class QQSoundRuntime {
           osc.start(start)
           osc.stop(start + 0.07)
         }
-        knock(now, 340, 0.22)
-        knock(now + 0.12, 280, 0.18)
+        knock(now, 340, 0.22 * volume)
+        knock(now + 0.12, 280, 0.18 * volume)
       } else {
         // 经典寻呼机 6-beep 方波 (源自马化腾寻呼机录音,中国首例声音商标)
         const beep = (start: number): void => {
@@ -372,8 +397,8 @@ export class QQSoundRuntime {
           osc.type = 'square'
           osc.frequency.value = 2000
           gain.gain.setValueAtTime(0, start)
-          gain.gain.linearRampToValueAtTime(0.15, start + 0.003)
-          gain.gain.setValueAtTime(0.15, start + 0.1)
+          gain.gain.linearRampToValueAtTime(0.15 * volume, start + 0.003)
+          gain.gain.setValueAtTime(0.15 * volume, start + 0.1)
           gain.gain.exponentialRampToValueAtTime(0.001, start + 0.12)
           osc.connect(gain).connect(audioCtx.destination)
           osc.start(start)

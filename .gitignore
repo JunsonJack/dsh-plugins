@@ -1,0 +1,8 @@
+# 误在仓库根目录跑 pnpm install 的产物(占位 package.json + 空锁文件 + 依赖目录)
+/node_modules/
+/pnpm-lock.yaml
+
+# 各插件的构建产物与依赖(lib 由各插件构建生成,不进版本库)
+node_modules/
+package-lock.json
+yarn.lock

@@ -35,14 +35,19 @@ App 设置里注册的 **「QQ 皮肤」** 设置行，可视化切换色板 / �
 | `palette` | `'classic'` | 色板变体：`classic` 经典蓝 / `vivid` 炫彩紫 / `clean` 简洁白（白底气泡 + 深色文字） / `green` 经典绿气泡 / `black` 深空黑 / `qqblue` QQ蓝（采样自 QQ NT 实色发送气泡 `#2E65D1`，四角均匀圆角，亮色带轻微 135° 渐变） / `custom` 自定义主色 |
 | `customColor` | `'#12B7F5'` | 自定义主色调（十六进制颜色，如 `#FF5722`）；当 `palette: 'custom'` 时所有品牌相关 token 全部跟随——按钮、链接文字、选中态 accent 以及 static blue/deepseek 整条刻度 |
 | `avatarStyle` | `'classic'` | 企鹅头像装扮：`classic` 经典原版 / `sunglasses` 酷炫墨镜 / `scarf` 暖冬红围巾（高精度 SVG 动态图层叠加） |
+| `avatarCustomImage` | `''` | 自定义助手头像图片（`https://` 图片链接或 `data:image/*` URI；设置后完全替代企鹅与装扮层，清空恢复官方企鹅） |
+| `avatarSize` | `22` | 助手头像尺寸（px，16~40；气泡让位随尺寸自动换算，大头像不会顶歪文字） |
 | `bubbleTail` | `true` | 用户气泡右侧"尾巴"小三角 |
 | `assistantAvatar` | `true` | 助手消息左侧官方 QQ 企鹅头像圆标 |
 | `chatMaxWidth` | `880` | 聊天流最大宽度（px，约束在 480～1600 之间） |
 | `messageSound` | `false` | 新助手消息提示音总开关（Web Audio 纯合成，零外部资源依赖，历史加载静音保护） |
 | `sendSound` | `false` | 用户发送消息即时反馈音（Web Audio 纯合成清脆正弦轻响，补齐交互闭环） |
 | `soundVariant` | `'beep'` | 提示声音效类型：`beep` 经典寻呼机 6-beep / `waterdrop` 灵动清脆水滴 / `knock` 经典两声敲门 |
+| `soundVolume` | `1` | 提示音音量（0~1，1 = 原始合成音量；同时作用于消息提示音与发送反馈音） |
+| `remindOnlyWhenUnfocused` | `false` | 仅失焦提醒：窗口在前台时新消息保持安静，失焦/最小化时才发声与抖动（QQ 经典习惯） |
+| `quietHoursStart` / `quietHoursEnd` | `''` / `''` | 免打扰时段（24 小时制 `HH:mm`，两端都填才生效；支持跨午夜如 `22:00`→`08:00`，时段内提示音/发送音/抖动全部静默） |
 | `windowShake` | `false` | 助手新消息到来时轻微抖动聊天窗口（QQ 经典窗口抖动效果） |
-| `frostedGlass` | `false` | 侧边栏与头部亚克力毛玻璃通透效果（`backdrop-filter: blur(16px)`） |
+| `frostedGlass` | `false` | 侧边栏 / 右栏详情 / 输入框的毛玻璃玻璃面板(品牌色晕染渐变 + 半透明底 + 玻璃边缘光;输入卡额外 `blur(16px)` 背景模糊——三栏列不加 blur,避免破坏折叠按钮的 fixed 定位) |
 | `typing` | `true` | 助手消息打字机揭示动效开关 |
 
 示例（在 profile 的插件配置里指定）：

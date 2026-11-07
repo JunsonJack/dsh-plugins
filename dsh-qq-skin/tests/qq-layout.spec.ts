@@ -122,6 +122,18 @@ describe('QQ NT layout config branches', () => {
     expect(off).not.toContain('dsh-qq-typing')
   })
 
+  it('stops decorative animations under prefers-reduced-motion', () => {
+    expect(QQ_LAYOUT_CSS).toContain('@media (prefers-reduced-motion: reduce)')
+    expect(QQ_LAYOUT_CSS).toContain('animation: none !important;')
+    // 回退规则始终注入(不随 typing/windowShake 开关变化),关闭 typing 后
+    // 仍要能压住抖动类,反之亦然。
+    const noTyping = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, typing: false, windowShake: false })
+    expect(noTyping).toContain('@media (prefers-reduced-motion: reduce)')
+    const reducedBlock = noTyping.slice(noTyping.indexOf('@media (prefers-reduced-motion: reduce)'))
+    expect(reducedBlock).toContain(".dsh-qq-shaking")
+    expect(reducedBlock.indexOf('animation: none !important')).toBeGreaterThan(0)
+  })
+
   it('selected session row carries a brand-color dot', () => {
     expect(QQ_LAYOUT_CSS).toContain("[class$='_sessionRow'][class$='_selected']::after")
     expect(QQ_LAYOUT_CSS).toContain('var(--dsw-alias-brand-primary)')
@@ -145,11 +157,34 @@ describe('QQ NT layout config branches', () => {
 
   it('frostedGlass rules appear when enabled', () => {
     const off = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, frostedGlass: false })
-    expect(off).not.toContain('backdrop-filter: blur(16px)')
+    expect(off).not.toContain('color-mix(in srgb, var(--dsw-alias-brand-primary) 10%')
 
     const on = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, frostedGlass: true })
-    expect(on).toContain('backdrop-filter: blur(16px)')
-    expect(on).toContain('rgba(242, 245, 248, 0.78)')
+    expect(on).toContain('color-mix(in srgb, var(--dsw-alias-brand-primary) 10%')
+  })
+
+  it('frosts the sidebar, right details column, and composer as tinted glass', () => {
+    const off = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, frostedGlass: false })
+    const on = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, frostedGlass: true })
+
+    // 右栏真实锚点是 _rightbarCol(旧 _detailsCol 在 harness 中不存在,是死选择器)。
+    expect(on).toContain("[class$='_rightbarCol']")
+    expect(on).not.toContain('_detailsCol')
+    expect(off).not.toContain('_detailsCol')
+    // 品牌色晕染走 token,跟随色板/自定义主色,不硬编码色板色值。
+    expect(on).toContain('color-mix(in srgb, var(--dsw-alias-brand-primary) 10%')
+    expect(on).toContain('color-mix(in srgb, var(--dsw-alias-brand-primary) 6%, rgba(255, 255, 255, 0.88) 94%)')
+    // 玻璃边缘光(纯色底上可感知的关键层)。
+    expect(on).toContain('inset 0 1px 0 rgba(255, 255, 255, 0.65)')
+    // 暗色变体同样覆盖右栏与输入框。
+    expect(on).toContain("body[data-ds-dark-theme] [class$='_rightbarCol']")
+    expect(on).toContain('body[data-ds-dark-theme] [data-composer-card]')
+    // ⚠ 三栏列绝不加 backdrop-filter:左栏折叠按钮是 position:fixed(窗口
+    // 定位),backdrop-filter 会把列变成 fixed 后代的包含块,按钮被移位/裁掉
+    // (0.3.16"折叠展开按钮消失"回归的根因);输入卡无 fixed 后代,保留。
+    expect(on).toContain('backdrop-filter: blur(16px) saturate(1.15)')
+    const colGlass = on.slice(on.indexOf("body:not([data-ds-dark-theme]) [class$='_sidebarCol']"), on.indexOf('[data-composer-card]'))
+    expect(colGlass).not.toContain('backdrop-filter')
   })
 
   it('decorates assistant markdown blockquotes and codeblocks', () => {
@@ -170,6 +205,43 @@ describe('QQ NT layout config branches', () => {
     const scarf = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, avatarStyle: 'scarf' })
     expect(scarf).toContain('data:image/svg+xml')
     expect(scarf).toContain('data:image/png;base64')
+  })
+
+  it('overrides the penguin layers when avatarCustomImage is set', () => {
+    // 自定义头像优先:输出里出现该 URL,且不再有官方企鹅 PNG / SVG 装扮层。
+    const custom = buildQQLayoutCss({
+      ...QQ_SKIN_DEFAULT_CONFIG, avatarStyle: 'scarf', avatarCustomImage: 'https://example.com/cat.png',
+    })
+    expect(custom).toContain('url("https://example.com/cat.png")')
+    expect(custom).not.toContain('data:image/png;base64')
+    expect(custom).not.toContain('data:image/svg+xml')
+
+    // 空串回落官方企鹅 + 装扮层。
+    const fallback = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, avatarStyle: 'scarf' })
+    expect(fallback).toContain('data:image/png;base64')
+    expect(fallback).toContain('data:image/svg+xml')
+  })
+
+  it('scales the avatar bubble offset and size from avatarSize', () => {
+    // 默认 22px:历史写死值(offset = 22 + 14 间距 = 36,top = 13)。
+    const def = buildQQLayoutCss(QQ_SKIN_DEFAULT_CONFIG)
+    expect(def).toContain('margin-left: 36px;')
+    expect(def).toContain('top: 13px;')
+    expect(def).toContain('left: -36px;')
+    expect(def).toContain('width: 22px;')
+
+    // 32px:气泡让出 32 + 14 = 46px,top 随尺寸对齐顶部 (+5)。
+    const big = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, avatarSize: 32 })
+    expect(big).toContain('margin-left: 46px;')
+    expect(big).toContain('top: 18px;')
+    expect(big).toContain('left: -46px;')
+    expect(big).toContain('width: 32px;')
+    expect(big).toContain('height: 32px;')
+
+    // 16px:偏移 30px,top = 10。
+    const small = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, avatarSize: 16 })
+    expect(small).toContain('margin-left: 30px;')
+    expect(small).toContain('top: 10px;')
   })
 
   it('derives avatar glow and bubble shadow from customColor on the custom palette', () => {

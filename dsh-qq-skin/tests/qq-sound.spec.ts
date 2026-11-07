@@ -180,6 +180,68 @@ describe('QQSoundRuntime', () => {
     void ctx.fiber.dispose()
   })
 
+  it('scales the beep envelope gain by soundVolume', async () => {
+    const rampCalls: number[] = []
+    class FakeAudioContext {
+      state = 'running'
+      currentTime = 0
+      destination = {}
+      createOscillator() {
+        return {
+          type: 'square',
+          frequency: { value: 2000, setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+          connect: vi.fn().mockReturnThis(),
+          start: vi.fn(),
+          stop: vi.fn(),
+        }
+      }
+      createGain() {
+        return {
+          gain: {
+            setValueAtTime: vi.fn(),
+            linearRampToValueAtTime: vi.fn((value: number) => { rampCalls.push(value) }),
+            exponentialRampToValueAtTime: vi.fn(),
+          },
+          connect: vi.fn().mockReturnThis(),
+        }
+      }
+      resume = vi.fn().mockResolvedValue(undefined)
+      close = vi.fn().mockResolvedValue(undefined)
+    }
+    vi.stubGlobal('window', { AudioContext: FakeAudioContext })
+    // 聊天流已存在:快路径直接挂 flow observer。
+    const flowEl = { matches: () => false, querySelectorAll: () => [] }
+    const observers: Array<{ callback: MutationCallback }> = []
+    vi.stubGlobal('document', { querySelector: vi.fn(() => flowEl) })
+    vi.stubGlobal('MutationObserver', class {
+      callback: MutationCallback
+      observe = vi.fn()
+      disconnect = vi.fn()
+      constructor(cb: MutationCallback) { this.callback = cb; observers.push(this) }
+    })
+    class FakeElement {
+      matches: (sel: string) => boolean
+      querySelectorAll: (sel: string) => FakeElement[]
+      constructor(matches: (sel: string) => boolean, querySelectorAll: (sel: string) => FakeElement[]) {
+        this.matches = matches
+        this.querySelectorAll = querySelectorAll
+      }
+    }
+    vi.stubGlobal('Element', FakeElement)
+
+    const ctx = new Context()
+    new QQSoundRuntime(ctx, { ...soundOn, soundVolume: 0.5 })
+    const step = new FakeElement((sel) => sel === "[data-chat-flow-kind='assistant-step']", () => [])
+    await observers[0]!.callback([{ addedNodes: [step] } as unknown as MutationRecord], observers[0] as unknown as MutationObserver)
+    await vi.waitFor(() => { expect(rampCalls.length).toBeGreaterThan(0) })
+    // 6-beep 每一声的 attack 峰值都乘了 soundVolume(0.15 × 0.5 = 0.075)。
+    expect(rampCalls.length).toBe(6)
+    for (const value of rampCalls) {
+      expect(value).toBeCloseTo(0.075, 5)
+    }
+    void ctx.fiber.dispose()
+  })
+
   it('silences sound when multiple assistant steps mount in batch (history restore)', () => {
     let flow: Element | null = null
     const observers: Array<{ callback: MutationCallback }> = []
@@ -435,6 +497,164 @@ describe('QQSoundRuntime', () => {
     observers[0].callback([{ addedNodes: [step] } as unknown as MutationRecord], observers[0] as unknown as MutationObserver)
 
     expect(classList.add).toHaveBeenCalledWith('dsh-qq-shaking')
+    void ctx.fiber.dispose()
+  })
+
+  it('stays silent while the window is visible when remindOnlyWhenUnfocused is on', () => {
+    const { observers } = stubDocument()
+    // visible:模拟窗口在前台。
+    vi.stubGlobal('document', {
+      querySelector: vi.fn(() => ({ matches: () => false, querySelectorAll: () => [] })),
+      visibilityState: 'visible',
+    })
+    // handleMutations 里用 Element 判断 addedNodes,happy-dom 未提供,补最小 stub。
+    class FakeElement {
+      matches: (sel: string) => boolean
+      querySelectorAll: (sel: string) => FakeElement[]
+      constructor(matches: (sel: string) => boolean, querySelectorAll: (sel: string) => FakeElement[]) {
+        this.matches = matches
+        this.querySelectorAll = querySelectorAll
+      }
+    }
+    vi.stubGlobal('Element', FakeElement)
+
+    const ctx = new Context()
+    new QQSoundRuntime(ctx, { ...QQ_SKIN_DEFAULT_CONFIG, messageSound: true, remindOnlyWhenUnfocused: true })
+
+    // 用 spy 保证 playSound 未被触发:AudioContext 从未被实例化。
+    const audioSpy = vi.fn()
+    vi.stubGlobal('window', { get AudioContext() { audioSpy(); return undefined } })
+
+    const step = new FakeElement((sel) => sel === "[data-chat-flow-kind='assistant-step']", () => [])
+    observers[0]!.callback([{ addedNodes: [step] } as unknown as MutationRecord], observers[0] as unknown as MutationObserver)
+
+    expect(audioSpy).not.toHaveBeenCalled()
+  })
+
+  it('reminds when hidden while remindOnlyWhenUnfocused is on', () => {
+    const classList = { add: vi.fn(), remove: vi.fn() }
+    const flowEl = { classList, matches: () => false, querySelectorAll: () => [] }
+    const observers: Array<{ callback: MutationCallback }> = []
+    // hidden:模拟窗口失焦/最小化。
+    vi.stubGlobal('document', {
+      querySelector: vi.fn(() => flowEl),
+      visibilityState: 'hidden',
+    })
+    vi.stubGlobal('MutationObserver', class {
+      callback: MutationCallback
+      observe = vi.fn()
+      disconnect = vi.fn()
+      constructor(cb: MutationCallback) { this.callback = cb; observers.push(this) }
+    })
+    class FakeElement {
+      matches: (sel: string) => boolean
+      querySelectorAll: (sel: string) => FakeElement[]
+      constructor(matches: (sel: string) => boolean, querySelectorAll: (sel: string) => FakeElement[]) {
+        this.matches = matches
+        this.querySelectorAll = querySelectorAll
+      }
+    }
+    vi.stubGlobal('Element', FakeElement)
+
+    const ctx = new Context()
+    new QQSoundRuntime(ctx, { ...QQ_SKIN_DEFAULT_CONFIG, windowShake: true, remindOnlyWhenUnfocused: true })
+
+    const step = new FakeElement((sel) => sel === "[data-chat-flow-kind='assistant-step']", () => [])
+    observers[0]!.callback([{ addedNodes: [step] } as unknown as MutationRecord], observers[0] as unknown as MutationObserver)
+
+    expect(classList.add).toHaveBeenCalledWith('dsh-qq-shaking')
+    void ctx.fiber.dispose()
+  })
+
+  it('stays silent during quiet hours regardless of visibility', () => {
+    const classList = { add: vi.fn(), remove: vi.fn() }
+    const flowEl = { classList, matches: () => false, querySelectorAll: () => [] }
+    const observers: Array<{ callback: MutationCallback }> = []
+    vi.stubGlobal('document', {
+      querySelector: vi.fn(() => flowEl),
+      visibilityState: 'hidden', // 即便失焦,免打扰时段内依然静默
+    })
+    vi.stubGlobal('MutationObserver', class {
+      callback: MutationCallback
+      observe = vi.fn()
+      disconnect = vi.fn()
+      constructor(cb: MutationCallback) { this.callback = cb; observers.push(this) }
+    })
+    class FakeElement {
+      matches: (sel: string) => boolean
+      querySelectorAll: (sel: string) => FakeElement[]
+      constructor(matches: (sel: string) => boolean, querySelectorAll: (sel: string) => FakeElement[]) {
+        this.matches = matches
+        this.querySelectorAll = querySelectorAll
+      }
+    }
+    vi.stubGlobal('Element', FakeElement)
+    // AudioContext 从未被实例化 = 没有任何发声路径被走到。
+    const audioSpy = vi.fn()
+    vi.stubGlobal('window', { get AudioContext() { audioSpy(); return undefined } })
+
+    // 固定时钟到 23:00,落在 22:00→08:00 的跨午夜免打扰区间内。
+    vi.setSystemTime(new Date(2026, 10, 7, 23, 0))
+    const ctx = new Context()
+    new QQSoundRuntime(ctx, {
+      ...QQ_SKIN_DEFAULT_CONFIG,
+      messageSound: true,
+      sendSound: true,
+      windowShake: true,
+      quietHoursStart: '22:00',
+      quietHoursEnd: '08:00',
+    })
+    const step = new FakeElement((sel) => sel === "[data-chat-flow-kind='assistant-step']", () => [])
+    const user = new FakeElement((sel) => sel.includes("[data-chat-flow-kind='user']"), () => [])
+    observers[0]!.callback(
+      [{ addedNodes: [step, user] } as unknown as MutationRecord],
+      observers[0] as unknown as MutationObserver,
+    )
+
+    expect(audioSpy).not.toHaveBeenCalled()
+    expect(classList.add).not.toHaveBeenCalled()
+    vi.useRealTimers()
+    void ctx.fiber.dispose()
+  })
+
+  it('chimes normally outside quiet hours', () => {
+    const classList = { add: vi.fn(), remove: vi.fn() }
+    const flowEl = { classList, matches: () => false, querySelectorAll: () => [] }
+    const observers: Array<{ callback: MutationCallback }> = []
+    vi.stubGlobal('document', {
+      querySelector: vi.fn(() => flowEl),
+      visibilityState: 'hidden',
+    })
+    vi.stubGlobal('MutationObserver', class {
+      callback: MutationCallback
+      observe = vi.fn()
+      disconnect = vi.fn()
+      constructor(cb: MutationCallback) { this.callback = cb; observers.push(this) }
+    })
+    class FakeElement {
+      matches: (sel: string) => boolean
+      querySelectorAll: (sel: string) => FakeElement[]
+      constructor(matches: (sel: string) => boolean, querySelectorAll: (sel: string) => FakeElement[]) {
+        this.matches = matches
+        this.querySelectorAll = querySelectorAll
+      }
+    }
+    vi.stubGlobal('Element', FakeElement)
+
+    // 固定时钟到 14:00,不在 22:00→08:00 区间内 → 正常抖动。
+    vi.setSystemTime(new Date(2026, 10, 7, 14, 0))
+    const ctx = new Context()
+    new QQSoundRuntime(ctx, {
+      ...QQ_SKIN_DEFAULT_CONFIG,
+      windowShake: true,
+      quietHoursStart: '22:00',
+      quietHoursEnd: '08:00',
+    })
+    const step = new FakeElement((sel) => sel === "[data-chat-flow-kind='assistant-step']", () => [])
+    observers[0]!.callback([{ addedNodes: [step] } as unknown as MutationRecord], observers[0] as unknown as MutationObserver)
+
+    expect(classList.add).toHaveBeenCalledWith('dsh-qq-shaking')
+    vi.useRealTimers()
     void ctx.fiber.dispose()
   })
 
