@@ -555,6 +555,98 @@ describe('QQSoundRuntime', () => {
     void ctx.fiber.dispose()
   })
 
+  it('stays silent during quiet hours regardless of visibility', () => {
+    const classList = { add: vi.fn(), remove: vi.fn() }
+    const flowEl = { classList, matches: () => false, querySelectorAll: () => [] }
+    const observers: Array<{ callback: MutationCallback }> = []
+    vi.stubGlobal('document', {
+      querySelector: vi.fn(() => flowEl),
+      visibilityState: 'hidden', // 即便失焦,免打扰时段内依然静默
+    })
+    vi.stubGlobal('MutationObserver', class {
+      callback: MutationCallback
+      observe = vi.fn()
+      disconnect = vi.fn()
+      constructor(cb: MutationCallback) { this.callback = cb; observers.push(this) }
+    })
+    class FakeElement {
+      matches: (sel: string) => boolean
+      querySelectorAll: (sel: string) => FakeElement[]
+      constructor(matches: (sel: string) => boolean, querySelectorAll: (sel: string) => FakeElement[]) {
+        this.matches = matches
+        this.querySelectorAll = querySelectorAll
+      }
+    }
+    vi.stubGlobal('Element', FakeElement)
+    // AudioContext 从未被实例化 = 没有任何发声路径被走到。
+    const audioSpy = vi.fn()
+    vi.stubGlobal('window', { get AudioContext() { audioSpy(); return undefined } })
+
+    // 固定时钟到 23:00,落在 22:00→08:00 的跨午夜免打扰区间内。
+    vi.setSystemTime(new Date(2026, 10, 7, 23, 0))
+    const ctx = new Context()
+    new QQSoundRuntime(ctx, {
+      ...QQ_SKIN_DEFAULT_CONFIG,
+      messageSound: true,
+      sendSound: true,
+      windowShake: true,
+      quietHoursStart: '22:00',
+      quietHoursEnd: '08:00',
+    })
+    const step = new FakeElement((sel) => sel === "[data-chat-flow-kind='assistant-step']", () => [])
+    const user = new FakeElement((sel) => sel.includes("[data-chat-flow-kind='user']"), () => [])
+    observers[0]!.callback(
+      [{ addedNodes: [step, user] } as unknown as MutationRecord],
+      observers[0] as unknown as MutationObserver,
+    )
+
+    expect(audioSpy).not.toHaveBeenCalled()
+    expect(classList.add).not.toHaveBeenCalled()
+    vi.useRealTimers()
+    void ctx.fiber.dispose()
+  })
+
+  it('chimes normally outside quiet hours', () => {
+    const classList = { add: vi.fn(), remove: vi.fn() }
+    const flowEl = { classList, matches: () => false, querySelectorAll: () => [] }
+    const observers: Array<{ callback: MutationCallback }> = []
+    vi.stubGlobal('document', {
+      querySelector: vi.fn(() => flowEl),
+      visibilityState: 'hidden',
+    })
+    vi.stubGlobal('MutationObserver', class {
+      callback: MutationCallback
+      observe = vi.fn()
+      disconnect = vi.fn()
+      constructor(cb: MutationCallback) { this.callback = cb; observers.push(this) }
+    })
+    class FakeElement {
+      matches: (sel: string) => boolean
+      querySelectorAll: (sel: string) => FakeElement[]
+      constructor(matches: (sel: string) => boolean, querySelectorAll: (sel: string) => FakeElement[]) {
+        this.matches = matches
+        this.querySelectorAll = querySelectorAll
+      }
+    }
+    vi.stubGlobal('Element', FakeElement)
+
+    // 固定时钟到 14:00,不在 22:00→08:00 区间内 → 正常抖动。
+    vi.setSystemTime(new Date(2026, 10, 7, 14, 0))
+    const ctx = new Context()
+    new QQSoundRuntime(ctx, {
+      ...QQ_SKIN_DEFAULT_CONFIG,
+      windowShake: true,
+      quietHoursStart: '22:00',
+      quietHoursEnd: '08:00',
+    })
+    const step = new FakeElement((sel) => sel === "[data-chat-flow-kind='assistant-step']", () => [])
+    observers[0]!.callback([{ addedNodes: [step] } as unknown as MutationRecord], observers[0] as unknown as MutationObserver)
+
+    expect(classList.add).toHaveBeenCalledWith('dsh-qq-shaking')
+    vi.useRealTimers()
+    void ctx.fiber.dispose()
+  })
+
   it('plays sent sound when a single user message is added and sendSound is on', async () => {
     const playCalls: string[] = []
     class FakeAudioContext {

@@ -49,6 +49,10 @@ export interface QQSkinConfig {
   soundVolume: number
   /** 仅在窗口失焦/最小化时发声与抖动(QQ 习惯;前台新消息保持安静,默认关)。 */
   remindOnlyWhenUnfocused: boolean
+  /** 免打扰时段起点(HH:mm,24 小时制;为空表示不启用。支持跨午夜区间)。 */
+  quietHoursStart: string
+  /** 免打扰时段终点(HH:mm,24 小时制;为空表示不启用。支持跨午夜区间)。 */
+  quietHoursEnd: string
   /** 助手消息到达时窗口抖动提醒(默认关)。 */
   windowShake: boolean
   /** 侧边栏/顶栏毛玻璃亚克力通透质感(默认关)。 */
@@ -68,6 +72,12 @@ export const DEFAULT_CUSTOM_COLOR = '#12B7F5'
 export const SOUND_VOLUME_MIN = 0
 export const SOUND_VOLUME_MAX = 1
 
+/** 免打扰时段默认值:空串 = 不启用。 */
+export const DEFAULT_QUIET_HOURS = ''
+
+/** HH:mm 时间格式(24 小时制,分钟允许 00/15/30/45 等任意 0~59)。 */
+const HHMM_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/
+
 /** 默认配置(经典蓝、气泡尾巴、企鹅头像、880px 宽、经典音色)。 */
 export const QQ_SKIN_DEFAULT_CONFIG: QQSkinConfig = {
   palette: 'classic',
@@ -81,6 +91,8 @@ export const QQ_SKIN_DEFAULT_CONFIG: QQSkinConfig = {
   soundVariant: 'beep',
   soundVolume: 1,
   remindOnlyWhenUnfocused: false,
+  quietHoursStart: DEFAULT_QUIET_HOURS,
+  quietHoursEnd: DEFAULT_QUIET_HOURS,
   windowShake: false,
   frostedGlass: false,
   typing: true,
@@ -121,6 +133,42 @@ export function normalizeSoundVolume(value: unknown): number {
   return Math.min(SOUND_VOLUME_MAX, Math.max(SOUND_VOLUME_MIN, value))
 }
 
+/** 规范化 HH:mm 时段:空/非串/格式非法回落空串(不启用);合法值原样返回。 */
+export function normalizeQuietTime(value: unknown): string {
+  if (typeof value !== 'string') return DEFAULT_QUIET_HOURS
+  const trimmed = value.trim()
+  return HHMM_PATTERN.test(trimmed) ? trimmed : DEFAULT_QUIET_HOURS
+}
+
+/**
+ * 判定"当前时刻"是否落在免打扰时段内(支持跨午夜,如 22:00→08:00)。
+ * 起点或终点任一为空 = 功能未启用,返回 false。
+ * @param nowMinutes - 当前时刻(自当日 0 点起的分钟数,便于测试注入)。
+ * @param start - 起点 HH:mm。
+ * @param end - 终点 HH:mm。
+ */
+export function isWithinQuietHours(nowMinutes: number, start: string, end: string): boolean {
+  const s = normalizeQuietTime(start)
+  const e = normalizeQuietTime(end)
+  if (!s || !e) return false
+  const parse = (t: string): number => {
+    const [h, m] = t.split(':')
+    return Number(h) * 60 + Number(m)
+  }
+  const startM = parse(s)
+  const endM = parse(e)
+  if (startM === endM) return true // 起止相同视为全天免打扰
+  // 普通区间(如 09:00→12:00)与跨午夜区间(如 22:00→08:00)分别判定。
+  return startM < endM
+    ? nowMinutes >= startM && nowMinutes < endM
+    : nowMinutes >= startM || nowMinutes < endM
+}
+
+/** 当前本地时刻的自 0 点起分钟数(测试可注入 Date,运行时用真实时钟)。 */
+export function currentLocalMinutes(date: Date = new Date()): number {
+  return date.getHours() * 60 + date.getMinutes()
+}
+
 /** 用户可调配置(可选/部分)。显式包含 undefined 以兼容 exactOptionalPropertyTypes。 */
 export type PartialQQSkinConfig = {
   [K in keyof QQSkinConfig]?: QQSkinConfig[K] | undefined
@@ -157,6 +205,8 @@ export function resolveQQSkinConfig(config?: PartialQQSkinConfig): QQSkinConfig 
     remindOnlyWhenUnfocused: typeof raw.remindOnlyWhenUnfocused === 'boolean'
       ? raw.remindOnlyWhenUnfocused
       : QQ_SKIN_DEFAULT_CONFIG.remindOnlyWhenUnfocused,
+    quietHoursStart: normalizeQuietTime(raw.quietHoursStart),
+    quietHoursEnd: normalizeQuietTime(raw.quietHoursEnd),
     windowShake: typeof raw.windowShake === 'boolean'
       ? raw.windowShake
       : QQ_SKIN_DEFAULT_CONFIG.windowShake,

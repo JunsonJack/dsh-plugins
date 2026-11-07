@@ -59,6 +59,10 @@ export interface QQSkinRowInjected {
   setSoundVolume: (volume: number) => void
   /** 开关"仅失焦提醒"模式。 */
   setRemindOnlyWhenUnfocused: (value: boolean) => void
+  /** 设置免打扰时段起点(HH:mm,空串 = 不启用)。 */
+  setQuietHoursStart: (value: string) => void
+  /** 设置免打扰时段终点(HH:mm,空串 = 不启用)。 */
+  setQuietHoursEnd: (value: string) => void
   /** 开关窗口抖动提醒。 */
   setWindowShake: (value: boolean) => void
   /** 开关毛玻璃质感。 */
@@ -246,8 +250,8 @@ function ToggleRow({ label, checked, onChange }: {
  */
 export function QQSkinSettingsRow({
   t, useStore, setPalette, setCustomColor, setAvatarStyle, setBubbleTail, setAssistantAvatar, setChatMaxWidth,
-  setMessageSound, setSendSound, setSoundVariant, setSoundVolume, setRemindOnlyWhenUnfocused, setWindowShake,
-  setFrostedGlass, setTyping,
+  setMessageSound, setSendSound, setSoundVariant, setSoundVolume, setRemindOnlyWhenUnfocused,
+  setQuietHoursStart, setQuietHoursEnd, setWindowShake, setFrostedGlass, setTyping,
 }: QQSkinRowComponentProps) {
   const config = useStore(s => s.config)
   const [widthDraft, setWidthDraft] = useState(String(config.chatMaxWidth))
@@ -409,8 +413,7 @@ export function QQSkinSettingsRow({
           label={t('row.windowShake')}
           checked={config.windowShake}
           onChange={setWindowShake}
-        />
-        <ToggleRow
+        />        <ToggleRow
           label={t('row.frostedGlass')}
           checked={config.frostedGlass}
           onChange={setFrostedGlass}
@@ -420,6 +423,46 @@ export function QQSkinSettingsRow({
           checked={config.typing}
           onChange={setTyping}
         />
+      </div>
+
+      {/* 免打扰时段:两端都有合法时间才生效;跨午夜(22:00→08:00)也支持 */}
+      <div style={fieldRowStyle}>
+        <span style={fieldLabelStyle}>{t('row.quietHours')}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <input
+            type="time"
+            value={config.quietHoursStart || ''}
+            onChange={event => { setQuietHoursStart(event.currentTarget.value) }}
+            aria-label={t('row.quietHours')}
+            style={{
+              width: '92px', height: '32px', padding: '0 8px',
+              boxSizing: 'border-box',
+              border: '1px solid var(--dsw-alias-border-l2)',
+              borderRadius: '10px',
+              background: 'var(--dsw-specific-input-major)',
+              color: 'var(--dsw-alias-label-primary)',
+              fontSize: '13px',
+              outline: 'none',
+            }}
+          />
+          <span style={{ fontSize: '12px', color: 'var(--dsw-alias-label-caption)' }}>→</span>
+          <input
+            type="time"
+            value={config.quietHoursEnd || ''}
+            onChange={event => { setQuietHoursEnd(event.currentTarget.value) }}
+            aria-label={t('row.quietHours')}
+            style={{
+              width: '92px', height: '32px', padding: '0 8px',
+              boxSizing: 'border-box',
+              border: '1px solid var(--dsw-alias-border-l2)',
+              borderRadius: '10px',
+              background: 'var(--dsw-specific-input-major)',
+              color: 'var(--dsw-alias-label-primary)',
+              fontSize: '13px',
+              outline: 'none',
+            }}
+          />
+        </span>
       </div>
 
       {/* 提示声音色:在开启消息提示音时展开音色选择药丸组 */}

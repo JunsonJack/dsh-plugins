@@ -3,6 +3,9 @@ import {
   QQ_AVATAR_STYLES,
   QQ_SKIN_DEFAULT_CONFIG,
   QQ_SKIN_PALETTES,
+  currentLocalMinutes,
+  isWithinQuietHours,
+  normalizeQuietTime,
   resolveQQSkinConfig,
 } from '../src/client/config.ts'
 
@@ -103,6 +106,46 @@ describe('QQ skin config', () => {
     expect(resolveQQSkinConfig({ soundVolume: -0.5 }).soundVolume).toBe(0)
     expect(resolveQQSkinConfig({ soundVolume: Number.NaN }).soundVolume).toBe(1)
     expect(resolveQQSkinConfig({ soundVolume: 'loud' as never }).soundVolume).toBe(1)
+  })
+
+  it('quiet hours default to disabled and normalize invalid times to empty', () => {
+    expect(resolveQQSkinConfig().quietHoursStart).toBe('')
+    expect(resolveQQSkinConfig().quietHoursEnd).toBe('')
+    expect(resolveQQSkinConfig({ quietHoursStart: '22:00', quietHoursEnd: '08:00' }).quietHoursStart).toBe('22:00')
+    expect(resolveQQSkinConfig({ quietHoursStart: '22:00' }).quietHoursEnd).toBe('')
+    expect(normalizeQuietTime(' 07:30 ')).toBe('07:30')
+    expect(normalizeQuietTime('24:00')).toBe('')
+    expect(normalizeQuietTime('7:30')).toBe('')
+    expect(normalizeQuietTime('07:5')).toBe('')
+    expect(normalizeQuietTime('abc')).toBe('')
+    expect(normalizeQuietTime(123 as never)).toBe('')
+  })
+
+  it('isWithinQuietHours covers normal and overnight ranges', () => {
+    // 未启用:任一端为空。
+    expect(isWithinQuietHours(600, '', '08:00')).toBe(false)
+    expect(isWithinQuietHours(600, '22:00', '')).toBe(false)
+    // 普通区间 09:00→12:00。
+    expect(isWithinQuietHours(9 * 60, '09:00', '12:00')).toBe(true)
+    expect(isWithinQuietHours(10 * 60 + 30, '09:00', '12:00')).toBe(true)
+    expect(isWithinQuietHours(11 * 60 + 59, '09:00', '12:00')).toBe(true)
+    expect(isWithinQuietHours(12 * 60, '09:00', '12:00')).toBe(false)
+    expect(isWithinQuietHours(8 * 60 + 59, '09:00', '12:00')).toBe(false)
+    // 跨午夜区间 22:00→08:00。
+    expect(isWithinQuietHours(22 * 60, '22:00', '08:00')).toBe(true)
+    expect(isWithinQuietHours(23 * 60 + 59, '22:00', '08:00')).toBe(true)
+    expect(isWithinQuietHours(0, '22:00', '08:00')).toBe(true)
+    expect(isWithinQuietHours(7 * 60 + 59, '22:00', '08:00')).toBe(true)
+    expect(isWithinQuietHours(8 * 60, '22:00', '08:00')).toBe(false)
+    expect(isWithinQuietHours(12 * 60, '22:00', '08:00')).toBe(false)
+    // 起止相同 = 全天免打扰。
+    expect(isWithinQuietHours(0, '00:00', '00:00')).toBe(true)
+  })
+
+  it('currentLocalMinutes derives minutes from a Date', () => {
+    expect(currentLocalMinutes(new Date(2026, 10, 7, 0, 0))).toBe(0)
+    expect(currentLocalMinutes(new Date(2026, 10, 7, 8, 5))).toBe(8 * 60 + 5)
+    expect(currentLocalMinutes(new Date(2026, 10, 7, 23, 59))).toBe(23 * 60 + 59)
   })
 
   it('remindOnlyWhenUnfocused defaults to false and toggles via override', () => {

@@ -73,6 +73,14 @@ describe('QQ skin settings', () => {
     expect(settingsToConfig(undefined, { remindOnlyWhenUnfocused: true }).remindOnlyWhenUnfocused).toBe(true)
   })
 
+  it('quiet hours flow through settings and reject malformed times', () => {
+    const config = settingsToConfig({ quietHoursStart: '22:00', quietHoursEnd: '08:00' })
+    expect(config.quietHoursStart).toBe('22:00')
+    expect(config.quietHoursEnd).toBe('08:00')
+    expect(settingsToConfig({ quietHoursStart: '25:00' }).quietHoursStart).toBe('')
+    expect(settingsToConfig({ quietHoursEnd: 'noon' as never }).quietHoursEnd).toBe('')
+  })
+
   it('sanitizes invalid or out-of-range fields from settings section', () => {
     const section: QQSkinSettings = { palette: 'unknown' as never, chatMaxWidth: 200 }
     const config = settingsToConfig(section)

@@ -19,6 +19,7 @@
  * observer + audio + timer 一并清理。
  */
 import type { Context } from '@deepseek-ai/cordis'
+import { currentLocalMinutes, isWithinQuietHours } from './config.ts'
 import type { QQSkinConfig, QQSkinSoundVariant } from './config.ts'
 
 /** 聊天流容器选择器(harness ChatView 的 data-chat-flow 属性)。 */
@@ -81,6 +82,13 @@ export class QQSoundRuntime {
   /** 当前是否启用音效或窗口提醒。 */
   isEnabled(): boolean {
     return this.config.messageSound || this.config.windowShake || this.config.sendSound
+  }
+
+  /** 当前时刻是否处于免打扰时段(起止任一为空 = 未启用,永不静默)。 */
+  private isQuietNow(): boolean {
+    const { quietHoursStart, quietHoursEnd } = this.config
+    if (!quietHoursStart || !quietHoursEnd) return false
+    return isWithinQuietHours(currentLocalMinutes(), quietHoursStart, quietHoursEnd)
   }
 
   /**
@@ -176,6 +184,15 @@ export class QQSoundRuntime {
           }
         }
       }
+    }
+
+    // 免打扰时段内:全部提醒(发送音/提示音/抖动)静默,但节点照常记已读,
+    // 时段结束后不会被补响。
+    if (this.isQuietNow()) {
+      for (const target of userTargets) {
+        this.playedUser.add(target)
+      }
+      return
     }
 
     // 1. 处理用户发送消息提示音(单条且在冷却之外才发声)

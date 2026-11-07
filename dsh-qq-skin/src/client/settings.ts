@@ -37,6 +37,8 @@ export interface QQSkinSettings {
   soundVariant?: QQSkinSoundVariant | undefined
   soundVolume?: number | undefined
   remindOnlyWhenUnfocused?: boolean | undefined
+  quietHoursStart?: string | undefined
+  quietHoursEnd?: string | undefined
   windowShake?: boolean | undefined
   frostedGlass?: boolean | undefined
   typing?: boolean | undefined
@@ -65,6 +67,8 @@ export function settingsToConfig(
     soundVariant: s.soundVariant ?? fallback?.soundVariant,
     soundVolume: s.soundVolume ?? fallback?.soundVolume,
     remindOnlyWhenUnfocused: s.remindOnlyWhenUnfocused ?? fallback?.remindOnlyWhenUnfocused,
+    quietHoursStart: s.quietHoursStart ?? fallback?.quietHoursStart,
+    quietHoursEnd: s.quietHoursEnd ?? fallback?.quietHoursEnd,
     windowShake: s.windowShake ?? fallback?.windowShake,
     frostedGlass: s.frostedGlass ?? fallback?.frostedGlass,
     typing: s.typing ?? fallback?.typing,

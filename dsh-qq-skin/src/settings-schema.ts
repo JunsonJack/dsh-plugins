@@ -45,6 +45,10 @@ export interface Config {
   soundVolume: Volatile<number>
   /** 仅在窗口失焦/最小化时发声与抖动(默认关)。 */
   remindOnlyWhenUnfocused: Volatile<boolean>
+  /** 免打扰时段起点(HH:mm,空 = 不启用)。 */
+  quietHoursStart: Volatile<string>
+  /** 免打扰时段终点(HH:mm,空 = 不启用)。 */
+  quietHoursEnd: Volatile<string>
   /** 助手消息到达时窗口抖动提醒(默认关)。 */
   windowShake: Volatile<boolean>
   /** 侧边栏/顶栏毛玻璃亚克力通透质感(默认关)。 */
@@ -66,6 +70,8 @@ export const Config = z.object({
   soundVariant: z.union([...QQ_SKIN_SOUND_VARIANTS]).default('beep').volatile(),
   soundVolume: z.number().min(0).max(1).default(1).volatile(),
   remindOnlyWhenUnfocused: z.boolean().default(false).volatile(),
+  quietHoursStart: z.string().default('').volatile(),
+  quietHoursEnd: z.string().default('').volatile(),
   windowShake: z.boolean().default(false).volatile(),
   frostedGlass: z.boolean().default(false).volatile(),
   typing: z.boolean().default(true).volatile(),
