@@ -149,6 +149,84 @@ body[data-ds-dark-theme] [data-composer-card] {
 `
 }
 
+/* ── Markdown 表格:GitHub / Typora 式表格 UI ─────────────────────────
+   设计目标(对应"表格右边文字被折叠"的反馈):
+   1) 表格本身是**唯一**允许横向滚动的区域,滚动时整张表一起移动,
+      而不是把单元格里的长单词硬折成两三行;
+   2) 单元格正文按词换行(break-word),行内代码/命令整体不折行——
+      `dsh-better-sidebar` 这类标识符宁可让表格变宽横向滚动,也不
+      被拆成"折叠"的两三段;
+   3) 结构用发丝线:只画 border-bottom / border-right,不画四边实框;
+      外框圆角 + separate 边框模式,让 overflow 能裁切圆角;
+   4) 表头浅色带 + 行斑马纹,提供横向对齐的视觉引导;
+   5) 表内代码渲染成 chip(圆角浅底),与正文区分。 */
+function markdownTableRule(scope: string): string {
+  return `
+${scope} table {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 10px;
+  font-size: 0.94em;
+  -webkit-overflow-scrolling: touch;
+}
+${scope} table th,
+${scope} table td {
+  padding: 8px 14px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--dsw-alias-border-l1);
+  border-right: 1px solid var(--dsw-alias-border-l1);
+}
+${scope} table tr > *:last-child {
+  border-right: none;
+}
+${scope} table tbody tr:last-child > * {
+  border-bottom: none;
+}
+${scope} table th {
+  background: var(--dsw-alias-bg-layer-2);
+  font-weight: 600;
+  white-space: nowrap;
+}
+${scope} table td {
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+${scope} table tbody tr:nth-child(even) td {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+${scope} table code,
+${scope} table kbd,
+${scope} table samp {
+  display: inline-block;
+  max-width: 100%;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--dsw-alias-bg-module-platform);
+  color: var(--dsw-alias-label-primary);
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+${scope} table::-webkit-scrollbar {
+  height: 8px;
+}
+${scope} table::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: var(--dsw-alias-scrollbar-bg-l1);
+}
+${scope} table::-webkit-scrollbar-thumb:hover {
+  background: var(--dsw-alias-scrollbar-hover-l1);
+}
+`
+}
+
 /** 各色板气泡投影的主色(暗色描边层),与 token 层的品牌色保持一致。 */
 const PALETTE_SHADOW_RGB: Record<string, [number, number, number]> = {
   classic: [18, 122, 175],
@@ -207,6 +285,9 @@ ${assistantAvatar ? avatarRule(config.avatarStyle, glow) : ''}
   padding: 12px 16px;
   background: var(--dsw-alias-bg-layer-1);
   border: 1px solid var(--dsw-alias-border-l1);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 4px 14px rgba(15, 23, 42, 0.05);
 }
 ${typing ? typingRule() : ''}
 
@@ -220,81 +301,38 @@ ${typing ? typingRule() : ''}
   color: var(--dsw-alias-label-secondary);
 }
 
-/* ── Markdown 表格:唯一允许横向滚动的区域 ───────────────────────────
-    需求:表格太宽时可横向滚动查看;其它正常不溢出的文字块不得出现滚动条。
-    做法:把 <table> 自身变成滚动容器(display:block + overflow-x:auto),
-    列宽按内容自然撑开,超出卡片的部分在表格内部滚动。表头保持单行
-    (white-space:nowrap),它的最小宽度会把宽表推出卡片 → 触发横向滚动;
-    表体单元格允许换行,避免一行文字过长时出现极长的滚动距离。 */
-[data-chat-flow-kind='assistant-step'] table {
-  display: block;
-  max-width: 100%;
-  min-width: 100%;
-  width: max-content;
-  overflow-x: auto;
-  border-collapse: collapse;
-  border-spacing: 0;
-  -webkit-overflow-scrolling: touch;
-}
-[data-chat-flow-kind='assistant-step'] table th,
-[data-chat-flow-kind='assistant-step'] table td {
-  vertical-align: top;
-  border: 1px solid var(--dsw-alias-border-l1);
-  padding: 6px 10px;
-}
-[data-chat-flow-kind='assistant-step'] table th {
-  white-space: nowrap;
-  font-weight: 600;
-}
-/* 单元格正文按词换行(break-word),而不是 anywhere——anywhere 会在
-   字符中间硬断,代码/标识符被"折叠"成两半。 */
-[data-chat-flow-kind='assistant-step'] table td {
-  white-space: normal;
-  overflow-wrap: break-word;
-}
-/* 表格内的行内代码/等宽片段保持整词不折行(与 harness 自带样式一致,
-   避免 plugin_manage install_bundle 这类命令被拆成两段)。 */
-[data-chat-flow-kind='assistant-step'] table code,
-[data-chat-flow-kind='assistant-step'] table kbd,
-[data-chat-flow-kind='assistant-step'] table samp {
-  white-space: nowrap;
-  overflow-wrap: normal;
-}
-/* 表格横向滚动条:细窄 QQ 风,避免默认滚动条挤占行高。 */
-[data-chat-flow-kind='assistant-step'] table::-webkit-scrollbar {
-  height: 8px;
-}
-[data-chat-flow-kind='assistant-step'] table::-webkit-scrollbar-thumb {
-  border-radius: 4px;
-  background: var(--dsw-alias-scrollbar-bg-l1);
-}
-[data-chat-flow-kind='assistant-step'] table::-webkit-scrollbar-thumb:hover {
-  background: var(--dsw-alias-scrollbar-hover-l1);
-}
+/* ── Markdown 表格:GitHub / Typora 式表格 UI ────────────────────────
+   见 markdownTableRule() 的设计说明:表格是唯一允许横向滚动的区域,
+   行内代码整体不折行,避免"文字被折叠"的观感。 */
+${markdownTableRule("[data-chat-flow-kind='assistant-step']")}
 /* 用户气泡里的表格同样不得撑破气泡(气泡内表格也可横向滚动)。 */
 [data-message-bubble][data-message-bubble] {
   overflow-x: hidden;
 }
-[data-message-bubble][data-message-bubble] table {
-  display: block;
-  max-width: 100%;
-  min-width: 100%;
-  width: max-content;
-  overflow-x: auto;
-}
-[data-message-bubble][data-message-bubble] table th {
-  white-space: nowrap;
-}
-[data-message-bubble][data-message-bubble] table td {
-  white-space: normal;
-  overflow-wrap: break-word;
-}
+${markdownTableRule('[data-message-bubble][data-message-bubble]')}
+/* 气泡内的表格 chip 底色改用气泡自身的深浅底,避免灰底压在蓝底上。
+   简洁白色板的亮色气泡是白底(深字),沿用默认浅色表格样式即可。 */
+${isClean ? '' : `
 [data-message-bubble][data-message-bubble] table code,
 [data-message-bubble][data-message-bubble] table kbd,
 [data-message-bubble][data-message-bubble] table samp {
-  white-space: nowrap;
-  overflow-wrap: normal;
+  background: rgba(0, 0, 0, 0.14);
+  color: inherit;
 }
+[data-message-bubble][data-message-bubble] table th {
+  background: rgba(0, 0, 0, 0.14);
+}
+[data-message-bubble][data-message-bubble] table tbody tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.10);
+}
+[data-message-bubble][data-message-bubble] table th,
+[data-message-bubble][data-message-bubble] table td {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+[data-message-bubble][data-message-bubble] table {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+`}
 
 /* ── 卡片兜底:只做"防外溢",不产生滚动条 ─────────────────────────────
     需求:只有表格区域可以横向滚动;正常不溢出的文字块不应出现任何滚动条。
@@ -474,6 +512,9 @@ ${bubbleTail ? `body[data-ds-dark-theme] [data-message-bubble][data-message-bubb
 /* 暗色下助手卡片背景收暗(bg-layer-1 偏亮),避免整片发白。 */
 body[data-ds-dark-theme] [data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {
   background: var(--dsw-alias-bg-module-platform);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.30),
+    0 4px 14px rgba(0, 0, 0, 0.25);
 }
 /* 暗色下时间戳圆片与头部分割线同样收暗(token 已随暗色变体生效)。 */
 body[data-ds-dark-theme] [data-time-hover-root] [class$='_timeStart'],

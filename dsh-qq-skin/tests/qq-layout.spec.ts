@@ -185,13 +185,22 @@ describe('QQ NT layout config branches', () => {
     expect(custom).not.toContain('rgba(18, 183, 245, 0.35)')
   })
 
-  it('keeps wide markdown tables inside the card with horizontal scroll', () => {
+  it('renders markdown tables as a rounded GitHub-style grid', () => {
     expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] table {")
     expect(QQ_LAYOUT_CSS).toContain('overflow-x: auto')
     expect(QQ_LAYOUT_CSS).toContain('width: max-content')
-    expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] table th,")
-    // 表头不换行 → 宽表必须能横向滚动;表体单元格可换行
-    expect(QQ_LAYOUT_CSS).toContain('white-space: nowrap')
+    expect(QQ_LAYOUT_CSS).toContain('min-width: 100%')
+    // separate 边框模式 + 圆角:让 overflow 裁切圆角,发丝线只画下/右。
+    expect(QQ_LAYOUT_CSS).toContain('border-collapse: separate')
+    expect(QQ_LAYOUT_CSS).toContain('border-radius: 10px')
+    expect(QQ_LAYOUT_CSS).toContain("border-bottom: 1px solid var(--dsw-alias-border-l1)")
+    expect(QQ_LAYOUT_CSS).toContain("border-right: 1px solid var(--dsw-alias-border-l1)")
+    // 表头浅色带 + 斑马纹。
+    expect(QQ_LAYOUT_CSS).toContain('background: var(--dsw-alias-bg-layer-2)')
+    expect(QQ_LAYOUT_CSS).toContain('nth-child(even)')
+  })
+
+  it('keeps table cell text from folding mid-word', () => {
     // 单元格按词换行(break-word),不用 anywhere——anywhere 会在字符中间
     // 硬断,让表格右侧的代码/标识符看起来被"折叠"成两半。
     expect(QQ_LAYOUT_CSS).toContain('overflow-wrap: break-word')
@@ -199,9 +208,10 @@ describe('QQ NT layout config branches', () => {
   })
 
   it('keeps inline code inside table cells intact', () => {
-    // 表格内的行内代码/等宽片段不折行(命令名不被拆断)。
+    // 表格内的行内代码/等宽片段整体不折行(命令名不被拆断),并渲染成 chip。
     expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] table code,")
     expect(QQ_LAYOUT_CSS).toContain("[data-message-bubble][data-message-bubble] table code,")
+    expect(QQ_LAYOUT_CSS).toContain('word-break: normal')
   })
 
   it('never shows a scrollbar on ordinary text blocks', () => {
@@ -218,6 +228,7 @@ describe('QQ NT layout config branches', () => {
   it('keeps wide tables inside the user bubble too', () => {
     expect(QQ_LAYOUT_CSS).toContain("[data-message-bubble][data-message-bubble] table {")
     expect(QQ_LAYOUT_CSS).toContain("[data-message-bubble][data-message-bubble] table td {")
+    expect(QQ_LAYOUT_CSS).toContain("[data-message-bubble][data-message-bubble] table th,")
   })
 
   it('keeps classic QQ blue shadows on preset palettes', () => {
