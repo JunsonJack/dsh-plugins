@@ -286,11 +286,13 @@ describe('QQ NT layout config branches', () => {
     expect(QQ_LAYOUT_CSS).toMatch(
       /\[data-message-bubble\]\[data-message-bubble\]::after \{[^}]*background: var\(--dsw-specific-bubble\);/,
     )
-    // QQ蓝:气泡是渐变,尾巴取渐变中点实色,接缝最自然。
+    // QQ蓝:气泡是渐变,亮色下尾巴取渐变终点实色(尾巴贴合的右下角
+    // 正是渐变 100% 处),暗色回到与气泡相同的实色 token。
     const qqblue = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, palette: 'qqblue' })
     expect(qqblue).toMatch(
-      /\[data-message-bubble\]\[data-message-bubble\]::after \{[^}]*background: rgb\(46, 103, 209\);/,
+      /body:not\(\[data-ds-dark-theme\]\) \[data-message-bubble\]\[data-message-bubble\]::after \{\s*background: rgb\(48, 95, 204\);\s*\}/,
     )
+    expect(qqblue).not.toContain('rgb(46, 103, 209)')
   })
 
   it('outlines the tail on the clean palette where the bubble has a border', () => {

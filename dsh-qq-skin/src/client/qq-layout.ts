@@ -308,11 +308,6 @@ export function buildQQLayoutCss(config: QQSkinConfig = QQ_SKIN_DEFAULT_CONFIG):
   const isQqBlue = config.palette === 'qqblue'
   const gradStart: [number, number, number] = parseHexColor('#2C6ED6') ?? [44, 110, 214]
   const gradEnd: [number, number, number] = parseHexColor('#305FCC') ?? [48, 95, 204]
-  const gradMid: [number, number, number] = [
-    Math.round((gradStart[0] + gradEnd[0]) / 2),
-    Math.round((gradStart[1] + gradEnd[1]) / 2),
-    Math.round((gradStart[2] + gradEnd[2]) / 2),
-  ]
   // 简洁白色板的亮色气泡是纯白底 → 文字改深色(暗色由下方暗色规则拉回白字)。
   const isClean = config.palette === 'clean'
   const bubbleForeground = isClean ? 'rgb(15, 40, 59)' : 'rgb(255, 255, 255)'
@@ -460,18 +455,22 @@ body[data-ds-dark-theme] [data-message-bubble][data-message-bubble] :not(pre):no
 ${bubbleTail
   ? bubbleTailRule(
       shadow,
-      // QQ蓝色板的气泡是 135° 渐变,尾巴只有 16px,直接套同一条渐变会
-      // 与气泡里的色块对不上 → 取渐变中点的实色,接缝最自然。
-      isQqBlue
-        ? `rgb(${gradMid[0]}, ${gradMid[1]}, ${gradMid[2]})`
-        : 'var(--dsw-specific-bubble)',
+      // 尾巴底色一律跟随气泡 token:实色色板天然同色;QQ蓝的气泡是
+      // 渐变,亮色由下方渐变块把尾巴同步到渐变终点色(尾巴贴合的
+      // 右下角正是渐变 100% 处),暗色则回到与气泡相同的实色 token。
+      'var(--dsw-specific-bubble)',
       isClean,
     )
   : ''}
 ${isQqBlue ? `
-/* QQ蓝色板:还原参考图的轻微 135° 渐变(仅亮色;暗色保持实色深底)。 */
+/* QQ蓝色板:还原参考图的轻微 135° 渐变(仅亮色;暗色保持实色深底)。
+   尾巴贴在气泡右下角,该处渐变已走到终点 → 尾巴取同终点实色,
+   接缝处零色差(之前取渐变中点,亮绿偏多一眼可见)。 */
 body:not([data-ds-dark-theme]) [data-message-bubble][data-message-bubble] {
   background-image: linear-gradient(135deg, rgb(${gradStart[0]}, ${gradStart[1]}, ${gradStart[2]}) 0%, rgb(${gradEnd[0]}, ${gradEnd[1]}, ${gradEnd[2]}) 100%);
+}
+body:not([data-ds-dark-theme]) [data-message-bubble][data-message-bubble]::after {
+  background: rgb(${gradEnd[0]}, ${gradEnd[1]}, ${gradEnd[2]});
 }
 ` : ''}
 
