@@ -164,6 +164,25 @@ function shakeRule(): string {
 }
 
 /**
+ * 无障碍:系统开启"减弱动态效果"(prefers-reduced-motion: reduce)时,
+ * 本插件注入的所有装饰动画(打字机揭示、窗口抖动)一律停播,直接呈现
+ * 最终状态。动画只是视觉点缀,停掉不影响任何功能;这是操作系统的
+ * 用户偏好,插件应当尊重。
+ */
+function reducedMotionRule(): string {
+  return `
+@media (prefers-reduced-motion: reduce) {
+  [data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {
+    animation: none !important;
+  }
+  .dsh-qq-shaking {
+    animation: none !important;
+  }
+}
+`
+}
+
+/**
  * 毛玻璃亚克力质感:把侧边栏 / 右栏(详情面板) / 输入框做成"有色玻璃面板"。
  *
  * 实现说明(为什么不只是 blur):
@@ -364,6 +383,7 @@ export function buildQQLayoutCss(config: QQSkinConfig = QQ_SKIN_DEFAULT_CONFIG):
 }
 ${windowShake ? shakeRule() : ''}
 ${frostedGlass ? frostedGlassRule() : ''}
+${reducedMotionRule()}
 
 /* ── 助手消息:左侧官方 QQ 企鹅头像 + 白色卡片(QQ"对方消息"观感) ──
    harness 的助手节点 kind 是 assistant-step(register-node-renderers

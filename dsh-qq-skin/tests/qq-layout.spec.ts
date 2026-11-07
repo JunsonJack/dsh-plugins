@@ -122,6 +122,15 @@ describe('QQ NT layout config branches', () => {
     expect(off).not.toContain('dsh-qq-typing')
   })
 
+  it('stops decorative animations under prefers-reduced-motion', () => {
+    expect(QQ_LAYOUT_CSS).toContain('@media (prefers-reduced-motion: reduce)')
+    expect(QQ_LAYOUT_CSS).toContain('.dsh-qq-shaking {\n  animation: none !important;')
+    // 回退规则始终注入(不随 typing/windowShake 开关变化),关闭 typing 后
+    // 仍要能压住抖动类,反之亦然。
+    const noTyping = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, typing: false, windowShake: false })
+    expect(noTyping).toContain('@media (prefers-reduced-motion: reduce)')
+  })
+
   it('selected session row carries a brand-color dot', () => {
     expect(QQ_LAYOUT_CSS).toContain("[class$='_sessionRow'][class$='_selected']::after")
     expect(QQ_LAYOUT_CSS).toContain('var(--dsw-alias-brand-primary)')
