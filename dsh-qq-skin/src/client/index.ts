@@ -9,41 +9,48 @@
  *
  * 设置来源(dsh 0.2):设置命名空间即 profile 条目 id(`qq-skin`),客户端
  * 经 `ctx.configForms.get(...)` 读宿主解析后的条目配置(默认值 → profile
- * 配置 → 用户改写),写回走同一实例的 `set(field, value)`。0.2 的客户端
- * 条目不再收到 config 参数,故出厂默认值只作首帧兜底:配置未到达
- * (status 仍为 loading)时先按默认值上皮肤,到达后热更新切到真实色板。
+ * 配置 → 用户改写)。0.2 的客户端条目不再收到 config 参数,故出厂默认值
+ * 只作首帧兜底:配置未到达(status 仍为 loading)时先按默认值上皮肤,
+ * 到达后热更新切到真实色板。写路径:插件页卡片保存时经宿主表单的
+ * `mutate(ops, revision)` 原子提交(见 plugin-page.tsx)。
  *
- * 设置面板:皮肤在设置 General 区注册「QQ 皮肤」设置行(settings-store
- * + settings-row + settings-locales),色板/尾巴/头像/宽度可视化切换;
- * 变更经 ConfigForm 持久化并触发热更新。
+ * 配置入口:插件管理页的「QQ 皮肤」配置卡片(本插件自绘的
+ * plugins.row.config 条目,key = `dsh-qq-skin#qq-skin`),读写走宿主
+ * `configForms` 的同名命名空间。0.4.7 曾尝试只依赖宿主 schema 表单,
+ * 但桌面端并未实现插件页自动表单 UI,配置一度不可见;0.4.8 起以自绘
+ * 卡片补上(视觉沿用 0.4.7 下线的旧设置 General 行组件)。
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: pulls ui-theme 的 ctx.theme 服务声明。
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
-// Type-only: pulls renderer 的 ctx.slots 服务声明。
-import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
-import type { BoundActions } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls ui-settings 的 ctx.configForms 服务声明(命名空间配置表单)。
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+// Type-only: pulls ui-renderer 的 ctx.slots 声明(SlotRegistry + SlotMap 容器)。
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 // Type-only: pulls locale 服务的 ctx.locale 声明与 LocaleNamespaceMap 合并。
 import type {} from '@deepseek-ai/dsh-client-locale/client'
+// Type-only: 合并 ui-plugin-manager 的 plugins.row.config 槽声明。
+import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import { QQ_SKIN_DEFAULT_CONFIG, type QQSkinConfig } from './config.ts'
 import { QQ_SKIN_SETTINGS_NS, settingsToConfig, type QQSkinSettings } from './settings.ts'
-import { createQQSkinRowStore } from './settings-store.ts'
-import { zh, en } from './settings-locales.ts'
-import type { QQSkinRowInjected } from './settings-row.tsx'
-import { QQSkinSettingsRow } from './settings-row.tsx'
 import { QQSkinRuntime } from './runtime.ts'
 import { QQSoundRuntime } from './qq-sound.ts'
+import { QQ_SKIN_PLUGIN_NS, zh, en } from './plugin-locales.ts'
+import { QQSkinPluginCard } from './plugin-page.tsx'
 
 /**
- * 依赖的服务:主题运行时 + 槽位 + 文案 + 设置表单。
- * `configForms` 的读路径随宿主设置描述镜像刷新,故 `remote` 必须一并注入
- * (与 ui-theme 同款),否则跨设备/跨标签的设置变更不会推到这个上下文。
+ * 依赖的服务:主题运行时 + 设置表单 + 槽位 + 文案。`configForms` 的读
+ * 路径随宿主设置描述镜像刷新,故 `remote` 必须一并注入(与 ui-theme
+ * 同款),否则跨设备/跨标签的设置变更不会推到这个上下文;`slots` 提供
+ * 插件管理页配置卡片的注册面,`locale` 注册卡片的双语字典。
+ *
+ * 注:package.json 的 dsh.client.inject 里列了 @deepseek-ai/dsh-client-
+ * connection,那是 `remote` 服务的宿主模块(与官方 ui-theme 的声明
+ * 一致);本插件的运行时服务列表(上表)不直接消费 connection。
  */
-export const inject = ['theme', 'slots', 'locale', 'remote', 'configForms'] as const
+export const inject = ['theme', 'remote', 'configForms', 'slots', 'locale'] as const
 
-/** 用户可调配置(schema 由宿主侧 schema-form 呈现,缺省回落默认)。 */
+/** 用户可调配置(由插件页配置卡片读写,缺省回落默认)。 */
 export type SkinConfig = QQSkinConfig
 
 /** 默认配置(经典蓝色板、气泡尾巴、企鹅头像、880px 宽)。 */
@@ -51,6 +58,9 @@ export { QQ_SKIN_DEFAULT_CONFIG }
 
 /** 设置命名空间(== profile 条目 id,跨模块共享)。 */
 export { QQ_SKIN_SETTINGS_NS }
+
+/** 插件页配置卡片的槽位 key(`<package name>#<row id>`,row id 与 cordis.patch.yml 声明一致)。 */
+export const QQ_SKIN_CONFIG_ROW_KEY = 'dsh-qq-skin#qq-skin'
 
 /** 两份配置是否等价(字段固定,逐字段比较以免无谓重挂皮肤层)。 */
 function sameConfig(left: QQSkinConfig, right: QQSkinConfig): boolean {
@@ -84,7 +94,7 @@ function sameSoundConfig(left: QQSkinConfig, right: QQSkinConfig): boolean {
 
 /**
  * 挂载 QQ NT 皮肤(布局层 + token 层,经 QQSkinRuntime 统一生命周期),
- * 并注册「QQ 皮肤」设置行 + 设置变更热更新。
+ * 并向插件管理页注册配置卡片 + 设置变更热更新。
  * @param ctx - 客户端插件上下文。
  */
 export function apply(ctx: ClientContext): void {
@@ -96,12 +106,6 @@ export function apply(ctx: ClientContext): void {
   // 设置表单:宿主条目配置的读写面(值 = 默认值 → profile 配置 → 用户改写)。
   const host = ctx.configForms.get<QQSkinSettings>(QQ_SKIN_SETTINGS_NS)
 
-  // 设置行:store 镜像当前配置,订阅把配置写回 store 并热更新两层。
-  const store = createQQSkinRowStore()
-  let bound: BoundActions<typeof store> | undefined
-  const syncRow = (): void => {
-    bound?.sync(runtime.getConfig(), host.getSnapshot().revision ?? -1)
-  }
   /** 音效链实际生效的配置:仅音效字段变化时才重建观察链与音频资源。 */
   let soundConfig = runtime.getConfig()
   /** 采用宿主快照:配置未到达(loading/unavailable)时保持出厂默认值。 */
@@ -109,7 +113,7 @@ export function apply(ctx: ClientContext): void {
     const section = host.getSnapshot().value
     if (section === undefined) return
     const merged = settingsToConfig(section)
-    // 快照在激活时已就绪(与首帧同值)则只同步 store,不重挂两层。
+    // 快照在激活时已就绪(与首帧同值)则不重挂两层。
     if (!sameConfig(merged, runtime.getConfig())) {
       runtime.update(merged)
     }
@@ -118,7 +122,6 @@ export function apply(ctx: ClientContext): void {
       sound.update(merged)
       soundConfig = merged
     }
-    syncRow()
   }
   ctx.effect(() => host.subscribe(() => {
     // 首次快照可能在订阅前就已到达,主动 adopt 一次以免停在出厂默认值。
@@ -126,42 +129,14 @@ export function apply(ctx: ClientContext): void {
   }), 'dsh-qq-skin: settings adoption')
   adopt()
 
-  // 文案:注册设置行字典。
-  ctx.effect(() => ctx.locale.register('dsh-qq-skin.settings', { zh, en }), 'dsh-qq-skin: settings row dictionaries')
+  // 文案字典:插件页卡片的双语键(typed register,缺键编译期报错)。
+  ctx.effect(() => ctx.locale.register(QQ_SKIN_PLUGIN_NS, { zh, en }), 'dsh-qq-skin: plugin card dictionaries')
 
-  const injected = (actions: BoundActions<typeof store>): QQSkinRowInjected => {
-    bound = actions
-    syncRow()
-    const write = <K extends keyof QQSkinSettings>(field: K, value: QQSkinSettings[K]): void => {
-      void host.set(field, value)
-    }
-    return {
-      setPalette: (palette) => write('palette', palette),
-      setCustomColor: (color) => write('customColor', color),
-      setAvatarStyle: (style) => write('avatarStyle', style),
-      setAvatarCustomImage: (value) => write('avatarCustomImage', value),
-      setBubbleTail: (value) => write('bubbleTail', value),
-      setAssistantAvatar: (value) => write('assistantAvatar', value),
-      setAvatarSize: (size) => write('avatarSize', size),
-      setChatMaxWidth: (width) => write('chatMaxWidth', width),
-      setMessageSound: (value) => write('messageSound', value),
-      setSendSound: (value) => write('sendSound', value),
-      setSoundVariant: (variant) => write('soundVariant', variant),
-      setSoundVolume: (volume) => write('soundVolume', volume),
-      setRemindOnlyWhenUnfocused: (value) => write('remindOnlyWhenUnfocused', value),
-      setQuietHoursStart: (value) => write('quietHoursStart', value),
-      setQuietHoursEnd: (value) => write('quietHoursEnd', value),
-      setWindowShake: (value) => write('windowShake', value),
-      setFrostedGlass: (value) => write('frostedGlass', value),
-      setTyping: (value) => write('typing', value),
-    }
-  }
-  ctx.slots.inject('settings.general.item', () => ctx.slots.register({
-    name: 'settings.general.item',
-    id: 'qq-skin',
-    order: 12,
-    locale: 'dsh-qq-skin.settings',
-    store,
-    inject: injected,
-  }, QQSkinSettingsRow))
+  // 插件页配置卡片:keyed 槽位,key = `<package name>#<row id>`;ctx.slots.inject
+  // 在宿主页面声明 `plugins.row.config` 时自动提交注册(页面卸载随 effect 清理)。
+  ctx.effect(() => ctx.slots.inject('plugins.row.config', () => ctx.slots.register({
+    name: 'plugins.row.config',
+    key: QQ_SKIN_CONFIG_ROW_KEY,
+    locale: QQ_SKIN_PLUGIN_NS,
+  }, QQSkinPluginCard)), 'dsh-qq-skin: plugin page card')
 }

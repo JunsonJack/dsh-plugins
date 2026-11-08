@@ -2,7 +2,7 @@
 
 [![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/deepseek-ai/deepseek-harness)
 
-A **QQ NT messenger skin** for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`). Light and dark share one QQ NT language — **light mode is clean and restrained** (near-white surfaces, neutral borders/hover, brand blue `#12B7F5` and solid bubbles as recognition accents — brand colour with white text, except Clean White, whose bubble is white with dark text), **dark mode is a calm blue-gray** (base `#101822`, desaturated, blue reserved for accents), instantly recognizable. Ships with six palette variants (Classic Blue / Vivid Purple / Clean White / Green Bubble / Deep Black / QQ Blue), configurable toggles and sizing, plus a settings-panel visual switcher with hot reload.
+A **QQ NT messenger skin** for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`). Light and dark share one QQ NT language — **light mode is clean and restrained** (near-white surfaces, neutral borders/hover, brand blue `#12B7F5` and solid bubbles as recognition accents — brand colour with white text, except Clean White, whose bubble is white with dark text), **dark mode is a calm blue-gray** (base `#101822`, desaturated, blue reserved for accents), instantly recognizable. Ships with six palette variants (Classic Blue / Vivid Purple / Clean White / Green Bubble / Deep Black / QQ Blue), configurable toggles and sizing, plus a **plugin-page config card** with visual toggles and hot reload.
 
 [中文](README.zh.md)
 
@@ -18,24 +18,20 @@ The chat view in the Classic Blue palette: centered, narrowed chat flow, light-b
 
 ![Chat view](assets/chat.png)
 
-The **QQ Skin** settings row in the App settings General section, with the palette / bubble tail / assistant avatar / chat width toggles:
+## Configuration entry
 
-![Settings panel](assets/settings.png)
-
-## Settings panel
-
-The skin registers a **QQ Skin** settings row in the App settings General section, with visual toggles for palette / custom color / penguin avatar style / bubble tail / assistant avatar / chat width / message sound & sound theme / send sound / window shake reminder / frosted glass acrylic blur / typing animation. Changes apply immediately (hot reload remounts both layers) and are persisted to the user-settings document. The settings panel overrides the static config below.
+All options live in the **QQ Skin config card on the Plugins page** (a plugin-drawn `plugins.row.config` entry): open the Plugins page → QQ Skin → Configure for visual toggles. The card edits a draft and only writes to the host config document (the `qq-skin` namespace of `ctx.configForms`) when you press Save, which hot-reloads both layers immediately; Discard restores the saved values. The **QQ Skin** settings row formerly registered in the App settings General section was retired in 0.4.7 (options converged onto the plugin page to keep the settings panel uncluttered).
 
 ## Configuration
 
-The plugin receives config the cordis function-plugin way (`apply(ctx, config)`); unset fields fall back to defaults:
+Options persist under the `qq-skin` namespace in the profile config document (schema defaults → profile config → user edits on the plugin-page card); unset fields fall back to defaults:
 
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `palette` | `'classic'` | Palette variant: `classic` Classic Blue / `vivid` Vivid Purple / `clean` Clean White (white bubble with dark text) / `green` Green Bubble / `black` Deep Black / `qqblue` QQ Blue (sampled QQ NT outgoing-bubble blue `#2E65D1`, uniform corners, subtle 135° gradient in light mode) / `custom` Custom Accent Color |
 | `customColor` | `'#12B7F5'` | Hex custom brand color (e.g. `#FF5722`); when `palette: 'custom'` every brand-bound token follows it — buttons, links, selected accents, and the static blue/deepseek scales |
 | `avatarStyle` | `'classic'` | Penguin avatar decoration: `classic` Original penguin / `sunglasses` Cool black sunglasses / `scarf` Warm winter red scarf |
-| `avatarCustomImage` | `''` | Custom assistant avatar image (an `https://` image URL or `data:image/*` URI; when set it fully replaces the penguin and its decoration layers, clearing it restores the official penguin) |
+| `avatarCustomImage` | `''` | Custom assistant avatar image (the plugin-page card offers "Pick local image…" — the picture is downscaled and persisted as a data URI; or an `https://` image URL; when set it fully replaces the penguin and its decoration layers, clearing it restores the official penguin) |
 | `avatarSize` | `22` | Assistant avatar size in px (16~40; the bubble shifts by the same amount so larger avatars stay aligned) |
 | `bubbleTail` | `true` | Small triangular "tail" on the right of user bubbles |
 | `assistantAvatar` | `true` | Official QQ-penguin avatar disc left of assistant messages |
@@ -96,7 +92,7 @@ Built and run against **deepseek-harness (`dsh`) 0.2.0 or later**. dsh 0.2 chang
 
 - **The settings namespace IS the profile entry id.** `ctx.settings.register(ns, schema)` is gone: the plugin's settings schema is now the `Config` export of its host entry, and **every field must be `.volatile()`** — the settings panel projects volatile fields only, so a non-volatile field appears in no descriptor and accepts no write. The namespace comes from the `id` of the entry in `cordis.patch.yml` (`qq-skin`), not from a string the plugin picks.
 - **The browser half reads and writes settings through `ctx.configForms`.** The `ctx.settingsScope` service is gone: the client uses `ctx.configForms.get('qq-skin')`, whose snapshot value is the fully resolved host config (schema defaults → profile config → user edits) and whose `set(field, value)` persists an edit. A 0.2 client entry no longer receives a `config` argument at all, so the built-in defaults only cover the first frame.
-- The skin ships its own settings row in the General section, hence the host half calls `settings.configure({ auto: false })` to suppress the auto-generated page.
+- All skin options go through the plugin-drawn plugin-page config card, so the host half still calls `settings.configure({ auto: false })` to declare the self-provided page (since 0.4.8 the card replaces the General settings row as the single configuration entry).
 
 Earlier dsh versions (0.1.x) are not compatible: they have no `settings.configure`, no `ctx.configForms`, and no volatile config projection.
 
@@ -130,8 +126,9 @@ dsh plugin --profile web remove dsh-qq-skin
 ```
 
 The plugin declares `dsh.client` with `platform: web` and injects the `theme`,
-`slots`, `locale`, `remote`, and `configForms` services, so the Web boot loads
-its client bundle and applies the layer as soon as `ui-theme` is active.
+`remote`, `configForms`, `slots`, and `locale` services, so the Web boot loads
+its client bundle and applies the layer as soon as `ui-theme` is active;
+`slots`/`locale` power the plugin-page config card (registration + copy).
 
 ## Development
 
@@ -153,10 +150,8 @@ the client CSS Modules `[hash]_[local]` naming (`[class$="_localName"]`
 suffix matches) and the components' own `data-*` hooks, never on build-time
 hash values.
 
-The settings row (`settings-row.tsx`) uses inline token styles reading `--dsw-*`
-directly, so it adds no CSS Modules pipeline; `react` and the collaboration
-services stay external to the client bundle and resolve through the platform
-module table.
+The client bundle adds no CSS Modules pipeline; `react` and the collaboration
+services stay external to it and resolve through the platform module table.
 
 ## License
 
