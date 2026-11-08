@@ -47,6 +47,9 @@ export interface QQSkinSettings {
   frostedGlass?: boolean | undefined
   typing?: boolean | undefined
   timeDivider?: boolean | undefined
+  chatWallpaper?: string | undefined
+  chatWallpaperDim?: number | undefined
+  chatWallpaperBlur?: number | undefined
 }
 
 /**
@@ -81,5 +84,8 @@ export function settingsToConfig(
     frostedGlass: s.frostedGlass ?? fallback?.frostedGlass,
     typing: s.typing ?? fallback?.typing,
     timeDivider: s.timeDivider ?? fallback?.timeDivider,
+    chatWallpaper: s.chatWallpaper ?? fallback?.chatWallpaper,
+    chatWallpaperDim: s.chatWallpaperDim ?? fallback?.chatWallpaperDim,
+    chatWallpaperBlur: s.chatWallpaperBlur ?? fallback?.chatWallpaperBlur,
   })
 }

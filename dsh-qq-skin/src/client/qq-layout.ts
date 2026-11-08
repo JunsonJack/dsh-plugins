@@ -245,6 +245,51 @@ function timeDividerRule(): string {
 }
 
 /**
+ * 聊天区壁纸:铺在会话根容器(ConversationRoot,持 data-phase 属性且
+ * background 为 bg-base)的 ::before 伪元素上 —— asar 取证确认中间层
+ * (scrollBody/ChatView scroll/column)全部无背景,根层透出即达聊天区;
+ * 根层不滚动,伪元素模糊/亮度稳定不抖。暗化用叠加半透明黑层而非
+ * filter: brightness(避免 filter 生成 stacking context 把伪元素
+ * 提到内容之下的问题一致化,叠加层还可与模糊解耦独立调节)。
+ * 模糊伪元素四边内缩负 inset,避免 blur 在边缘采样出白边。
+ * hero(欢迎页)/settling(加载中)不铺 —— 壁纸只属于真实会话。
+ */
+function chatWallpaperRule(wallpaper: string, dim: number, blur: number): string {
+  const image = wallpaper.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+  const dimAlpha = Math.round(dim * 100) / 100
+  const blurPx = Math.max(0, Math.round(blur))
+  const filterLine = blurPx > 0 ? `\n  filter: blur(${blurPx}px);` : ''
+  return `
+[data-phase='active']::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: url("${image}");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;${filterLine}
+}
+[data-phase='active']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: rgba(0, 0, 0, ${dimAlpha});
+  pointer-events: none;
+}
+[data-phase='active'] {
+  background: transparent;
+}
+[data-phase='active'] > * {
+  position: relative;
+  z-index: 1;
+}
+`
+}
+
+/**
  * 助手卡片左尾巴:QQ"对方消息"的弧形小勾,贴在卡片左下角指向头像。
  * 与用户气泡右尾巴同款形状(水平镜像);底色跟随卡片 token(bg-layer-1),
  * 投影取色板主色,与头像光晕同一色源。头像关闭时尾巴一并停用 ——
@@ -491,6 +536,7 @@ const PALETTE_SHADOW_RGB: Record<string, [number, number, number]> = {
  */
 export function buildQQLayoutCss(config: QQSkinConfig = QQ_SKIN_DEFAULT_CONFIG): string {
   const { bubbleTail, assistantAvatar, chatMaxWidth, typing, windowShake, frostedGlass, timeDivider, density } = config
+  const { chatWallpaper, chatWallpaperDim, chatWallpaperBlur } = config
   // 头像光晕与气泡阴影的主色:custom 色板跟随自定义主色,其余色板各取本色。
   const isCustom = config.palette === 'custom'
   const customRgb = isCustom ? parseHexColor(config.customColor) : null
@@ -514,6 +560,7 @@ export function buildQQLayoutCss(config: QQSkinConfig = QQ_SKIN_DEFAULT_CONFIG):
 ${windowShake ? shakeRule() : ''}
 ${frostedGlass ? frostedGlassRule() : ''}
 ${density === 'compact' ? densityRule() : ''}
+${chatWallpaper ? chatWallpaperRule(chatWallpaper, chatWallpaperDim, chatWallpaperBlur) : ''}
 ${reducedMotionRule()}
 
 /* ── 助手消息:左侧官方 QQ 企鹅头像 + 白色卡片(QQ"对方消息"观感) ──

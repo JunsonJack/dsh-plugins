@@ -73,6 +73,12 @@ export interface QQSkinConfig {
   typing: boolean
   /** 消息时间分隔条开关:跨天消息前插入 QQ 风格日期条(默认开)。 */
   timeDivider: boolean
+  /** 聊天区壁纸(https URL 或 data:image/* URI;空串 = 关闭,默认关)。 */
+  chatWallpaper: string
+  /** 壁纸暗化程度 0~1(0=原亮度,1=全黑;便于阅读消息文字,默认 0)。 */
+  chatWallpaperDim: number
+  /** 壁纸模糊 0~20px(0=清晰;QQ NT 风格的轻磨砂默认 0)。 */
+  chatWallpaperBlur: number
 }
 
 /** 聊天流最大宽度边界限制(px),与宿主 schema 对齐。 */
@@ -94,6 +100,13 @@ export const SOUND_VOLUME_MAX = 1
 
 /** 免打扰时段默认值:空串 = 不启用。 */
 export const DEFAULT_QUIET_HOURS = ''
+
+/** 壁纸暗化边界:0(原亮度)~1(全黑)。 */
+export const WALLPAPER_DIM_MIN = 0
+export const WALLPAPER_DIM_MAX = 1
+/** 壁纸模糊边界(px):0(清晰)~20。 */
+export const WALLPAPER_BLUR_MIN = 0
+export const WALLPAPER_BLUR_MAX = 20
 
 /** HH:mm 时间格式(24 小时制,分钟允许 00/15/30/45 等任意 0~59)。 */
 const HHMM_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/
@@ -128,6 +141,9 @@ export const QQ_SKIN_DEFAULT_CONFIG: QQSkinConfig = {
   frostedGlass: false,
   typing: true,
   timeDivider: true,
+  chatWallpaper: '',
+  chatWallpaperDim: 0,
+  chatWallpaperBlur: 0,
 }
 
 /** 规范化十六进制色值:格式错误回落默认 #12B7F5,3位扩展为6位。 */
@@ -186,6 +202,23 @@ export function normalizeAvatarImage(value: unknown): string {
   const trimmed = value.trim()
   if (!trimmed) return ''
   return AVATAR_IMAGE_DATA_URI.test(trimmed) || AVATAR_IMAGE_HTTPS.test(trimmed) ? trimmed : ''
+}
+
+/** 规范化聊天壁纸:与头像同规则(https 或 data:image/*),空串 = 关闭。 */
+export function normalizeWallpaperImage(value: unknown): string {
+  return normalizeAvatarImage(value)
+}
+
+/** 规范化壁纸暗化:非法回落 0,合法值钳制在 [0,1]。 */
+export function normalizeWallpaperDim(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0
+  return Math.min(WALLPAPER_DIM_MAX, Math.max(WALLPAPER_DIM_MIN, value))
+}
+
+/** 规范化壁纸模糊(px):非法回落 0,合法值钳制在 [0,20] 整数。 */
+export function normalizeWallpaperBlur(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0
+  return Math.min(WALLPAPER_BLUR_MAX, Math.max(WALLPAPER_BLUR_MIN, Math.round(value)))
 }
 
 /**
@@ -272,5 +305,8 @@ export function resolveQQSkinConfig(config?: PartialQQSkinConfig): QQSkinConfig 
     timeDivider: typeof raw.timeDivider === 'boolean'
       ? raw.timeDivider
       : QQ_SKIN_DEFAULT_CONFIG.timeDivider,
+    chatWallpaper: normalizeWallpaperImage(raw.chatWallpaper),
+    chatWallpaperDim: normalizeWallpaperDim(raw.chatWallpaperDim),
+    chatWallpaperBlur: normalizeWallpaperBlur(raw.chatWallpaperBlur),
   }
 }

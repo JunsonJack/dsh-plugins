@@ -13,6 +13,7 @@ describe('QQ skin settings', () => {
       chatMaxWidth: 880, messageSound: false, sendSound: false, soundVariant: 'beep',
       soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
       windowShake: false, frostedGlass: false, typing: true, timeDivider: true,
+      chatWallpaper: '', chatWallpaperDim: 0, chatWallpaperBlur: 0,
     })
   })
 
@@ -25,6 +26,7 @@ describe('QQ skin settings', () => {
       chatMaxWidth: 720, messageSound: false, sendSound: false, soundVariant: 'waterdrop',
       soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
       windowShake: false, frostedGlass: false, typing: true, timeDivider: true,
+      chatWallpaper: '', chatWallpaperDim: 0, chatWallpaperBlur: 0,
     })
   })
 
@@ -37,6 +39,7 @@ describe('QQ skin settings', () => {
       chatMaxWidth: 640, messageSound: false, sendSound: false, soundVariant: 'beep',
       soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
       windowShake: true, frostedGlass: false, typing: true, timeDivider: true,
+      chatWallpaper: '', chatWallpaperDim: 0, chatWallpaperBlur: 0,
     })
   })
 
@@ -72,6 +75,20 @@ describe('QQ skin settings', () => {
     expect(settingsToConfig({ timeDivider: false }).timeDivider).toBe(false)
     expect(settingsToConfig({ timeDivider: 'yes' as never }).timeDivider).toBe(true)
     expect(settingsToConfig(undefined, { timeDivider: false }).timeDivider).toBe(false)
+  })
+
+  it('chatWallpaper fields flow through settings and clamp out-of-range values', () => {
+    expect(settingsToConfig({ chatWallpaper: 'https://example.com/bg.jpg' }).chatWallpaper).toBe('https://example.com/bg.jpg')
+    expect(settingsToConfig({ chatWallpaper: 'data:image/png;base64,iVBORw0K' }).chatWallpaper).toBe('data:image/png;base64,iVBORw0K')
+    expect(settingsToConfig({ chatWallpaper: 'http://insecure.example/x.png' }).chatWallpaper).toBe('')
+    expect(settingsToConfig({ chatWallpaperDim: 0.35 }).chatWallpaperDim).toBe(0.35)
+    expect(settingsToConfig({ chatWallpaperDim: 1.4 }).chatWallpaperDim).toBe(1)
+    expect(settingsToConfig({ chatWallpaperDim: Number.NaN }).chatWallpaperDim).toBe(0)
+    expect(settingsToConfig({ chatWallpaperBlur: 8 }).chatWallpaperBlur).toBe(8)
+    expect(settingsToConfig({ chatWallpaperBlur: 30 }).chatWallpaperBlur).toBe(20)
+    expect(settingsToConfig({ chatWallpaperBlur: -3 }).chatWallpaperBlur).toBe(0)
+    expect(settingsToConfig(undefined, { chatWallpaper: 'https://fallback.example/bg.png', chatWallpaperBlur: 4 }).chatWallpaper).toBe('https://fallback.example/bg.png')
+    expect(settingsToConfig(undefined, { chatWallpaperBlur: 4 }).chatWallpaperBlur).toBe(4)
   })
 
   it('soundVolume flows through settings and clamps out-of-range values', () => {

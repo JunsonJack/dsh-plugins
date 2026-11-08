@@ -47,6 +47,9 @@
 | `frostedGlass` | `false` | 侧边栏 / 右栏详情 / 输入框的毛玻璃玻璃面板(品牌色晕染渐变 + 半透明底 + 玻璃边缘光;输入卡额外 `blur(16px)` 背景模糊——三栏列不加 blur,避免破坏折叠按钮的 fixed 定位) |
 | `typing` | `true` | 助手消息打字机揭示动效开关 |
 | `timeDivider` | `true` | 消息时间分隔条：跨天消息前插入 QQ 风格居中日期条（当天显示「今天」，日期文本与宿主语言格式一致） |
+| `chatWallpaper` | `''` | 聊天区壁纸：https 图片 URL 或 data:image/* URI（空 = 关闭）；只铺当前会话区（含助手卡片与气泡之间的空隙），欢迎页不铺 |
+| `chatWallpaperDim` | `0` | 壁纸暗化 0~1（0=原亮度，1=全黑）：保证消息文字可读性 |
+| `chatWallpaperBlur` | `0` | 壁纸模糊 0~20px（0=清晰）：QQ NT 风格轻磨砂 |
 
 示例（在 profile 的插件配置里指定）：
 

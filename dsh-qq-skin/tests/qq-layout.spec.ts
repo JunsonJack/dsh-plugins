@@ -155,6 +155,25 @@ describe('QQ NT layout config branches', () => {
     expect(compact).toContain('[data-qq-time-divider] {\n  margin: 6px 0;')
   })
 
+  it('chat wallpaper covers the conversation root only while set', () => {
+    // 默认无壁纸:不注入任何壁纸规则。
+    expect(QQ_LAYOUT_CSS).not.toContain("[data-phase='active']::before")
+    const on = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, chatWallpaper: 'https://example.com/bg.jpg', chatWallpaperDim: 0.4, chatWallpaperBlur: 6 })
+    // 壁纸铺在会话根(data-phase=active)的 ::before,不铺 hero 欢迎页。
+    expect(on).toContain("[data-phase='active']::before")
+    expect(on).toContain('background-image: url("https://example.com/bg.jpg")')
+    expect(on).toContain('background-size: cover')
+    expect(on).toContain("background: rgba(0, 0, 0, 0.4)")
+    expect(on).toContain('filter: blur(6px)')
+    // 根层背景透明化让壁纸透出;内容提到伪元素之上。
+    expect(on).toContain("[data-phase='active'] {\n  background: transparent;")
+    expect(on).toContain("[data-phase='active'] > * {\n  position: relative;\n  z-index: 1;")
+    // dim=0 时暗化层透明度 0(仍注入,保持结构稳定);blur=0 时无 filter 行。
+    const noBlur = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, chatWallpaper: 'data:image/png;base64,iVBORw0K' })
+    expect(noBlur).toContain('background-image: url("data:image/png;base64,iVBORw0K")')
+    expect(noBlur).not.toContain('filter: blur(')
+  })
+
   it('stops decorative animations under prefers-reduced-motion', () => {
     expect(QQ_LAYOUT_CSS).toContain('@media (prefers-reduced-motion: reduce)')
     expect(QQ_LAYOUT_CSS).toContain('animation: none !important;')

@@ -85,6 +85,9 @@ function sameConfig(left: QQSkinConfig, right: QQSkinConfig): boolean {
     && left.frostedGlass === right.frostedGlass
     && left.typing === right.typing
     && left.timeDivider === right.timeDivider
+    && left.chatWallpaper === right.chatWallpaper
+    && left.chatWallpaperDim === right.chatWallpaperDim
+    && left.chatWallpaperBlur === right.chatWallpaperBlur
 }
 
 /** 音效运行时消费的字段:其余字段(色板/宽度/尾巴…)变更不必重建观察链。 */

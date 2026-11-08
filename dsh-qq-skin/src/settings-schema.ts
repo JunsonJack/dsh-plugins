@@ -65,6 +65,12 @@ export interface Config {
   typing: Volatile<boolean>
   /** 消息时间分隔条开关:跨天消息前插入 QQ 风格日期条(默认开)。 */
   timeDivider: Volatile<boolean>
+  /** 聊天区壁纸(https URL 或 data:image/* URI;空 = 关闭)。 */
+  chatWallpaper: Volatile<string>
+  /** 壁纸暗化程度 0~1(0=原亮度,1=全黑)。 */
+  chatWallpaperDim: Volatile<number>
+  /** 壁纸模糊 0~20px(0=清晰)。 */
+  chatWallpaperBlur: Volatile<number>
 }
 
 /** 设置分节 schema:宿主校验条目配置、设置面板渲染表单共用。 */
@@ -89,4 +95,7 @@ export const Config = z.object({
   frostedGlass: z.boolean().default(false).volatile(),
   typing: z.boolean().default(true).volatile(),
   timeDivider: z.boolean().default(true).volatile(),
+  chatWallpaper: z.string().default('').volatile(),
+  chatWallpaperDim: z.number().min(0).max(1).default(0).volatile(),
+  chatWallpaperBlur: z.number().min(0).max(20).default(0).volatile(),
 })

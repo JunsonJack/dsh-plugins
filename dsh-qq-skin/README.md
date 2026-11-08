@@ -47,6 +47,9 @@ Options persist under the `qq-skin` namespace in the profile config document (sc
 | `frostedGlass` | `false` | Tinted frosted-glass panels on the sidebar, right details column, and composer (brand-tint gradient + translucent base + glass-edge highlight; the composer also gets `blur(16px)` backdrop blur — columns stay blur-free so the fixed-positioned sidebar toggle keeps its window anchoring) |
 | `typing` | `true` | Assistant message typing reveal animation |
 | `timeDivider` | `true` | Message time dividers: insert a QQ-style centered date chip before the first message of each day ("Today" for the current day; date text follows the host locale format) |
+| `chatWallpaper` | `''` | Chat-area wallpaper: https image URL or data:image/* URI (empty = off); covers the active conversation area only, never the welcome page |
+| `chatWallpaperDim` | `0` | Wallpaper dim 0~1 (0 = original brightness, 1 = black) to keep message text readable |
+| `chatWallpaperBlur` | `0` | Wallpaper blur 0~20px (0 = sharp): the QQ NT frosted look |
 
 Example (set in the profile's plugin config):
 

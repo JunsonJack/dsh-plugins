@@ -58,6 +58,11 @@ export type QQSkinPluginKey =
   | 'row.frostedGlass'
   | 'row.typing'
   | 'row.timeDivider'
+  | 'row.chatWallpaper'
+  | 'row.wallpaperDim'
+  | 'row.wallpaperBlur'
+  | 'card.wallpaperPick'
+  | 'card.wallpaperClear'
   | 'divider.today'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -114,6 +119,11 @@ export const zh: Record<QQSkinPluginKey, string> = {
   'row.frostedGlass': '毛玻璃质感',
   'row.typing': '打字机效果',
   'row.timeDivider': '时间分隔条',
+  'row.chatWallpaper': '聊天壁纸',
+  'row.wallpaperDim': '暗化',
+  'row.wallpaperBlur': '模糊',
+  'card.wallpaperPick': '选择壁纸…',
+  'card.wallpaperClear': '移除壁纸',
   'divider.today': '今天',
 }
 
@@ -164,5 +174,10 @@ export const en: Record<QQSkinPluginKey, string> = {
   'row.frostedGlass': 'Frosted glass',
   'row.typing': 'Typing effect',
   'row.timeDivider': 'Time dividers',
+  'row.chatWallpaper': 'Chat wallpaper',
+  'row.wallpaperDim': 'Dim',
+  'row.wallpaperBlur': 'Blur',
+  'card.wallpaperPick': 'Pick wallpaper…',
+  'card.wallpaperClear': 'Remove wallpaper',
   'divider.today': 'Today',
 }
