@@ -547,7 +547,9 @@ function QQSkinEditor({ t, config, revision, writable, mutate }: {
       : JSON.parse(externalText) as QQSkinSettings)
   }, [externalText])
 
-  // 数字草稿:输入中的字符串,失焦/回车提交;未聚焦时跟随草稿回显。
+  // 数字草稿:输入中的字符串,失焦/回车提交。回显 effect 只跟随外部快照
+  // 变化——若把 focused 也放进依赖,失焦瞬间(focused true→false)会用尚未
+  // 更新的快照值覆盖刚提交的草稿串,输入框弹回旧值而 draft 已是新值。
   const [sizeDraft, setSizeDraft] = useState(String(config.avatarSize ?? DEFAULT_AVATAR_SIZE))
   const [sizeFocused, setSizeFocused] = useState(false)
   const [widthDraft, setWidthDraft] = useState(String(config.chatMaxWidth ?? 880))
@@ -557,13 +559,13 @@ function QQSkinEditor({ t, config, revision, writable, mutate }: {
 
   useEffect(() => {
     if (!sizeFocused) setSizeDraft(String(config.avatarSize ?? DEFAULT_AVATAR_SIZE))
-  }, [config.avatarSize, sizeFocused])
+  }, [config.avatarSize])
   useEffect(() => {
     if (!widthFocused) setWidthDraft(String(config.chatMaxWidth ?? 880))
-  }, [config.chatMaxWidth, widthFocused])
+  }, [config.chatMaxWidth])
   useEffect(() => {
     if (!volumeFocused) setVolumeDraft(String(config.soundVolume ?? 1))
-  }, [config.soundVolume, volumeFocused])
+  }, [config.soundVolume])
 
   // 自定义主色:40ms 防抖同步草稿(视觉即时),真正写入仍走「保存」。
   const [colorDraft, setColorDraft] = useState(config.customColor ?? DEFAULT_CUSTOM_COLOR)
