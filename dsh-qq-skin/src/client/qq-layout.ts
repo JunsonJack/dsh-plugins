@@ -45,6 +45,28 @@ export const QQ_LAYOUT_PLUGIN = 'dsh-qq-skin/layout'
  */
 export const QQ_USER_BUBBLE_SELECTOR = '[data-message-bubble][data-message-bubble]'
 
+/**
+ * 问题回执气泡(ask_user_question 已回答批次)的稳定选择器。
+ *
+ * QuestionReplyBubble 复用 UserMessageBubble 但**不透传** `data-message-bubble`
+ * 属性(asar 反编译确证:lib/types/client/QuestionReplyView.js 中全 app 该属性
+ * 只有 MessageItem 的普通用户消息一处),于是以 QQ_USER_BUBBLE_SELECTOR 为锚的
+ * 白字/圆角/尾巴规则全部打不到回执气泡——气泡基元 `._bubble_1sgyj_1` 的
+ * `color: var(--dsw-alias-label-primary)`(暗色)压在品牌色底上不可读。
+ *
+ * 回执气泡行节点带 `data-question-reply`(data.callId,组件内唯一),内部唯一的
+ * CSS Modules 类是 `BfLV8a_bubble`——本地名 `bubble` 在**结尾**,与主气泡的
+ * `_bubble_1sgyj_1`(本地名在开头)相反。`[class$='_bubble']` 因此只命中回执
+ * 气泡,且始终以 `[data-question-reply]` 限定作用域,与 hash 无关。
+ *
+ * 命中依赖 harness 的类拼接顺序:UserMessageBubble 实现
+ * `className: de(PI.bubble, e)`——harness 基元类在前、透传 className 在后,
+ * 回执气泡 class 值 `_bubble_1sgyj_1 BfLV8a_bubble` 以 `_bubble` 结尾才命中;
+ * 普通用户气泡无透传 className,值恰为 `_bubble_1sgyj_1`(结尾 `_1`),不命中。
+ * 若 harness 改为 clsx(透传, 基元) 顺序,此选择器会静默失配,升级时留意。
+ */
+export const QQ_REPLY_BUBBLE_SELECTOR = "[data-question-reply] [class$='_bubble']"
+
 /** 企鹅头像圆标(默认开启时注入;关闭后无头像,也不占左侧空间;支持墨镜/围巾装扮)。
  * glow 为头像投影的主色 RGB:custom 色板跟随自定义主色,其余色板保持经典 QQ 蓝。
  * avatarImage 为自定义头像图片(非空时优先于官方企鹅与装扮层)。 */
@@ -106,11 +128,13 @@ function tailClipPolygon(): string {
  * @param tailShadow - 尾巴投影的主色 RGB。
  * @param tailBackground - 尾巴底色(与气泡一致;QQ蓝为渐变)。
  * @param isClean - 简洁白色板:气泡有 1px 描边,尾巴需要补一道描边避免接缝。
+ * @param selector - 尾巴宿主选择器(默认普通用户气泡;回执气泡传并列锚)。
  */
 function bubbleTailRule(
   tailShadow: [number, number, number] = [18, 122, 175],
   tailBackground = 'var(--dsw-specific-bubble)',
   isClean = false,
+  selector = QQ_USER_BUBBLE_SELECTOR,
 ): string {
   const shadow = `${tailShadow[0]}, ${tailShadow[1]}, ${tailShadow[2]}`
   // 尾巴尖端落在右下角;圆角一致时(QQ蓝)尾巴要下移一点才贴合圆弧。
@@ -120,7 +144,7 @@ function bubbleTailRule(
    形状用 clip-path 画(而不是旋转 45° 的方块):方块尾巴与气泡圆角
    交界会出现硬接缝,弧形裁切则与气泡自然融为一体。
    clip-path 会裁掉 box-shadow,所以阴影改用 filter: drop-shadow。 */
-[data-message-bubble][data-message-bubble]::after {
+${selector}::after {
   content: '';
   position: absolute;
   right: -6px;
@@ -538,6 +562,11 @@ ${bubbleTail
       // 右下角正是渐变 100% 处),暗色则回到与气泡相同的实色 token。
       'var(--dsw-specific-bubble)',
       isClean,
+    ) + bubbleTailRule(
+      shadow,
+      'var(--dsw-specific-bubble)',
+      isClean,
+      QQ_REPLY_BUBBLE_SELECTOR,
     )
   : ''}
 ${isQqBlue ? `
@@ -548,6 +577,43 @@ body:not([data-ds-dark-theme]) [data-message-bubble][data-message-bubble] {
   background-image: linear-gradient(135deg, rgb(${gradStart[0]}, ${gradStart[1]}, ${gradStart[2]}) 0%, rgb(${gradEnd[0]}, ${gradEnd[1]}, ${gradEnd[2]}) 100%);
 }
 body:not([data-ds-dark-theme]) [data-message-bubble][data-message-bubble]::after {
+  background: rgb(${gradEnd[0]}, ${gradEnd[1]}, ${gradEnd[2]});
+}
+` : ''}
+/* ── 问题回执气泡:与普通用户气泡同观感(全色板通用) ─────────────────
+    ask_user_question 的已回答批次由 QuestionReplyBubble 渲染,复用
+    UserMessageBubble 却不透传 data-message-bubble(全 asar 该属性仅
+    MessageItem 普通用户消息一处)→ 上面的锚打不到它,品牌底上暗字
+    不可读。这里以 [data-question-reply] 作用域并列补齐同一套圆角/
+    白字/阴影;渐变与暗色回白分别跟随 qqblue/isClean。 */
+${QQ_REPLY_BUBBLE_SELECTOR} {
+  position: relative;
+  border-radius: ${isQqBlue ? '16px' : '16px 6px 16px 16px'};
+  color: ${bubbleForeground};
+  ${isClean ? 'border: 1px solid var(--dsw-alias-border-l2);' : ''}
+  box-shadow:
+    0 1px 2px rgba(${shadow[0]}, ${shadow[1]}, ${shadow[2]}, 0.22),
+    0 4px 12px rgba(${shadow[0]}, ${shadow[1]}, ${shadow[2]}, 0.18),
+    0 8px 20px rgba(${shadow[0]}, ${shadow[1]}, ${shadow[2]}, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+${QQ_REPLY_BUBBLE_SELECTOR} :not(pre):not(pre *):not(code) {
+  color: ${bubbleForeground};
+}
+${QQ_REPLY_BUBBLE_SELECTOR} a {
+  color: inherit;
+}
+${isClean ? `/* 简洁白:暗色回执气泡同样回到白字。 */
+body[data-ds-dark-theme] ${QQ_REPLY_BUBBLE_SELECTOR},
+body[data-ds-dark-theme] ${QQ_REPLY_BUBBLE_SELECTOR} :not(pre):not(pre *):not(code) {
+  color: rgb(255, 255, 255);
+}
+` : ''}
+${isQqBlue ? `/* QQ蓝:回执气泡同步 135° 渐变(仅亮色),尾巴取渐变终点实色消接缝。 */
+body:not([data-ds-dark-theme]) ${QQ_REPLY_BUBBLE_SELECTOR} {
+  background-image: linear-gradient(135deg, rgb(${gradStart[0]}, ${gradStart[1]}, ${gradStart[2]}) 0%, rgb(${gradEnd[0]}, ${gradEnd[1]}, ${gradEnd[2]}) 100%);
+}
+body:not([data-ds-dark-theme]) ${QQ_REPLY_BUBBLE_SELECTOR}::after {
   background: rgb(${gradEnd[0]}, ${gradEnd[1]}, ${gradEnd[2]});
 }
 ` : ''}
@@ -644,7 +710,8 @@ header[class$='_header'] {
    的 mark/name 插槽)原样呈现,QQ 感完全由蓝色 token 层体现。 */
 
 /* ── 暗色微调:阴影与伪元素在深底上降噪 ────────────────────────────── */
-body[data-ds-dark-theme] [data-message-bubble][data-message-bubble] {
+body[data-ds-dark-theme] [data-message-bubble][data-message-bubble],
+body[data-ds-dark-theme] ${QQ_REPLY_BUBBLE_SELECTOR} {
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.35),
     0 4px 14px rgba(0, 0, 0, 0.30),
@@ -652,7 +719,8 @@ body[data-ds-dark-theme] [data-message-bubble][data-message-bubble] {
 }
 ${bubbleTail
   ? `/* 暗色下尾巴的投影改用中性黑,避免主色阴影在深底上发脏。 */
-body[data-ds-dark-theme] [data-message-bubble][data-message-bubble]::after {
+body[data-ds-dark-theme] [data-message-bubble][data-message-bubble]::after,
+body[data-ds-dark-theme] ${QQ_REPLY_BUBBLE_SELECTOR}::after {
   filter: drop-shadow(1px 2px 3px rgba(0, 0, 0, 0.30));
 }
 `
