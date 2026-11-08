@@ -290,6 +290,72 @@ function chatWallpaperRule(wallpaper: string, dim: number, blur: number): string
 }
 
 /**
+ * 全窗沉浸:壁纸铺满整个窗口(不只是会话根),左栏/详情栏/输入区透出壁纸。
+ *
+ * 实现说明:
+ * - 铺底层挂在 body::before(position:fixed, z-index:-1):伪元素画在 body
+ *   背景之下、html 画布之上,因此宿主三层不透明底必须依次退位——
+ *   body(boot 主题 background-color:#fff/#151517)→ frame 根层
+ *   (.mP3x-q_frame 铺满 #root,bg-base/sidebar-fill 实色)→ 三栏列。
+ *   绝不给任何元素加 backdrop-filter/transform/filter(0.3.16 折叠按钮
+ *   fixed 包含块、0.3.17 弹窗 backdrop root 两个回归的根因)。
+ * - 透明化采用"无 important、毛玻璃优先"策略:三栏与输入卡的透明兜底
+ *   不带 !important,毛玻璃渐变(!important)恒赢——观感=壁纸+品牌色晕染
+ *   叠加,亮暗主题行为一致,弹窗 backdrop 语义不受影响;毛玻璃关闭时
+ *   兜底透明生效(特异度 (0,1,1) 压宿主基础背景)。
+ * - full 模式下会话根层(chatWallpaperRule)不输出:body 层供图,
+ *   [data-phase='active'] 只做透明化,避免双图层重复绘制。
+ * - body::before 带 background-color 兜底:壁纸图加载失败时不露 html
+ *   白画布(暗色主题下白窗突兀),退为纯色底。
+ */
+function wallpaperFullRule(wallpaper: string, dim: number, blur: number): string {
+  const image = wallpaper.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+  const dimAlpha = Math.round(dim * 100) / 100
+  const blurPx = Math.max(0, Math.round(blur))
+  const filterLine = blurPx > 0 ? `\n  filter: blur(${blurPx}px);` : ''
+  return `
+body {
+  background: transparent;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--dsw-static-neutral-bluish-950, #151517);
+  background-image: url("${image}");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;${filterLine}
+}
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: rgba(0, 0, 0, ${dimAlpha});
+  pointer-events: none;
+}
+body [class$='_frame'] {
+  background: transparent !important;
+}
+body [class$='_sidebarCol'],
+body [class$='_centerCol'],
+body [class$='_rightbarCol'] {
+  background: transparent;
+}
+body [data-composer-card] {
+  background: transparent;
+  box-shadow: none;
+}
+[data-phase='active'] {
+  background: transparent;
+}
+`
+}
+
+/**
  * 助手卡片左尾巴:QQ"对方消息"的弧形小勾,贴在卡片左下角指向头像。
  * 与用户气泡右尾巴同款形状(水平镜像);底色跟随卡片 token(bg-layer-1),
  * 投影取色板主色,与头像光晕同一色源。头像关闭时尾巴一并停用 ——
@@ -536,7 +602,7 @@ const PALETTE_SHADOW_RGB: Record<string, [number, number, number]> = {
  */
 export function buildQQLayoutCss(config: QQSkinConfig = QQ_SKIN_DEFAULT_CONFIG): string {
   const { bubbleTail, assistantAvatar, chatMaxWidth, typing, windowShake, frostedGlass, timeDivider, density } = config
-  const { chatWallpaper, chatWallpaperDim, chatWallpaperBlur } = config
+  const { chatWallpaper, chatWallpaperDim, chatWallpaperBlur, wallpaperFull } = config
   // 头像光晕与气泡阴影的主色:custom 色板跟随自定义主色,其余色板各取本色。
   const isCustom = config.palette === 'custom'
   const customRgb = isCustom ? parseHexColor(config.customColor) : null
@@ -560,7 +626,8 @@ export function buildQQLayoutCss(config: QQSkinConfig = QQ_SKIN_DEFAULT_CONFIG):
 ${windowShake ? shakeRule() : ''}
 ${frostedGlass ? frostedGlassRule() : ''}
 ${density === 'compact' ? densityRule() : ''}
-${chatWallpaper ? chatWallpaperRule(chatWallpaper, chatWallpaperDim, chatWallpaperBlur) : ''}
+${chatWallpaper && wallpaperFull ? wallpaperFullRule(chatWallpaper, chatWallpaperDim, chatWallpaperBlur) : ''}
+${chatWallpaper && !wallpaperFull ? chatWallpaperRule(chatWallpaper, chatWallpaperDim, chatWallpaperBlur) : ''}
 ${reducedMotionRule()}
 
 /* ── 助手消息:左侧官方 QQ 企鹅头像 + 白色卡片(QQ"对方消息"观感) ──

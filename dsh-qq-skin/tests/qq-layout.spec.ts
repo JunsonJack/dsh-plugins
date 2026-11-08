@@ -174,6 +174,49 @@ describe('QQ NT layout config branches', () => {
     expect(noBlur).not.toContain('filter: blur(')
   })
 
+  it('full-window wallpaper extends the image behind every panel and never adds backdrop-filter', () => {
+    // 默认(壁纸关/全窗关):不注入 body::before 全窗层。
+    expect(QQ_LAYOUT_CSS).not.toContain('body::before')
+    const full = buildQQLayoutCss({
+      ...QQ_SKIN_DEFAULT_CONFIG,
+      chatWallpaper: 'https://example.com/bg.jpg',
+      wallpaperFull: true,
+    })
+    // 全窗层挂在 body::before(position:fixed,z-index:-1)——所有内容之下,不遮文字。
+    expect(full).toContain('body::before')
+    expect(full).toContain('position: fixed;\n  inset: 0;\n  z-index: -1;')
+    expect(full).toContain('background-image: url("https://example.com/bg.jpg")')
+    expect(full).toContain('background: rgba(0, 0, 0, 0)')
+    // 壁纸图加载失败时的纯色兜底(不露 html 白画布)。
+    expect(full).toContain('background-color: var(--dsw-static-neutral-bluish-950, #151517);')
+    // body 自身 boot 底色(#fff/#151517)会盖住 z-index:-1 伪元素,必须透明化。
+    expect(full).toContain('body {\n  background: transparent;\n}')
+    // frame 根层(.mP3x-q_frame 铺满 #root,bg-base/sidebar-fill 实色)也必须退位,
+    // 否则 Windows 上壁纸被完整遮挡。
+    expect(full).toContain("body [class$='_frame'] {\n  background: transparent !important;")
+    // 三栏与输入卡透明兜底(无 important,毛玻璃渐变恒赢=晕染叠壁纸,亮暗一致)。
+    expect(full).toContain("body [class$='_sidebarCol'],")
+    expect(full).toContain("body [class$='_centerCol'],")
+    expect(full).toContain("body [class$='_rightbarCol'] {\n  background: transparent;")
+    expect(full).toContain("body [data-composer-card] {\n  background: transparent;\n  box-shadow: none;")
+    // 毛玻璃 + 全窗组合:渐变 !important 恒赢兜底透明(叠加语义)。
+    const fullWithGlass = buildQQLayoutCss({
+      ...QQ_SKIN_DEFAULT_CONFIG,
+      chatWallpaper: 'https://example.com/bg.jpg',
+      wallpaperFull: true,
+      frostedGlass: true,
+    })
+    expect(fullWithGlass).toContain('linear-gradient(168deg')
+    expect(fullWithGlass).toContain("body [class$='_frame'] {\n  background: transparent !important;")
+    // 全窗模式会话根层不重复供图(避免双图层)。
+    expect(full).not.toContain("[data-phase='active']::before")
+    // 两个既有回归的护栏:全窗模式也绝不出现 backdrop-filter。
+    expect(full).not.toContain('backdrop-filter')
+    // 只开全窗不开壁纸:同样不注入(全窗依赖壁纸图)。
+    const fullWithoutImage = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, wallpaperFull: true })
+    expect(fullWithoutImage).not.toContain('body::before')
+  })
+
   it('stops decorative animations under prefers-reduced-motion', () => {
     expect(QQ_LAYOUT_CSS).toContain('@media (prefers-reduced-motion: reduce)')
     expect(QQ_LAYOUT_CSS).toContain('animation: none !important;')

@@ -13,7 +13,7 @@ describe('QQ skin settings', () => {
       chatMaxWidth: 880, messageSound: false, sendSound: false, soundVariant: 'beep',
       soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
       windowShake: false, frostedGlass: false, typing: true, timeDivider: true,
-      chatWallpaper: '', chatWallpaperDim: 0, chatWallpaperBlur: 0, customSound: '',
+      chatWallpaper: '', chatWallpaperDim: 0, chatWallpaperBlur: 0, wallpaperFull: false, customSound: '',
     })
   })
 
@@ -26,7 +26,7 @@ describe('QQ skin settings', () => {
       chatMaxWidth: 720, messageSound: false, sendSound: false, soundVariant: 'waterdrop',
       soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
       windowShake: false, frostedGlass: false, typing: true, timeDivider: true,
-      chatWallpaper: '', chatWallpaperDim: 0, chatWallpaperBlur: 0, customSound: '',
+      chatWallpaper: '', chatWallpaperDim: 0, chatWallpaperBlur: 0, wallpaperFull: false, customSound: '',
     })
   })
 
@@ -39,7 +39,7 @@ describe('QQ skin settings', () => {
       chatMaxWidth: 640, messageSound: false, sendSound: false, soundVariant: 'beep',
       soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
       windowShake: true, frostedGlass: false, typing: true, timeDivider: true,
-      chatWallpaper: '', chatWallpaperDim: 0, chatWallpaperBlur: 0, customSound: '',
+      chatWallpaper: '', chatWallpaperDim: 0, chatWallpaperBlur: 0, wallpaperFull: false, customSound: '',
     })
   })
 
@@ -89,6 +89,9 @@ describe('QQ skin settings', () => {
     expect(settingsToConfig({ chatWallpaperBlur: -3 }).chatWallpaperBlur).toBe(0)
     expect(settingsToConfig(undefined, { chatWallpaper: 'https://fallback.example/bg.png', chatWallpaperBlur: 4 }).chatWallpaper).toBe('https://fallback.example/bg.png')
     expect(settingsToConfig(undefined, { chatWallpaperBlur: 4 }).chatWallpaperBlur).toBe(4)
+    expect(settingsToConfig({ wallpaperFull: true }).wallpaperFull).toBe(true)
+    expect(settingsToConfig({ wallpaperFull: 'yes' as never }).wallpaperFull).toBe(false)
+    expect(settingsToConfig(undefined, { wallpaperFull: true }).wallpaperFull).toBe(true)
   })
 
   it('soundVolume flows through settings and clamps out-of-range values', () => {

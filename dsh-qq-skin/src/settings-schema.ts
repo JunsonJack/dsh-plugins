@@ -71,6 +71,8 @@ export interface Config {
   chatWallpaperDim: Volatile<number>
   /** 壁纸模糊 0~20px(0=清晰)。 */
   chatWallpaperBlur: Volatile<number>
+  /** 全窗沉浸:壁纸铺满整个窗口,而不是只铺会话区。 */
+  wallpaperFull: Volatile<boolean>
   /** 自定义消息提示音(data:audio/* URI 或 https URL;空 = 内置音色)。 */
   customSound: Volatile<string>
 }
@@ -100,5 +102,6 @@ export const Config = z.object({
   chatWallpaper: z.string().default('').volatile(),
   chatWallpaperDim: z.number().min(0).max(1).default(0).volatile(),
   chatWallpaperBlur: z.number().min(0).max(20).default(0).volatile(),
+  wallpaperFull: z.boolean().default(false).volatile(),
   customSound: z.string().default('').volatile(),
 })

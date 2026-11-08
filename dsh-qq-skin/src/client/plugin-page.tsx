@@ -1062,6 +1062,11 @@ function QQSkinEditor({ t, config, revision, writable, mutate }: {
           checked={draft.timeDivider ?? true}
           onChange={value => { edit('timeDivider', value) }}
         />
+        <ToggleRow
+          label={t('row.wallpaperFull')}
+          checked={draft.wallpaperFull ?? false}
+          onChange={value => { edit('wallpaperFull', value) }}
+        />
       </div>
 
       {/* 聊天壁纸:URL/本地图片 + 暗化与模糊(开了壁纸才展开调节) */}

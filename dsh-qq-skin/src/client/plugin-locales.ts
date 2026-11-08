@@ -62,6 +62,7 @@ export type QQSkinPluginKey =
   | 'row.chatWallpaper'
   | 'row.wallpaperDim'
   | 'row.wallpaperBlur'
+  | 'row.wallpaperFull'
   | 'card.wallpaperPick'
   | 'card.wallpaperClear'
   | 'card.soundPick'
@@ -133,6 +134,7 @@ export const zh: Record<QQSkinPluginKey, string> = {
   'row.chatWallpaper': '聊天壁纸',
   'row.wallpaperDim': '暗化',
   'row.wallpaperBlur': '模糊',
+  'row.wallpaperFull': '全窗沉浸',
   'card.wallpaperPick': '选择壁纸…',
   'card.wallpaperClear': '移除壁纸',
   'card.soundPick': '选择本地音效…',
@@ -198,6 +200,7 @@ export const en: Record<QQSkinPluginKey, string> = {
   'row.chatWallpaper': 'Chat wallpaper',
   'row.wallpaperDim': 'Dim',
   'row.wallpaperBlur': 'Blur',
+  'row.wallpaperFull': 'Full-window wallpaper',
   'card.wallpaperPick': 'Pick wallpaper…',
   'card.wallpaperClear': 'Remove wallpaper',
   'card.soundPick': 'Pick local sound…',

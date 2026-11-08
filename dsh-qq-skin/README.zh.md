@@ -53,6 +53,7 @@
 | `chatWallpaper` | `''` | 聊天区壁纸：https 图片 URL 或 data:image/* URI（空 = 关闭）；只铺当前会话区（含助手卡片与气泡之间的空隙），欢迎页不铺 |
 | `chatWallpaperDim` | `0` | 壁纸暗化 0~1（0=原亮度，1=全黑）：保证消息文字可读性 |
 | `chatWallpaperBlur` | `0` | 壁纸模糊 0~20px（0=清晰）：QQ NT 风格轻磨砂 |
+| `wallpaperFull` | `false` | 全窗沉浸：壁纸铺满整个窗口（侧栏/详情栏/输入区透出壁纸），而不是只铺会话区；毛玻璃开启时其半透明渐变叠加在壁纸上 |
 
 示例（在 profile 的插件配置里指定）：
 
@@ -68,6 +69,7 @@
   "sendSound": true,
   "soundVariant": "waterdrop",
   "customSound": "",
+  "wallpaperFull": false,
   "windowShake": true,
   "frostedGlass": true,
   "typing": true,

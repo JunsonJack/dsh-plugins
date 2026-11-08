@@ -53,6 +53,7 @@ Options persist under the `qq-skin` namespace in the profile config document (sc
 | `chatWallpaper` | `''` | Chat-area wallpaper: https image URL or data:image/* URI (empty = off); covers the active conversation area only, never the welcome page |
 | `chatWallpaperDim` | `0` | Wallpaper dim 0~1 (0 = original brightness, 1 = black) to keep message text readable |
 | `chatWallpaperBlur` | `0` | Wallpaper blur 0~20px (0 = sharp): the QQ NT frosted look |
+| `wallpaperFull` | `false` | Full-window immersion: the wallpaper covers the entire window (sidebar/detail/composer show it through) instead of the conversation area only; frosted-glass gradients stack on top when enabled |
 
 Example (set in the profile's plugin config):
 
@@ -68,6 +69,7 @@ Example (set in the profile's plugin config):
   "sendSound": true,
   "soundVariant": "waterdrop",
   "customSound": "",
+  "wallpaperFull": false,
   "windowShake": true,
   "frostedGlass": true,
   "typing": true,

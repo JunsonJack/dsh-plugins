@@ -79,6 +79,8 @@ export interface QQSkinConfig {
   chatWallpaperDim: number
   /** 壁纸模糊 0~20px(0=清晰;QQ NT 风格的轻磨砂默认 0)。 */
   chatWallpaperBlur: number
+  /** 全窗沉浸:壁纸铺满整个窗口(侧栏/详情栏/输入区透出壁纸),而不是只铺会话区(默认关)。 */
+  wallpaperFull: boolean
   /** 自定义消息提示音(data:audio/* URI;空串 = 用内置音色 soundVariant)。 */
   customSound: string
 }
@@ -156,6 +158,7 @@ export const QQ_SKIN_DEFAULT_CONFIG: QQSkinConfig = {
   chatWallpaper: '',
   chatWallpaperDim: 0,
   chatWallpaperBlur: 0,
+  wallpaperFull: false,
   customSound: '',
 }
 
@@ -330,6 +333,9 @@ export function resolveQQSkinConfig(config?: PartialQQSkinConfig): QQSkinConfig 
     chatWallpaper: normalizeWallpaperImage(raw.chatWallpaper),
     chatWallpaperDim: normalizeWallpaperDim(raw.chatWallpaperDim),
     chatWallpaperBlur: normalizeWallpaperBlur(raw.chatWallpaperBlur),
+    wallpaperFull: typeof raw.wallpaperFull === 'boolean'
+      ? raw.wallpaperFull
+      : QQ_SKIN_DEFAULT_CONFIG.wallpaperFull,
     customSound: normalizeCustomSound(raw.customSound),
   }
 }
