@@ -41,11 +41,13 @@ import {
   CUSTOM_SOUND_MAX_LENGTH,
   DEFAULT_AVATAR_SIZE,
   DEFAULT_CUSTOM_COLOR,
+  mergeQQSkinTheme,
   normalizeCustomSound,
   QQ_AVATAR_STYLES,
   QQ_SKIN_DENSITIES,
   QQ_SKIN_PALETTES,
   QQ_SKIN_SOUND_VARIANTS,
+  resolveQQSkinConfig,
   SOUND_VOLUME_MAX,
   SOUND_VOLUME_MIN,
   WALLPAPER_BLUR_MAX,
@@ -261,6 +263,23 @@ const actionRowStyle: CSSProperties = {
   gap: '8px',
   justifyContent: 'flex-end',
   alignItems: 'center',
+}
+
+/** 主题导入导出 textarea(等宽字体,便于 JSON 阅读)。 */
+const themeTextareaStyle: CSSProperties = {
+  boxSizing: 'border-box',
+  width: '100%',
+  height: '96px',
+  padding: '8px 10px',
+  border: '1px solid var(--dsw-alias-border-l2)',
+  borderRadius: '10px',
+  background: 'var(--dsw-specific-input-major)',
+  color: 'var(--dsw-alias-label-primary)',
+  fontSize: '12px',
+  fontFamily: 'Consolas, "Courier New", monospace',
+  lineHeight: '18px',
+  resize: 'vertical',
+  outline: 'none',
 }
 
 /** 单个色板卡片:渐变色块在上、文案在下,role=radio。 */
@@ -760,6 +779,47 @@ function QQSkinEditor({ t, config, revision, writable, mutate }: {
   /** 是否有未保存修改:草稿与外部快照按 JSON 全量比较。 */
   const dirty = JSON.stringify(draft) !== externalText
 
+  /** 主题导入导出:textarea 文本、聚焦态、复制成功提示、导入失败提示。 */
+  const [themeText, setThemeText] = useState('')
+  const [themeTextFocused, setThemeTextFocused] = useState(false)
+  const [themeCopied, setThemeCopied] = useState(false)
+  const [themeImportError, setThemeImportError] = useState(false)
+  /** 导出:把当前草稿(未保存的也包含)序列化为可读 JSON,并尝试写剪贴板。 */
+  const exportTheme = (): void => {
+    const text = JSON.stringify(draft, null, 2)
+    setThemeText(text)
+    setThemeImportError(false)
+    // 剪贴板是锦上添花:失败(权限/非安全上下文)静默,textarea 仍可手动复制。
+    if (typeof navigator !== 'undefined' && typeof navigator.clipboard?.writeText === 'function') {
+      navigator.clipboard.writeText(text).then(() => {
+        setThemeCopied(true)
+      }).catch(() => {
+        setThemeCopied(false)
+      })
+    } else {
+      setThemeCopied(false)
+    }
+  }
+  /** 导入:解析 JSON → 字段级合并归一化 → 落草稿(保存后才写入)。 */
+  const importTheme = (): void => {
+    try {
+      const parsed: unknown = JSON.parse(themeText)
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        setThemeImportError(true)
+        return
+      }
+      // 字段级合并导入后,只有 JSON 中显式出现的键会进入差异提交;
+      // 未提及的键保持草稿原值,不会被钉进用户配置文档。
+      setDraft(previous => mergeQQSkinTheme(
+        resolveQQSkinConfig(previous),
+        parsed as Record<string, unknown>,
+      ))
+      setThemeImportError(false)
+    } catch {
+      setThemeImportError(true)
+    }
+  }
+
   /** 保存:只提交与外部快照有差异的字段(一次原子提交,共享 revision fence)。 */
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(false)
@@ -1198,6 +1258,35 @@ function QQSkinEditor({ t, config, revision, writable, mutate }: {
           max={CHAT_MAX_WIDTH_MAX}
           step={20}
         />
+      </div>
+
+      {/* 主题导入导出:导出=草稿 JSON(尝试剪贴板);导入=解析后全字段落草稿,保存才写入 */}
+      <div style={{ ...fieldRowStyle, alignItems: 'flex-start', flexDirection: 'column', gap: '6px' }}>
+        <span style={fieldLabelStyle}>{t('card.theme')}</span>
+        <textarea
+          value={themeText}
+          onChange={event => { setThemeText(event.currentTarget.value); setThemeCopied(false); setThemeImportError(false) }}
+          onFocus={() => { setThemeTextFocused(true) }}
+          onBlur={() => { setThemeTextFocused(false) }}
+          placeholder='{"palette": "qqblue", ...}'
+          spellCheck={false}
+          style={{ ...themeTextareaStyle, borderColor: themeTextFocused ? 'var(--dsw-alias-brand-primary)' : 'var(--dsw-alias-border-l2)' }}
+        />
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+          <button type="button" onClick={exportTheme} style={discardButtonStyle}>
+            {t('card.themeExport')}
+          </button>
+          <button
+            type="button"
+            onClick={importTheme}
+            disabled={!writable}
+            style={{ ...discardButtonStyle, opacity: writable ? 1 : 0.5, cursor: writable ? 'pointer' : 'default' }}
+          >
+            {t('card.themeImport')}
+          </button>
+          {themeCopied && <span style={captionStyle}>{t('card.themeCopied')}</span>}
+          {themeImportError && <span style={{ ...captionStyle, color: 'var(--dsw-alias-state-error-primary)' }}>{t('card.themeImportError')}</span>}
+        </div>
       </div>
 
       {/* 保存/放弃行:只有保存才写入;只读文档时禁用并提示 */}

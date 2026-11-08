@@ -22,6 +22,8 @@ The chat view in the Classic Blue palette: centered, narrowed chat flow, light-b
 
 All options live in the **QQ Skin config card on the Plugins page** (a plugin-drawn `plugins.row.config` entry): open the Plugins page → QQ Skin → Configure for visual toggles. The card edits a draft and only writes to the host config document (the `qq-skin` namespace of `ctx.configForms`) when you press Save, which hot-reloads both layers immediately; Discard restores the saved values. The **QQ Skin** settings row formerly registered in the App settings General section was retired in 0.4.7 (options converged onto the plugin page to keep the settings panel uncluttered).
 
+The **Theme import / export** block at the bottom of the card: **Export** serializes the current draft (including unsaved edits) as JSON and tries to copy it to the clipboard; **Import** merges the pasted JSON field by field onto the draft — only keys explicitly present in the JSON are applied (invalid values fall back to defaults), untouched settings keep their values — press Save to write it for real. Handy for backing up a personal theme or moving configuration between profiles.
+
 ## Configuration
 
 Options persist under the `qq-skin` namespace in the profile config document (schema defaults → profile config → user edits on the plugin-page card); unset fields fall back to defaults:

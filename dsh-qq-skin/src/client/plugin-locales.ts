@@ -68,6 +68,11 @@ export type QQSkinPluginKey =
   | 'card.soundClear'
   | 'card.soundSet'
   | 'card.soundError'
+  | 'card.theme'
+  | 'card.themeExport'
+  | 'card.themeImport'
+  | 'card.themeCopied'
+  | 'card.themeImportError'
   | 'divider.today'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -134,6 +139,11 @@ export const zh: Record<QQSkinPluginKey, string> = {
   'card.soundClear': '恢复内置音色',
   'card.soundSet': '已选择本地音效,保存后生效。',
   'card.soundError': '音频读取失败,请换一个文件。',
+  'card.theme': '主题导入导出',
+  'card.themeExport': '导出当前草稿',
+  'card.themeImport': '导入并套用到草稿',
+  'card.themeCopied': '已复制到剪贴板。',
+  'card.themeImportError': 'JSON 解析失败或内容为空,请检查粘贴的主题文本。',
   'divider.today': '今天',
 }
 
@@ -194,5 +204,10 @@ export const en: Record<QQSkinPluginKey, string> = {
   'card.soundClear': 'Restore built-in tone',
   'card.soundSet': 'Local sound picked; takes effect after Save.',
   'card.soundError': 'Failed to read the audio; try another file.',
+  'card.theme': 'Theme import / export',
+  'card.themeExport': 'Export current draft',
+  'card.themeImport': 'Import onto the draft',
+  'card.themeCopied': 'Copied to the clipboard.',
+  'card.themeImportError': 'JSON parsing failed or the text is empty; check the pasted theme.',
   'divider.today': 'Today',
 }

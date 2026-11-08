@@ -333,3 +333,19 @@ export function resolveQQSkinConfig(config?: PartialQQSkinConfig): QQSkinConfig 
     customSound: normalizeCustomSound(raw.customSound),
   }
 }
+
+/**
+ * 主题导入的字段级合并:只归一化 JSON 中显式出现的键并并入基底,
+ * 未出现的键保持基底原值——导入不重置未提及的设置,保存时也不会把
+ * 未触碰字段钉进用户配置文档(与卡片保存的差异提交语义一致)。
+ */
+export function mergeQQSkinTheme(base: QQSkinConfig, patch: Record<string, unknown>): QQSkinConfig {
+  const resolved = resolveQQSkinConfig(patch)
+  const merged: Record<string, unknown> = { ...base }
+  for (const key of Object.keys(resolved)) {
+    if (key in patch) {
+      merged[key] = (resolved as unknown as Record<string, unknown>)[key]
+    }
+  }
+  return merged as unknown as QQSkinConfig
+}
