@@ -45,6 +45,7 @@
 | `windowShake` | `false` | 助手新消息到来时轻微抖动聊天窗口（QQ 经典窗口抖动效果） |
 | `frostedGlass` | `false` | 侧边栏 / 右栏详情 / 输入框的毛玻璃玻璃面板(品牌色晕染渐变 + 半透明底 + 玻璃边缘光;输入卡额外 `blur(16px)` 背景模糊——三栏列不加 blur,避免破坏折叠按钮的 fixed 定位) |
 | `typing` | `true` | 助手消息打字机揭示动效开关 |
+| `timeDivider` | `true` | 消息时间分隔条：跨天消息前插入 QQ 风格居中日期条（当天显示「今天」，日期文本与宿主语言格式一致） |
 
 示例（在 profile 的插件配置里指定）：
 
@@ -60,7 +61,8 @@
   "soundVariant": "waterdrop",
   "windowShake": true,
   "frostedGlass": true,
-  "typing": true
+  "typing": true,
+  "timeDivider": true
 }
 ```
 

@@ -45,6 +45,7 @@ Options persist under the `qq-skin` namespace in the profile config document (sc
 | `windowShake` | `false` | Subtle window shake animation on incoming assistant message (QQ window nudge effect) |
 | `frostedGlass` | `false` | Tinted frosted-glass panels on the sidebar, right details column, and composer (brand-tint gradient + translucent base + glass-edge highlight; the composer also gets `blur(16px)` backdrop blur — columns stay blur-free so the fixed-positioned sidebar toggle keeps its window anchoring) |
 | `typing` | `true` | Assistant message typing reveal animation |
+| `timeDivider` | `true` | Message time dividers: insert a QQ-style centered date chip before the first message of each day ("Today" for the current day; date text follows the host locale format) |
 
 Example (set in the profile's plugin config):
 
@@ -60,7 +61,8 @@ Example (set in the profile's plugin config):
   "soundVariant": "waterdrop",
   "windowShake": true,
   "frostedGlass": true,
-  "typing": true
+  "typing": true,
+  "timeDivider": true
 }
 ```
 

@@ -12,7 +12,7 @@ describe('QQ skin settings', () => {
       bubbleTail: true, assistantAvatar: true, avatarSize: 22,
       chatMaxWidth: 880, messageSound: false, sendSound: false, soundVariant: 'beep',
       soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
-      windowShake: false, frostedGlass: false, typing: true,
+      windowShake: false, frostedGlass: false, typing: true, timeDivider: true,
     })
   })
 
@@ -24,7 +24,7 @@ describe('QQ skin settings', () => {
       bubbleTail: false, assistantAvatar: true, avatarSize: 22,
       chatMaxWidth: 720, messageSound: false, sendSound: false, soundVariant: 'waterdrop',
       soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
-      windowShake: false, frostedGlass: false, typing: true,
+      windowShake: false, frostedGlass: false, typing: true, timeDivider: true,
     })
   })
 
@@ -36,7 +36,7 @@ describe('QQ skin settings', () => {
       bubbleTail: false, assistantAvatar: true, avatarSize: 22,
       chatMaxWidth: 640, messageSound: false, sendSound: false, soundVariant: 'beep',
       soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
-      windowShake: true, frostedGlass: false, typing: true,
+      windowShake: true, frostedGlass: false, typing: true, timeDivider: true,
     })
   })
 
@@ -60,6 +60,12 @@ describe('QQ skin settings', () => {
     expect(config.soundVariant).toBe('waterdrop')
     expect(config.windowShake).toBe(true)
     expect(config.frostedGlass).toBe(true)
+  })
+
+  it('timeDivider flows through settings and rejects non-boolean', () => {
+    expect(settingsToConfig({ timeDivider: false }).timeDivider).toBe(false)
+    expect(settingsToConfig({ timeDivider: 'yes' as never }).timeDivider).toBe(true)
+    expect(settingsToConfig(undefined, { timeDivider: false }).timeDivider).toBe(false)
   })
 
   it('soundVolume flows through settings and clamps out-of-range values', () => {

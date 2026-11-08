@@ -176,6 +176,32 @@ function typingRule(): string {
 `
 }
 
+/**
+ * 消息时间分隔条:跨天消息前的居中日期条(细线 + 说明文字,QQ NT 原味)。
+ * 元素由 qq-time-divider.ts 注入(带 data-qq-time-divider 标记),这里只
+ * 负责视觉;文本取自宿主时间 chip 的日期部分,与宿主本地化格式一致。
+ */
+function timeDividerRule(): string {
+  return `
+[data-qq-time-divider] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+  color: var(--dsw-alias-label-caption);
+  font-size: 12px;
+  line-height: 20px;
+}
+[data-qq-time-divider]::before,
+[data-qq-time-divider]::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--dsw-alias-border-l1);
+}
+`
+}
+
 /** 窗口抖动动效(400ms 经典 QQ 窗口震颤)。 */
 function shakeRule(): string {
   return `
@@ -398,7 +424,7 @@ const PALETTE_SHADOW_RGB: Record<string, [number, number, number]> = {
  * @param config - 用户配置(可缺省,回落默认)。
  */
 export function buildQQLayoutCss(config: QQSkinConfig = QQ_SKIN_DEFAULT_CONFIG): string {
-  const { bubbleTail, assistantAvatar, chatMaxWidth, typing, windowShake, frostedGlass } = config
+  const { bubbleTail, assistantAvatar, chatMaxWidth, typing, windowShake, frostedGlass, timeDivider } = config
   // 头像光晕与气泡阴影的主色:custom 色板跟随自定义主色,其余色板各取本色。
   const isCustom = config.palette === 'custom'
   const customRgb = isCustom ? parseHexColor(config.customColor) : null
@@ -446,6 +472,7 @@ ${assistantAvatar ? avatarRule(config.avatarStyle, glow, config.avatarCustomImag
     0 4px 14px rgba(15, 23, 42, 0.05);
 }
 ${typing ? typingRule() : ''}
+${timeDivider ? timeDividerRule() : ''}
 
 /* ── Markdown 引用块:主题主色竖条 + 柔和浅底 ───────────────────────── */
 [data-chat-flow-kind='assistant-step'] blockquote {

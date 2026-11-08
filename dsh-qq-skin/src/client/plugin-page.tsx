@@ -773,6 +773,11 @@ function QQSkinEditor({ t, config, revision, writable, mutate }: {
           checked={draft.typing ?? true}
           onChange={value => { edit('typing', value) }}
         />
+        <ToggleRow
+          label={t('row.timeDivider')}
+          checked={draft.timeDivider ?? true}
+          onChange={value => { edit('timeDivider', value) }}
+        />
       </div>
 
       {/* 免打扰时段:两端都填才生效;跨午夜(22:00→08:00)也支持 */}

@@ -35,6 +35,7 @@ import { QQ_SKIN_DEFAULT_CONFIG, type QQSkinConfig } from './config.ts'
 import { QQ_SKIN_SETTINGS_NS, settingsToConfig, type QQSkinSettings } from './settings.ts'
 import { QQSkinRuntime } from './runtime.ts'
 import { QQSoundRuntime } from './qq-sound.ts'
+import { QQTimeDividerRuntime, setTodayLabel } from './qq-time-divider.ts'
 import { QQ_SKIN_PLUGIN_NS, zh, en } from './plugin-locales.ts'
 import { QQSkinPluginCard } from './plugin-page.tsx'
 
@@ -82,6 +83,7 @@ function sameConfig(left: QQSkinConfig, right: QQSkinConfig): boolean {
     && left.windowShake === right.windowShake
     && left.frostedGlass === right.frostedGlass
     && left.typing === right.typing
+    && left.timeDivider === right.timeDivider
 }
 
 /** 音效运行时消费的字段:其余字段(色板/宽度/尾巴…)变更不必重建观察链。 */
@@ -98,16 +100,24 @@ function sameSoundConfig(left: QQSkinConfig, right: QQSkinConfig): boolean {
  * @param ctx - 客户端插件上下文。
  */
 export function apply(ctx: ClientContext): void {
+  // 文案字典:插件页卡片与时间分隔条共用的双语键(typed register,缺键编译期报错)。
+  ctx.effect(() => ctx.locale.register(QQ_SKIN_PLUGIN_NS, { zh, en }), 'dsh-qq-skin: plugin card dictionaries')
+  // 「今天」文案:时间分隔条用;bind 返回活翻译函数,语言切换后跟随。
+  const t = ctx.locale.bind(QQ_SKIN_PLUGIN_NS)
+  setTodayLabel(() => t('divider.today'))
+
   // 皮肤运行时:两层挂载 + 配置热更新,首帧按出厂默认值上皮肤。
   const runtime = new QQSkinRuntime(ctx, QQ_SKIN_DEFAULT_CONFIG)
   // 音效运行时:监听新增助手节点,按 messageSound 开关启停。
   const sound = new QQSoundRuntime(ctx, runtime.getConfig())
+  // 时间分隔条运行时:跨天消息前插入 QQ 风格日期条,按 timeDivider 启停。
+  const divider = new QQTimeDividerRuntime(ctx, runtime.getConfig())
 
   // 设置表单:宿主条目配置的读写面(值 = 默认值 → profile 配置 → 用户改写)。
   const host = ctx.configForms.get<QQSkinSettings>(QQ_SKIN_SETTINGS_NS)
 
-  /** 音效链实际生效的配置:仅音效字段变化时才重建观察链与音频资源。 */
-  let soundConfig = runtime.getConfig()
+  /** 上次采用后的完整配置:音效/分隔条各自比较旧值,最后整体刷新。 */
+  let lastMerged = runtime.getConfig()
   /** 采用宿主快照:配置未到达(loading/unavailable)时保持出厂默认值。 */
   const adopt = (): void => {
     const section = host.getSnapshot().value
@@ -118,19 +128,20 @@ export function apply(ctx: ClientContext): void {
       runtime.update(merged)
     }
     // 调色等纯视觉变更不重建音效观察链,避免拖拽拾色时反复拆装 observer。
-    if (!sameSoundConfig(merged, soundConfig)) {
+    if (!sameSoundConfig(merged, lastMerged)) {
       sound.update(merged)
-      soundConfig = merged
     }
+    // 分隔条开关变化才重建观察链(日期文案不随配置变,无需比较)。
+    if (lastMerged.timeDivider !== merged.timeDivider) {
+      divider.update(merged)
+    }
+    lastMerged = merged
   }
   ctx.effect(() => host.subscribe(() => {
     // 首次快照可能在订阅前就已到达,主动 adopt 一次以免停在出厂默认值。
     adopt()
   }), 'dsh-qq-skin: settings adoption')
   adopt()
-
-  // 文案字典:插件页卡片的双语键(typed register,缺键编译期报错)。
-  ctx.effect(() => ctx.locale.register(QQ_SKIN_PLUGIN_NS, { zh, en }), 'dsh-qq-skin: plugin card dictionaries')
 
   // 插件页配置卡片:keyed 槽位,key = `<package name>#<row id>`;ctx.slots.inject
   // 在宿主页面声明 `plugins.row.config` 时自动提交注册(页面卸载随 effect 清理)。

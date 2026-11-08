@@ -59,6 +59,8 @@ export interface Config {
   frostedGlass: Volatile<boolean>
   /** 助手消息打字机揭示动效开关(默认开)。 */
   typing: Volatile<boolean>
+  /** 消息时间分隔条开关:跨天消息前插入 QQ 风格日期条(默认开)。 */
+  timeDivider: Volatile<boolean>
 }
 
 /** 设置分节 schema:宿主校验条目配置、设置面板渲染表单共用。 */
@@ -81,4 +83,5 @@ export const Config = z.object({
   windowShake: z.boolean().default(false).volatile(),
   frostedGlass: z.boolean().default(false).volatile(),
   typing: z.boolean().default(true).volatile(),
+  timeDivider: z.boolean().default(true).volatile(),
 })

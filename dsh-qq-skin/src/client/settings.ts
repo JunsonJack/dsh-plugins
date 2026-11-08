@@ -44,6 +44,7 @@ export interface QQSkinSettings {
   windowShake?: boolean | undefined
   frostedGlass?: boolean | undefined
   typing?: boolean | undefined
+  timeDivider?: boolean | undefined
 }
 
 /**
@@ -76,5 +77,6 @@ export function settingsToConfig(
     windowShake: s.windowShake ?? fallback?.windowShake,
     frostedGlass: s.frostedGlass ?? fallback?.frostedGlass,
     typing: s.typing ?? fallback?.typing,
+    timeDivider: s.timeDivider ?? fallback?.timeDivider,
   })
 }

@@ -122,6 +122,13 @@ describe('QQ NT layout config branches', () => {
     expect(off).not.toContain('dsh-qq-typing')
   })
 
+  it('time divider styles are present by default and removable', () => {
+    expect(QQ_LAYOUT_CSS).toContain('[data-qq-time-divider]')
+    expect(QQ_LAYOUT_CSS).toContain('[data-qq-time-divider]::before')
+    const off = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, timeDivider: false })
+    expect(off).not.toContain('data-qq-time-divider')
+  })
+
   it('stops decorative animations under prefers-reduced-motion', () => {
     expect(QQ_LAYOUT_CSS).toContain('@media (prefers-reduced-motion: reduce)')
     expect(QQ_LAYOUT_CSS).toContain('animation: none !important;')

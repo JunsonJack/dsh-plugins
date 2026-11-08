@@ -54,6 +54,8 @@ export type QQSkinPluginKey =
   | 'row.windowShake'
   | 'row.frostedGlass'
   | 'row.typing'
+  | 'row.timeDivider'
+  | 'divider.today'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -105,6 +107,8 @@ export const zh: Record<QQSkinPluginKey, string> = {
   'row.windowShake': '窗口抖动提醒',
   'row.frostedGlass': '毛玻璃质感',
   'row.typing': '打字机效果',
+  'row.timeDivider': '时间分隔条',
+  'divider.today': '今天',
 }
 
 /** 英文文案。 */
@@ -150,4 +154,6 @@ export const en: Record<QQSkinPluginKey, string> = {
   'row.windowShake': 'Window shake',
   'row.frostedGlass': 'Frosted glass',
   'row.typing': 'Typing effect',
+  'row.timeDivider': 'Time dividers',
+  'divider.today': 'Today',
 }
