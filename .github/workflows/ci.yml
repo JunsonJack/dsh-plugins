@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: Typecheck & Test & Build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        plugin: [dsh-qq-skin]
+    defaults:
+      run:
+        working-directory: ${{ matrix.plugin }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: ${{ matrix.plugin }}/pnpm-lock.yaml
+
+      # 单插件目录独立安装:workspace:~ 的 dsh.client 依赖按 registry 版本解析
+      # (本仓库不是 pnpm workspace,各插件锁文件各自落盘;其余插件尚无
+      # scripts/锁文件,接入时往矩阵里加目录名即可)。
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm run build
