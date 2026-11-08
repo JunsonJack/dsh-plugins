@@ -205,8 +205,15 @@ function reducedMotionRule(): string {
  * 会把元素变成 fixed 后代的包含块(CSS 规范与 filter/transform 同类),
  * 按钮的定位基准从窗口变成侧栏列,再叠加列的 overflow:hidden,折叠按钮
  * 直接被移位/裁掉(0.3.16 引入的"折叠展开按钮消失"回归的根因)。玻璃观感
- * 由有色渐变底 + 内高光承担即可;输入卡(data-composer-card)内部没有
- * fixed 后代,backdrop-filter 保留。
+ * 由有色渐变底 + 内高光承担即可。
+ *
+ * ⚠ 输入卡(data-composer-card)同样禁止 backdrop-filter:「添加文件/调用
+ * 指令」弹窗(ui-commands 的 PopupSelectView → MenuSurface)DOM 挂在卡内
+ * data-composer-overlay 插槽、视觉浮在输入区上方,弹窗自身靠
+ * --dsw-menu-surface-fill(约 70% 不透明)+ 自身 backdrop blur 实现玻璃。
+ * 祖先卡片带 backdrop-filter 会成为 backdrop root,弹窗的 backdrop blur
+ * 失去可模糊的背景 → 弹窗退化为 70% 半透明,直透下方聊天文字,文字重影
+ * 看不清。故卡片只保留渐变 + 内高光(0.3.17 已证明玻璃观感由这两者承担)。
  *
  * ⚠ 右栏容器真实类名是 `_rightbarCol`(三栏 grid:sidebarCol=1/1,
  * centerCol=1/2, rightbarCol=1/3)。早期版本写的 `_detailsCol` 在 harness
@@ -237,8 +244,8 @@ body[data-ds-dark-theme] [class$='_rightbarCol'] {
     inset 1px 0 0 rgba(255, 255, 255, 0.07);
 }
 [data-composer-card] {
-  backdrop-filter: blur(16px) saturate(1.15);
-  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  /* 不加 backdrop-filter:会成为 backdrop root,掐死卡内「添加文件/调用
+     指令」弹窗自身的 backdrop blur,弹窗只剩 70% 半透明 → 文字重影。 */
   background: linear-gradient(180deg,
     color-mix(in srgb, var(--dsw-alias-brand-primary) 6%, rgba(255, 255, 255, 0.88) 94%) 0%,
     rgba(255, 255, 255, 0.78) 100%) !important;
