@@ -25,12 +25,20 @@ export const QQ_SKIN_SOUND_VARIANTS = ['beep', 'waterdrop', 'knock'] as const
 /** 提示声音色标识。 */
 export type QQSkinSoundVariant = (typeof QQ_SKIN_SOUND_VARIANTS)[number]
 
+/** 消息密度档位:normal=标准呼吸感,compact=紧凑(收紧行距与内边距)。 */
+export const QQ_SKIN_DENSITIES = ['normal', 'compact'] as const
+
+/** 消息密度档位标识。 */
+export type QQSkinDensity = (typeof QQ_SKIN_DENSITIES)[number]
+
 /** 用户可调配置。 */
 export interface QQSkinConfig {
   /** 色板变体。 */
   palette: QQSkinPalette
   /** 自定义主色十六进制色值(当 palette 为 custom 时生效,如 #12B7F5)。 */
   customColor: string
+  /** 消息密度:normal=标准,compact=紧凑单屏更多消息(默认 normal)。 */
+  density: QQSkinDensity
   /** 企鹅头像装扮(classic=经典, sunglasses=墨镜, scarf=围巾)。 */
   avatarStyle: QQAvatarStyle
   /** 自定义助手头像图片(URL 或 data:image/* URI;空串 = 用官方企鹅)。 */
@@ -102,6 +110,7 @@ const AVATAR_IMAGE_HTTPS = /^https:\/\/\S+$/i
 export const QQ_SKIN_DEFAULT_CONFIG: QQSkinConfig = {
   palette: 'classic',
   customColor: DEFAULT_CUSTOM_COLOR,
+  density: 'normal',
   avatarStyle: 'classic',
   avatarCustomImage: '',
   bubbleTail: true,
@@ -221,6 +230,9 @@ export function resolveQQSkinConfig(config?: PartialQQSkinConfig): QQSkinConfig 
       ? (raw.palette as QQSkinPalette)
       : QQ_SKIN_DEFAULT_CONFIG.palette,
     customColor: normalizeHexColor(raw.customColor),
+    density: QQ_SKIN_DENSITIES.includes(raw.density as QQSkinDensity)
+      ? (raw.density as QQSkinDensity)
+      : QQ_SKIN_DEFAULT_CONFIG.density,
     avatarStyle: QQ_AVATAR_STYLES.includes(raw.avatarStyle as QQAvatarStyle)
       ? (raw.avatarStyle as QQAvatarStyle)
       : QQ_SKIN_DEFAULT_CONFIG.avatarStyle,

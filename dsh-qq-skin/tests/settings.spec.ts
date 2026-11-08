@@ -8,7 +8,7 @@ describe('QQ skin settings', () => {
 
   it('resolves to defaults when no setting section and no fallback', () => {
     expect(settingsToConfig(undefined)).toEqual({
-      palette: 'classic', customColor: '#12B7F5', avatarStyle: 'classic', avatarCustomImage: '',
+      palette: 'classic', customColor: '#12B7F5', density: 'normal', avatarStyle: 'classic', avatarCustomImage: '',
       bubbleTail: true, assistantAvatar: true, avatarSize: 22,
       chatMaxWidth: 880, messageSound: false, sendSound: false, soundVariant: 'beep',
       soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
@@ -20,7 +20,7 @@ describe('QQ skin settings', () => {
     const section: QQSkinSettings = { palette: 'vivid', chatMaxWidth: 720, soundVariant: 'waterdrop', avatarStyle: 'sunglasses' }
     const config = settingsToConfig(section, { palette: 'clean', bubbleTail: false, soundVariant: 'knock', avatarStyle: 'scarf' })
     expect(config).toEqual({
-      palette: 'vivid', customColor: '#12B7F5', avatarStyle: 'sunglasses', avatarCustomImage: '',
+      palette: 'vivid', customColor: '#12B7F5', density: 'normal', avatarStyle: 'sunglasses', avatarCustomImage: '',
       bubbleTail: false, assistantAvatar: true, avatarSize: 22,
       chatMaxWidth: 720, messageSound: false, sendSound: false, soundVariant: 'waterdrop',
       soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
@@ -32,7 +32,7 @@ describe('QQ skin settings', () => {
     const section: QQSkinSettings = { bubbleTail: false }
     const config = settingsToConfig(section, { palette: 'green', chatMaxWidth: 640, windowShake: true, avatarStyle: 'scarf' })
     expect(config).toEqual({
-      palette: 'green', customColor: '#12B7F5', avatarStyle: 'scarf', avatarCustomImage: '',
+      palette: 'green', customColor: '#12B7F5', density: 'normal', avatarStyle: 'scarf', avatarCustomImage: '',
       bubbleTail: false, assistantAvatar: true, avatarSize: 22,
       chatMaxWidth: 640, messageSound: false, sendSound: false, soundVariant: 'beep',
       soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
@@ -46,6 +46,12 @@ describe('QQ skin settings', () => {
     expect(config.messageSound).toBe(true)
     expect(config.sendSound).toBe(true)
     expect(config.typing).toBe(false)
+  })
+
+  it('density flows through settings and rejects unknown values', () => {
+    expect(settingsToConfig({ density: 'compact' }).density).toBe('compact')
+    expect(settingsToConfig({ density: 'roomy' as never }).density).toBe('normal')
+    expect(settingsToConfig(undefined, { density: 'compact' }).density).toBe('compact')
   })
 
   it('fallback config supplies messageSound and typing when settings omit them', () => {

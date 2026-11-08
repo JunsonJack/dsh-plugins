@@ -14,9 +14,11 @@ import type { Volatile } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import {
   QQ_AVATAR_STYLES,
+  QQ_SKIN_DENSITIES,
   QQ_SKIN_PALETTES,
   QQ_SKIN_SOUND_VARIANTS,
   type QQAvatarStyle,
+  type QQSkinDensity,
   type QQSkinPalette,
   type QQSkinSoundVariant,
 } from './client/config.ts'
@@ -27,6 +29,8 @@ export interface Config {
   palette: Volatile<QQSkinPalette>
   /** 自定义主色十六进制色值(如 #12B7F5)。 */
   customColor: Volatile<string>
+  /** 消息密度:normal=标准,compact=紧凑(默认 normal)。 */
+  density: Volatile<QQSkinDensity>
   /** 企鹅头像装扮(classic=经典, sunglasses=墨镜, scarf=围巾)。 */
   avatarStyle: Volatile<QQAvatarStyle>
   /** 自定义助手头像图片(URL 或 data:image/* URI;空 = 官方企鹅)。 */
@@ -67,6 +71,7 @@ export interface Config {
 export const Config = z.object({
   palette: z.union([...QQ_SKIN_PALETTES]).default('classic').volatile(),
   customColor: z.string().default('#12B7F5').volatile(),
+  density: z.union([...QQ_SKIN_DENSITIES]).default('normal').volatile(),
   avatarStyle: z.union([...QQ_AVATAR_STYLES]).default('classic').volatile(),
   avatarCustomImage: z.string().default('').volatile(),
   bubbleTail: z.boolean().default(true).volatile(),

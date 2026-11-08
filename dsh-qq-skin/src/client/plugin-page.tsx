@@ -41,11 +41,13 @@ import {
   DEFAULT_AVATAR_SIZE,
   DEFAULT_CUSTOM_COLOR,
   QQ_AVATAR_STYLES,
+  QQ_SKIN_DENSITIES,
   QQ_SKIN_PALETTES,
   QQ_SKIN_SOUND_VARIANTS,
   SOUND_VOLUME_MAX,
   SOUND_VOLUME_MIN,
   type QQAvatarStyle,
+  type QQSkinDensity,
   type QQSkinPalette,
   type QQSkinSoundVariant,
 } from './config.ts'
@@ -91,6 +93,12 @@ const AVATAR_STYLE_LABEL_KEYS: Record<QQAvatarStyle, QQSkinPluginKey> = {
   classic: 'avatar.classic',
   sunglasses: 'avatar.sunglasses',
   scarf: 'avatar.scarf',
+}
+
+/** 消息密度档位选项文案键。 */
+const DENSITY_LABEL_KEYS: Record<QQSkinDensity, QQSkinPluginKey> = {
+  normal: 'density.normal',
+  compact: 'density.compact',
 }
 
 /** 色板卡片的渐变色块预览(与旧设置行一致,纯辨识度点缀)。 */
@@ -730,6 +738,16 @@ function QQSkinEditor({ t, config, revision, writable, mutate }: {
           />
         </div>
       )}
+
+      {/* 消息密度:normal=标准呼吸感,compact=紧凑(单屏更多消息) */}
+      <div style={fieldRowStyle}>
+        <span style={fieldLabelStyle}>{t('row.density')}</span>
+        <PillGroup
+          value={draft.density ?? 'normal'}
+          options={QQ_SKIN_DENSITIES.map(id => ({ id, label: t(DENSITY_LABEL_KEYS[id]) }))}
+          onChange={id => { edit('density', id as QQSkinDensity) }}
+        />
+      </div>
 
       {/* 开关网格:2 列紧凑布局 */}
       <div style={toggleGridStyle}>

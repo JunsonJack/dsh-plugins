@@ -67,6 +67,7 @@ export const QQ_SKIN_CONFIG_ROW_KEY = 'dsh-qq-skin#qq-skin'
 function sameConfig(left: QQSkinConfig, right: QQSkinConfig): boolean {
   return left.palette === right.palette
     && left.customColor === right.customColor
+    && left.density === right.density
     && left.avatarStyle === right.avatarStyle
     && left.avatarCustomImage === right.avatarCustomImage
     && left.bubbleTail === right.bubbleTail

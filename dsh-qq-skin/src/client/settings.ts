@@ -17,6 +17,7 @@ import {
   type PartialQQSkinConfig,
   type QQAvatarStyle,
   type QQSkinConfig,
+  type QQSkinDensity,
   type QQSkinPalette,
   type QQSkinSoundVariant,
 } from './config.ts'
@@ -28,6 +29,7 @@ export const QQ_SKIN_SETTINGS_NS = 'qq-skin'
 export interface QQSkinSettings {
   palette?: QQSkinPalette | undefined
   customColor?: string | undefined
+  density?: QQSkinDensity | undefined
   avatarStyle?: QQAvatarStyle | undefined
   avatarCustomImage?: string | undefined
   bubbleTail?: boolean | undefined
@@ -61,6 +63,7 @@ export function settingsToConfig(
   return resolveQQSkinConfig({
     palette: s.palette ?? fallback?.palette,
     customColor: s.customColor ?? fallback?.customColor,
+    density: s.density ?? fallback?.density,
     avatarStyle: s.avatarStyle ?? fallback?.avatarStyle,
     avatarCustomImage: s.avatarCustomImage ?? fallback?.avatarCustomImage,
     bubbleTail: s.bubbleTail ?? fallback?.bubbleTail,

@@ -33,6 +33,9 @@ export type QQSkinPluginKey =
   | 'palette.qqblue'
   | 'palette.custom'
   | 'row.customColor'
+  | 'row.density'
+  | 'density.normal'
+  | 'density.compact'
   | 'row.avatarStyle'
   | 'row.avatarCustomImage'
   | 'avatar.classic'
@@ -86,6 +89,9 @@ export const zh: Record<QQSkinPluginKey, string> = {
   'palette.qqblue': 'QQ蓝',
   'palette.custom': '自定义主色',
   'row.customColor': '主色调色盘',
+  'row.density': '消息密度',
+  'density.normal': '标准',
+  'density.compact': '紧凑',
   'row.avatarStyle': '企鹅装扮',
   'row.avatarCustomImage': '自定义头像',
   'avatar.classic': '经典企鹅',
@@ -133,6 +139,9 @@ export const en: Record<QQSkinPluginKey, string> = {
   'palette.qqblue': 'QQ Blue',
   'palette.custom': 'Custom Color',
   'row.customColor': 'Accent color',
+  'row.density': 'Density',
+  'density.normal': 'Standard',
+  'density.compact': 'Compact',
   'row.avatarStyle': 'Avatar style',
   'row.avatarCustomImage': 'Custom avatar',
   'avatar.classic': 'Classic',

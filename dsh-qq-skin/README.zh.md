@@ -30,6 +30,7 @@
 | --- | --- | --- |
 | `palette` | `'classic'` | 色板变体：`classic` 经典蓝 / `vivid` 炫彩紫 / `clean` 简洁白（白底气泡 + 深色文字） / `green` 经典绿气泡 / `black` 深空黑 / `qqblue` QQ蓝（采样自 QQ NT 实色发送气泡 `#2E65D1`，四角均匀圆角，亮色带轻微 135° 渐变） / `custom` 自定义主色 |
 | `customColor` | `'#12B7F5'` | 自定义主色调（十六进制颜色，如 `#FF5722`）；当 `palette: 'custom'` 时所有品牌相关 token 全部跟随——按钮、链接文字、选中态 accent 以及 static blue/deepseek 整条刻度 |
+| `density` | `'normal'` | 消息密度：`normal` 标准呼吸感（宿主原样） / `compact` 紧凑（收紧行间距、气泡与卡片内边距、分隔条外边距，单屏容纳更多消息） |
 | `avatarStyle` | `'classic'` | 企鹅头像装扮：`classic` 经典原版 / `sunglasses` 酷炫墨镜 / `scarf` 暖冬红围巾（高精度 SVG 动态图层叠加） |
 | `avatarCustomImage` | `''` | 自定义助手头像图片（插件页卡片可「选择本地图片…」——缩图后以 data URI 持久化；或填 `https://` 图片链接；设置后完全替代企鹅与装扮层，清空恢复官方企鹅） |
 | `avatarSize` | `22` | 助手头像尺寸（px，16~40；气泡让位随尺寸自动换算，大头像不会顶歪文字） |
@@ -53,6 +54,7 @@
 {
   "palette": "custom",
   "customColor": "#FF5722",
+  "density": "compact",
   "avatarStyle": "sunglasses",
   "bubbleTail": true,
   "chatMaxWidth": 880,
