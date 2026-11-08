@@ -181,8 +181,13 @@ describe('QQ NT layout config branches', () => {
     expect(on).toContain('body[data-ds-dark-theme] [data-composer-card]')
     // ⚠ 三栏列绝不加 backdrop-filter:左栏折叠按钮是 position:fixed(窗口
     // 定位),backdrop-filter 会把列变成 fixed 后代的包含块,按钮被移位/裁掉
-    // (0.3.16"折叠展开按钮消失"回归的根因);输入卡无 fixed 后代,保留。
-    expect(on).toContain('backdrop-filter: blur(16px) saturate(1.15)')
+    // (0.3.16"折叠展开按钮消失"回归的根因)。
+    // ⚠ 输入卡同样禁 backdrop-filter:「添加文件/调用指令」弹窗
+    // (PopupSelectView→MenuSurface)挂在卡内 data-composer-overlay,卡片
+    // 成为 backdrop root 会掐死弹窗自身的 backdrop blur,弹窗退化为 70%
+    // 半透明直透聊天文字,文字重影。
+    expect(on).not.toContain('backdrop-filter: blur(16px) saturate(1.15)')
+    expect(on).toContain('rgba(255, 255, 255, 0.78) 100%')
     const colGlass = on.slice(on.indexOf("body:not([data-ds-dark-theme]) [class$='_sidebarCol']"), on.indexOf('[data-composer-card]'))
     expect(colGlass).not.toContain('backdrop-filter')
   })
