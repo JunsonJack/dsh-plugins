@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
-import { apply, inject, QQ_SKIN_SETTINGS_NS } from '../src/client/index.ts'
+import { apply, inject, QQ_SKIN_CONFIG_ROW_KEY, QQ_SKIN_SETTINGS_NS } from '../src/client/index.ts'
 import { QQ_LAYOUT_PLUGIN } from '../src/client/qq-layout.ts'
 import { QQ_SKIN_SOURCE, buildTokenOverrides } from '../src/client/qq-tokens.ts'
 import { QQ_SKIN_DEFAULT_CONFIG } from '../src/client/config.ts'
+import { QQ_SKIN_PLUGIN_NS, zh, en } from '../src/client/plugin-locales.ts'
+import { QQSkinPluginCard } from '../src/client/plugin-page.tsx'
 import type { QQSkinSettings } from '../src/client/settings.ts'
 
 /** 可驱动的 configForms stub:模拟宿主设置表单的快照 + 订阅 + 写回。 */
@@ -32,7 +34,33 @@ function stubConfigForm(initial?: QQSkinSettings, revision = 0) {
   }
 }
 
-/** 最小 ctx:theme + configForms + slots + locale stub,供 apply 走完全链。 */
+/** slots.inject 的最小 stub:同步执行回调并返回注销函数(与 SlotRegistry 语义一致)。 */
+function stubSlots() {
+  const injectedKeys: Array<string> = []
+  const registered: Array<{ options: Record<string, unknown>; component: unknown }> = []
+  const inject = vi.fn((key: string, callback: () => () => void) => {
+    injectedKeys.push(key)
+    const dispose = callback()
+    return dispose
+  })
+  const register = vi.fn((options: Record<string, unknown>, component: unknown) => {
+    registered.push({ options, component })
+    return () => {}
+  })
+  return { inject, register, injectedKeys, registered }
+}
+
+/** locale.register 的最小 stub:记录命名空间与字典。 */
+function stubLocale() {
+  const registered: Array<{ ns: string; dicts: unknown }> = []
+  const register = vi.fn((ns: string, dicts: unknown) => {
+    registered.push({ ns, dicts })
+    return () => {}
+  })
+  return { register, registered }
+}
+
+/** 最小 ctx:theme + configForms stub,供 apply 走完全链。 */
 function makeCtx(
   overrideTokens = vi.fn(() => vi.fn()),
   settings?: QQSkinSettings,
@@ -41,9 +69,11 @@ function makeCtx(
   ctx.provide('theme', { overrideTokens } as unknown as ThemeRuntime)
   const host = stubConfigForm(settings)
   ctx.provide('configForms', { get: () => host.form } as never)
-  ctx.provide('slots', { inject: () => {}, register: () => () => {} } as never)
-  ctx.provide('locale', { register: () => () => {} } as never)
-  return { ctx, overrideTokens, host }
+  const slots = stubSlots()
+  ctx.provide('slots', { inject: slots.inject, register: slots.register } as never)
+  const locale = stubLocale()
+  ctx.provide('locale', { register: locale.register } as never)
+  return { ctx, overrideTokens, host, slots, locale }
 }
 
 /** stub <style> 注入用的最小 document。 */
@@ -63,7 +93,33 @@ afterEach(() => {
 
 describe('dsh-qq-skin client apply', () => {
   it('declares theme plus settings-collaboration services', () => {
-    expect(inject).toEqual(['theme', 'slots', 'locale', 'remote', 'configForms'])
+    // 插件页配置卡片需要 slots(注册条目)与 locale(卡片文案)。
+    expect(inject).toEqual(['theme', 'remote', 'configForms', 'slots', 'locale'])
+  })
+
+  it('registers the plugin page config card through plugins.row.config', () => {
+    // 配置卡片:keyed 槽位,key = `<package name>#<row id>`,并挂自有字典。
+    const overrideTokens = vi.fn(() => vi.fn())
+    const { ctx, slots, locale } = makeCtx(overrideTokens)
+
+    apply(ctx as never)
+
+    expect(slots.injectedKeys).toEqual(['plugins.row.config'])
+    expect(slots.registered).toHaveLength(1)
+    const entry = slots.registered[0].options
+    expect(entry.name).toBe('plugins.row.config')
+    expect(entry.key).toBe(QQ_SKIN_CONFIG_ROW_KEY)
+    expect(entry.key).toBe('dsh-qq-skin#qq-skin')
+    expect(entry.locale).toBe(QQ_SKIN_PLUGIN_NS)
+    // 注册进槽位的就是卡片组件本身(不是包了一层的中转组件)。
+    expect(slots.registered[0].component).toBe(QQSkinPluginCard)
+    // 卡片组件与字典同轮注册:字典键为插件页命名空间,ZH 文案可读。
+    expect(locale.registered).toHaveLength(1)
+    expect(locale.registered[0].ns).toBe(QQ_SKIN_PLUGIN_NS)
+    expect(zh['card.summary']).toContain('QQ')
+    // typed register 保证键集一致;这里钉住数量,防止增删键时漏改字典。
+    expect(Object.keys(zh)).toHaveLength(41)
+    expect(Object.keys(en)).toHaveLength(41)
   })
 
   it('stacks the QQ override layer on activation with the default palette', () => {
@@ -99,8 +155,8 @@ describe('dsh-qq-skin client apply', () => {
     const ctx = new Context()
     ctx.provide('theme', { overrideTokens: vi.fn(() => vi.fn()) } as unknown as ThemeRuntime)
     ctx.provide('configForms', { get } as never)
-    ctx.provide('slots', { inject: () => {}, register: () => () => {} } as never)
-    ctx.provide('locale', { register: () => () => {} } as never)
+    ctx.provide('slots', { inject: vi.fn(), register: vi.fn() } as never)
+    ctx.provide('locale', { register: vi.fn() } as never)
 
     apply(ctx as never)
 
@@ -141,40 +197,28 @@ describe('dsh-qq-skin client apply', () => {
   })
 
   it('writes settings fields back through the config form', () => {
-    const host = stubConfigForm()
-    let injected: Record<string, (value: never) => void> | undefined
-    const ctx = new Context()
-    ctx.provide('theme', { overrideTokens: vi.fn(() => vi.fn()) } as unknown as ThemeRuntime)
-    ctx.provide('configForms', { get: () => host.form } as never)
-    ctx.provide('slots', {
-      inject: (_: string, thunk: () => () => void) => { thunk() },
-      register: (options: { inject: (actions: never) => Record<string, (value: never) => void> }) => {
-        injected = options.inject({ sync: vi.fn() } as never)
-        return () => {}
-      },
-    } as never)
-    ctx.provide('locale', { register: () => () => {} } as never)
+    // 插件页配置卡片是唯一写入口:宿主把整节快照推过来,adopt 合并
+    // (settingsToConfig)后驱动两层——token 层换色板,布局层换宽度。
+    const nodes = stubDocument()
+    const overrideTokens = vi.fn(() => vi.fn())
+    const { ctx, host } = makeCtx(overrideTokens)
 
     apply(ctx as never)
-    injected!.setPalette!('green' as never)
-    injected!.setChatMaxWidth!(640 as never)
-    injected!.setAvatarSize!(32 as never)
-    injected!.setSoundVariant!('waterdrop' as never)
-    injected!.setSoundVolume!(0.5 as never)
-    injected!.setRemindOnlyWhenUnfocused!(true as never)
-    injected!.setWindowShake!(true as never)
-    injected!.setFrostedGlass!(true as never)
+    host.push({ palette: 'green', chatMaxWidth: 640, avatarSize: 32 })
 
-    expect(host.written).toEqual([
-      ['palette', 'green'],
-      ['chatMaxWidth', 640],
-      ['avatarSize', 32],
-      ['soundVariant', 'waterdrop'],
-      ['soundVolume', 0.5],
-      ['remindOnlyWhenUnfocused', true],
-      ['windowShake', true],
-      ['frostedGlass', true],
-    ])
+    expect(overrideTokens).toHaveBeenLastCalledWith(QQ_SKIN_SOURCE, buildTokenOverrides('green'))
+    expect(nodes[0].textContent).toContain('max-width: 640px')
+  })
+
+  it('adopts plugin-page config edits by rebuilding the token layer', () => {
+    // 插件页是唯一配置入口:表单变更(快照更新)必须热更新两层。
+    const overrideTokens = vi.fn(() => vi.fn())
+    const { ctx, host } = makeCtx(overrideTokens)
+
+    apply(ctx as never)
+    host.push({ palette: 'qqblue', chatMaxWidth: 940, frostedGlass: true })
+
+    expect(overrideTokens).toHaveBeenLastCalledWith(QQ_SKIN_SOURCE, buildTokenOverrides('qqblue'))
   })
 
   it('removes the layer through the effect cleanup on dispose', async () => {
@@ -197,8 +241,8 @@ describe('dsh-qq-skin client apply', () => {
     const ctx = new Context()
     ctx.provide('theme', { overrideTokens, setTheme } as unknown as ThemeRuntime)
     ctx.provide('configForms', { get: () => stubConfigForm().form } as never)
-    ctx.provide('slots', { inject: () => {}, register: () => () => {} } as never)
-    ctx.provide('locale', { register: () => () => {} } as never)
+    ctx.provide('slots', { inject: vi.fn(), register: vi.fn() } as never)
+    ctx.provide('locale', { register: vi.fn() } as never)
 
     apply(ctx as never)
     await ctx.fiber.dispose()
@@ -217,22 +261,12 @@ describe('dsh-qq-skin client apply', () => {
     expect(nodes[0].dataset.plugin).toBe(QQ_LAYOUT_PLUGIN)
   })
 
-  it('registers the QQ skin settings row entry', () => {
-    const register = vi.fn(() => () => {})
-    const ctx = new Context()
-    ctx.provide('theme', { overrideTokens: vi.fn(() => vi.fn()) } as unknown as ThemeRuntime)
-    ctx.provide('configForms', { get: () => stubConfigForm().form } as never)
-    ctx.provide('slots', {
-      inject: (_: string, thunk: () => () => void) => { thunk() },
-      register,
-    } as never)
-    ctx.provide('locale', { register: () => () => {} } as never)
-
-    apply(ctx as never)
-
-    expect(register).toHaveBeenCalledTimes(1)
-    const options = register.mock.calls[0]![0]
-    expect(options.id).toBe('qq-skin')
-    expect(options.name).toBe('settings.general.item')
+  it('keeps the local-image picker copy in both dictionaries', () => {
+    // 本地图片支持:选择/清除/错误文案双语齐全(typed register 已保证键集,
+    // 这里钉住可读性与键名,防止后续重命名悄悄破坏卡片)。
+    expect(zh['card.pickImage']).toContain('本地图片')
+    expect(zh['card.imageClear']).toContain('企鹅')
+    expect(zh['card.imageError']).toContain('图片')
+    expect(zh['card.imageSet']).toContain('保存')
   })
 })
