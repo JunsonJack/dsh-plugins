@@ -345,7 +345,8 @@ describe('QQ NT layout config branches', () => {
     // 尾巴改用 clip-path 绘制,阴影随之改用 filter: drop-shadow
     // (clip-path 会裁掉 box-shadow)。
     expect(QQ_LAYOUT_CSS).toContain('filter: drop-shadow(1px 2px 3px rgba(18, 122, 175, 0.18))')
-    expect(QQ_LAYOUT_CSS).toContain('body[data-ds-dark-theme] [data-message-bubble][data-message-bubble] {')
+    // 暗色降噪规则现在同时覆盖普通气泡与问题回执气泡(selector 列表)。
+    expect(QQ_LAYOUT_CSS).toMatch(/body\[data-ds-dark-theme\] \[data-message-bubble\]\[data-message-bubble\],\s*\nbody\[data-ds-dark-theme\] \[data-question-reply\] \[class\$='_bubble'\] \{/)
     expect(QQ_LAYOUT_CSS).toContain('0 4px 14px rgba(0, 0, 0, 0.30)')
   })
 
@@ -391,13 +392,47 @@ describe('QQ NT layout config branches', () => {
 
   it('targets the user bubble through the hash-independent data-message-bubble anchor', () => {
     // harness 的用户气泡类名是 `_bubble_1sgyj_1`(本地名在开头),
-    // `[class$='_bubble']` 从不命中 → 白字/圆角/尾巴全部失效。
-    // 气泡一律走 UserMessageBubble 透传的 data-message-bubble 属性。
-    expect(QQ_LAYOUT_CSS).not.toContain("[class$='_bubble']")
+    // 裸 `[class$='_bubble']` 对它从不命中 → 主气泡一律走 UserMessageBubble
+    // 透传的 data-message-bubble 属性;`[class$='_bubble']` 只允许出现在
+    // [data-question-reply] 作用域内(见问题回执气泡用例)。
+    expect(QQ_LAYOUT_CSS).not.toMatch(/(^|\n)\[class\$='_bubble'\]/)
     expect(QQ_LAYOUT_CSS).toContain('[data-message-bubble][data-message-bubble] {')
     // 重复属性选择器把特异度提到 (0,2,0),压过 harness 的 (0,1,0) 类规则。
     expect(QQ_LAYOUT_CSS).toContain('[data-message-bubble][data-message-bubble] :not(pre):not(pre *):not(code) {')
     expect(QQ_LAYOUT_CSS).toContain('[data-message-bubble][data-message-bubble]::after {')
+  })
+
+  it('styles the question-reply bubble through the data-question-reply scope', () => {
+    // QuestionReplyBubble(ask_user_question 的已回答批次)复用
+    // UserMessageBubble 却不透传 data-message-bubble(全 asar 该属性仅
+    // MessageItem 普通用户消息一处)→ 白字/圆角/尾巴锚打不到回执气泡,
+    // 品牌底上暗字不可读。行节点 data-question-reply(callId)是稳定独有
+    // 属性(活面板用的是 data-question-key/-scroll,不受影响);回执气泡
+    // 类名 BfLV8a_bubble 本地名在结尾,故 [class$='_bubble'] 仅在作用域内使用。
+    expect(QQ_LAYOUT_CSS).toContain("[data-question-reply] [class$='_bubble'] {")
+    expect(QQ_LAYOUT_CSS).toContain("[data-question-reply] [class$='_bubble'] :not(pre):not(pre *):not(code) {")
+    expect(QQ_LAYOUT_CSS).toContain("[data-question-reply] [class$='_bubble'] a {")
+    expect(QQ_LAYOUT_CSS).toMatch(/\[data-question-reply\] \[class\$='_bubble'\] \{[^}]*color: rgb\(255, 255, 255\)/)
+    // 回执气泡同样带尾巴(与普通用户气泡同观感)。
+    expect(QQ_LAYOUT_CSS).toMatch(/\[data-question-reply\] \[class\$='_bubble'\]::after \{[^}]*clip-path:/)
+    // 作用域守卫:不得出现更宽的 [data-question…] 作用域误伤活面板。
+    expect(QQ_LAYOUT_CSS).not.toMatch(/\[data-question(?!-reply)\]/)
+  })
+
+  it('qqblue palette gradients the question-reply bubble too', () => {
+    const qqblue = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, palette: 'qqblue' })
+    expect(qqblue).toMatch(/body:not\(\[data-ds-dark-theme\]\) \[data-question-reply\] \[class\$='_bubble'\] \{\s*background-image: linear-gradient\(135deg, rgb\(44, 110, 214\) 0%, rgb\(48, 95, 204\) 100%\);/)
+    // 渐变终点在右下角,尾巴必须同步到终点实色,否则接缝处有色差
+    // (普通气泡修过的同款 bug,见 targets-the-user-bubble 用例注释)。
+    expect(qqblue).toMatch(/body:not\(\[data-ds-dark-theme\]\) \[data-question-reply\] \[class\$='_bubble'\]::after \{\s*background: rgb\(48, 95, 204\);/)
+  })
+
+  it('keeps the question-reply bubble tail anchored and readable on the clean palette', () => {
+    // 尾巴是 ::after absolute 定位,容器必须有 position:relative;
+    // 简洁白暗色模式下回执气泡要和普通气泡一样回白字。
+    expect(QQ_LAYOUT_CSS).toMatch(/\[data-question-reply\] \[class\$='_bubble'\] \{[^}]*position: relative;/)
+    const cleanDark = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, palette: 'clean' })
+    expect(cleanDark).toMatch(/body\[data-ds-dark-theme\] \[data-question-reply\] \[class\$='_bubble'\],\s*body\[data-ds-dark-theme\] \[data-question-reply\] \[class\$='_bubble'\] :not\(pre\):not\(pre \*\):not\(code\) \{\s*color: rgb\(255, 255, 255\);/)
   })
 
   it('renders user bubbles solid with white text and inherited link color', () => {
