@@ -79,6 +79,8 @@ export interface QQSkinConfig {
   chatWallpaperDim: number
   /** 壁纸模糊 0~20px(0=清晰;QQ NT 风格的轻磨砂默认 0)。 */
   chatWallpaperBlur: number
+  /** 自定义消息提示音(data:audio/* URI;空串 = 用内置音色 soundVariant)。 */
+  customSound: string
 }
 
 /** 聊天流最大宽度边界限制(px),与宿主 schema 对齐。 */
@@ -107,6 +109,16 @@ export const WALLPAPER_DIM_MAX = 1
 /** 壁纸模糊边界(px):0(清晰)~20。 */
 export const WALLPAPER_BLUR_MIN = 0
 export const WALLPAPER_BLUR_MAX = 20
+
+/**
+ * 自定义提示音可接受的来源:
+ * - data:audio/* URI(内联,零网络依赖,推荐);
+ * - https:// 音频 URL(http:// 不收,避免混合内容与降级风险)。
+ */
+const CUSTOM_SOUND_DATA_URI = /^data:audio\//i
+const CUSTOM_SOUND_HTTPS = /^https:\/\/\S+$/i
+/** 自定义提示音数据上限(data URI 体积 512KB,对应原始音频约 384KB:base64 有 4/3 膨胀)。 */
+export const CUSTOM_SOUND_MAX_LENGTH = 512 * 1024
 
 /** HH:mm 时间格式(24 小时制,分钟允许 00/15/30/45 等任意 0~59)。 */
 const HHMM_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/
@@ -144,6 +156,7 @@ export const QQ_SKIN_DEFAULT_CONFIG: QQSkinConfig = {
   chatWallpaper: '',
   chatWallpaperDim: 0,
   chatWallpaperBlur: 0,
+  customSound: '',
 }
 
 /** 规范化十六进制色值:格式错误回落默认 #12B7F5,3位扩展为6位。 */
@@ -219,6 +232,15 @@ export function normalizeWallpaperDim(value: unknown): number {
 export function normalizeWallpaperBlur(value: unknown): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) return 0
   return Math.min(WALLPAPER_BLUR_MAX, Math.max(WALLPAPER_BLUR_MIN, Math.round(value)))
+}
+
+/** 规范化自定义提示音:仅接受 data:audio/* URI 或 https:// URL,其余回落空串(用内置音色)。 */
+export function normalizeCustomSound(value: unknown): string {
+  if (typeof value !== 'string') return ''
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  if (trimmed.length > CUSTOM_SOUND_MAX_LENGTH) return ''
+  return CUSTOM_SOUND_DATA_URI.test(trimmed) || CUSTOM_SOUND_HTTPS.test(trimmed) ? trimmed : ''
 }
 
 /**
@@ -308,5 +330,6 @@ export function resolveQQSkinConfig(config?: PartialQQSkinConfig): QQSkinConfig 
     chatWallpaper: normalizeWallpaperImage(raw.chatWallpaper),
     chatWallpaperDim: normalizeWallpaperDim(raw.chatWallpaperDim),
     chatWallpaperBlur: normalizeWallpaperBlur(raw.chatWallpaperBlur),
+    customSound: normalizeCustomSound(raw.customSound),
   }
 }

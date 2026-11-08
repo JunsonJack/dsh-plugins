@@ -242,6 +242,150 @@ describe('QQSoundRuntime', () => {
     void ctx.fiber.dispose()
   })
 
+  it('plays the custom sound through Audio instead of the synth when customSound is set', async () => {
+    const plays: Array<{ source: string; volume: number }> = []
+    // window.Audio 桩:记录实例化与 play 调用(自定义音效走 HTMLAudioElement)。
+    class FakeAudio {
+      volume = 1
+      play = vi.fn(() => {
+        plays.push({ source: this.source, volume: this.volume })
+        return Promise.resolve()
+      })
+      constructor(public source: string) {}
+    }
+    vi.stubGlobal('window', {
+      Audio: FakeAudio,
+      // 合成链路若被误走,这里会计数——断言它保持 0。
+      AudioContext: class {
+        constructor() { audioCtxs.push(this) }
+      },
+    })
+    const audioCtxs: unknown[] = []
+    const flowEl = { matches: () => false, querySelectorAll: () => [] }
+    const observers: Array<{ callback: MutationCallback }> = []
+    vi.stubGlobal('document', { querySelector: vi.fn(() => flowEl) })
+    vi.stubGlobal('MutationObserver', class {
+      callback: MutationCallback
+      observe = vi.fn()
+      disconnect = vi.fn()
+      constructor(cb: MutationCallback) { this.callback = cb; observers.push(this) }
+    })
+    class FakeElement {
+      matches: (sel: string) => boolean
+      querySelectorAll: (sel: string) => FakeElement[]
+      constructor(matches: (sel: string) => boolean, querySelectorAll: (sel: string) => FakeElement[]) {
+        this.matches = matches
+        this.querySelectorAll = querySelectorAll
+      }
+    }
+    vi.stubGlobal('Element', FakeElement)
+
+    const ctx = new Context()
+    const customUri = 'data:audio/mpeg;base64,AAAA'
+    new QQSoundRuntime(ctx, { ...soundOn, customSound: customUri, soundVolume: 0.6 })
+    const step = new FakeElement((sel) => sel === "[data-chat-flow-kind='assistant-step']", () => [])
+    await observers[0]!.callback([{ addedNodes: [step] } as unknown as MutationRecord], observers[0] as unknown as MutationObserver)
+    await vi.waitFor(() => { expect(plays.length).toBe(1) })
+    // 自定义音效生效:不走 Web Audio 合成,音量跟随 soundVolume,源就是配置的 URI。
+    expect(audioCtxs).toHaveLength(0)
+    expect(plays[0]!.source).toBe(customUri)
+    expect(plays[0]!.volume).toBe(0.6)
+    void ctx.fiber.dispose()
+  })
+
+  it('does not fall back to the synth when the custom sound fails to play', async () => {
+    // 播放失败(自动播放策略/解码失败)静默吞掉,绝不回落合成音。
+    class FakeAudio {
+      volume = 1
+      play = vi.fn(() => Promise.reject(new Error('NotAllowedError')))
+      constructor(_source: string) {}
+    }
+    vi.stubGlobal('window', {
+      Audio: FakeAudio,
+      AudioContext: class {
+        constructor() { audioCtxs.push(this) }
+      },
+    })
+    const audioCtxs: unknown[] = []
+    const flowEl = { matches: () => false, querySelectorAll: () => [] }
+    const observers: Array<{ callback: MutationCallback }> = []
+    vi.stubGlobal('document', { querySelector: vi.fn(() => flowEl) })
+    vi.stubGlobal('MutationObserver', class {
+      callback: MutationCallback
+      observe = vi.fn()
+      disconnect = vi.fn()
+      constructor(cb: MutationCallback) { this.callback = cb; observers.push(this) }
+    })
+    class FakeElement {
+      matches: (sel: string) => boolean
+      querySelectorAll: (sel: string) => FakeElement[]
+      constructor(matches: (sel: string) => boolean, querySelectorAll: (sel: string) => FakeElement[]) {
+        this.matches = matches
+        this.querySelectorAll = querySelectorAll
+      }
+    }
+    vi.stubGlobal('Element', FakeElement)
+
+    const ctx = new Context()
+    new QQSoundRuntime(ctx, { ...soundOn, customSound: 'data:audio/mpeg;base64,AAAA' })
+    const step = new FakeElement((sel) => sel === "[data-chat-flow-kind='assistant-step']", () => [])
+    // play() reject 已被运行时 catch 吞掉,等待一轮微任务确保没有后续合成调用。
+    await observers[0]!.callback([{ addedNodes: [step] } as unknown as MutationRecord], observers[0] as unknown as MutationObserver)
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(audioCtxs).toHaveLength(0)
+    void ctx.fiber.dispose()
+  })
+
+  it('pauses the previous custom sound before playing the next one (no overlap)', async () => {
+    const instances: FakeAudioInstance[] = []
+    class FakeAudio {
+      pause = vi.fn()
+      play = vi.fn(() => Promise.resolve())
+      constructor(_source: string) { instances.push(this) }
+    }
+    type FakeAudioInstance = InstanceType<typeof FakeAudio>
+    vi.stubGlobal('window', { Audio: FakeAudio })
+    const flowEl = { matches: () => false, querySelectorAll: () => [] }
+    const observers: Array<{ callback: MutationCallback }> = []
+    vi.stubGlobal('document', { querySelector: vi.fn(() => flowEl) })
+    vi.stubGlobal('MutationObserver', class {
+      callback: MutationCallback
+      observe = vi.fn()
+      disconnect = vi.fn()
+      constructor(cb: MutationCallback) { this.callback = cb; observers.push(this) }
+    })
+    class FakeElement {
+      matches: (sel: string) => boolean
+      querySelectorAll: (sel: string) => FakeElement[]
+      constructor(matches: (sel: string) => boolean, querySelectorAll: (sel: string) => FakeElement[]) {
+        this.matches = matches
+        this.querySelectorAll = querySelectorAll
+      }
+    }
+    vi.stubGlobal('Element', FakeElement)
+
+    const ctx = new Context()
+    const runtime = new QQSoundRuntime(ctx, { ...soundOn, customSound: 'data:audio/mpeg;base64,AAAA' })
+    // 两条不同的消息节点(运行时用 WeakSet 防同一节点重复触发)。
+    const stepA = new FakeElement((sel) => sel === "[data-chat-flow-kind='assistant-step']", () => [])
+    const stepB = new FakeElement((sel) => sel === "[data-chat-flow-kind='assistant-step']", () => [])
+    const fire = (step: FakeElement) => observers[0]!.callback([{ addedNodes: [step] } as unknown as MutationRecord], observers[0] as unknown as MutationObserver)
+    // 第一条消息起播;冷却 800ms 后第二条消息应先停掉前一个实例再播新实例。
+    await fire(stepA)
+    await vi.waitFor(() => { expect(instances.length).toBe(1) })
+    // 直接把系统时间推过冷却窗(运行时用的是 Date.now(),无需 mock 定时器)。
+    vi.setSystemTime(Date.now() + 900)
+    await fire(stepB)
+    await vi.waitFor(() => { expect(instances.length).toBe(2) })
+    // 第二次触发前已 pause 掉第一个实例;dispose 再 pause 第二个实例。
+    // 第二次触发时 playCustomSound 先 pause 的是第一个实例(customAudio 仍指向它);
+    // dispose 时 customAudio 已指向第二个实例,所以 pause 落在新实例上。
+    expect(instances[0]!.pause).toHaveBeenCalledTimes(1)
+    expect(instances[1]!.pause).toHaveBeenCalledTimes(0)
+    runtime.dispose()
+    expect(instances[1]!.pause).toHaveBeenCalledTimes(1)
+  })
+
   it('silences sound when multiple assistant steps mount in batch (history restore)', () => {
     let flow: Element | null = null
     const observers: Array<{ callback: MutationCallback }> = []

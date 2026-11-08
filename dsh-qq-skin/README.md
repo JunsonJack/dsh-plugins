@@ -39,7 +39,8 @@ Options persist under the `qq-skin` namespace in the profile config document (sc
 | `chatMaxWidth` | `880` | Max width of the chat flow (px, clamped between 480 and 1600) |
 | `messageSound` | `false` | Master switch for synthesized audio prompt on new assistant message (zero network/asset dependency, muted on history load) |
 | `sendSound` | `false` | Immediate audio feedback on sent user message (synthesized upward chirp) |
-| `soundVariant` | `'beep'` | Audio theme: `beep` Classic 6-beep pager / `waterdrop` Crisp water droplet / `knock` Two-tap wooden door knock |
+| `soundVariant` | `'beep'` | Audio theme: `beep` Classic 6-beep pager / `waterdrop` Crisp water droplet / `knock` Two-tap wooden door knock (yielded when a custom sound is set) |
+| `customSound` | `''` | Custom assistant sound: local audio file (mp3/wav/ogg/m4a etc., picked on the card and stored as a data URI, 512KB cap) or https audio URL (empty = built-in synth tone); when set it takes precedence over `soundVariant` and follows `soundVolume` |
 | `soundVolume` | `1` | Sound volume (0–1, 1 = full synthesized level; applies to both the assistant sound and the sent sound) |
 | `remindOnlyWhenUnfocused` | `false` | Remind only when unfocused: keep the window silent for new messages while it is visible, and only chime/shake when it is hidden or minimized (classic QQ habit) |
 | `quietHoursStart` / `quietHoursEnd` | `''` / `''` | Do-not-disturb window (24-hour `HH:mm`, both ends required; overnight ranges like `22:00`→`08:00` work, and all sounds/shakes stay silent inside the window) |
@@ -64,6 +65,7 @@ Example (set in the profile's plugin config):
   "messageSound": true,
   "sendSound": true,
   "soundVariant": "waterdrop",
+  "customSound": "",
   "windowShake": true,
   "frostedGlass": true,
   "typing": true,

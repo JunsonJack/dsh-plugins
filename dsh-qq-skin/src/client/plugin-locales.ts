@@ -49,6 +49,7 @@ export type QQSkinPluginKey =
   | 'row.sendSound'
   | 'row.soundVariant'
   | 'row.soundVolume'
+  | 'row.customSound'
   | 'row.remindOnlyWhenUnfocused'
   | 'row.quietHours'
   | 'sound.beep'
@@ -63,6 +64,10 @@ export type QQSkinPluginKey =
   | 'row.wallpaperBlur'
   | 'card.wallpaperPick'
   | 'card.wallpaperClear'
+  | 'card.soundPick'
+  | 'card.soundClear'
+  | 'card.soundSet'
+  | 'card.soundError'
   | 'divider.today'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -110,6 +115,7 @@ export const zh: Record<QQSkinPluginKey, string> = {
   'row.sendSound': '发送消息反馈音',
   'row.soundVariant': '提示声音色',
   'row.soundVolume': '提示音音量',
+  'row.customSound': '自定义音效',
   'row.remindOnlyWhenUnfocused': '仅失焦时提醒',
   'row.quietHours': '免打扰时段',
   'sound.beep': '经典寻呼机',
@@ -124,6 +130,10 @@ export const zh: Record<QQSkinPluginKey, string> = {
   'row.wallpaperBlur': '模糊',
   'card.wallpaperPick': '选择壁纸…',
   'card.wallpaperClear': '移除壁纸',
+  'card.soundPick': '选择本地音效…',
+  'card.soundClear': '恢复内置音色',
+  'card.soundSet': '已选择本地音效,保存后生效。',
+  'card.soundError': '音频读取失败,请换一个文件。',
   'divider.today': '今天',
 }
 
@@ -165,6 +175,7 @@ export const en: Record<QQSkinPluginKey, string> = {
   'row.sendSound': 'Sent sound',
   'row.soundVariant': 'Sound tone',
   'row.soundVolume': 'Sound volume',
+  'row.customSound': 'Custom sound',
   'row.remindOnlyWhenUnfocused': 'Remind only when unfocused',
   'row.quietHours': 'Quiet hours',
   'sound.beep': 'Classic Pager',
@@ -179,5 +190,9 @@ export const en: Record<QQSkinPluginKey, string> = {
   'row.wallpaperBlur': 'Blur',
   'card.wallpaperPick': 'Pick wallpaper…',
   'card.wallpaperClear': 'Remove wallpaper',
+  'card.soundPick': 'Pick local sound…',
+  'card.soundClear': 'Restore built-in tone',
+  'card.soundSet': 'Local sound picked; takes effect after Save.',
+  'card.soundError': 'Failed to read the audio; try another file.',
   'divider.today': 'Today',
 }

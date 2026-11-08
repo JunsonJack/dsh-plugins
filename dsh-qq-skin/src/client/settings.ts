@@ -50,6 +50,7 @@ export interface QQSkinSettings {
   chatWallpaper?: string | undefined
   chatWallpaperDim?: number | undefined
   chatWallpaperBlur?: number | undefined
+  customSound?: string | undefined
 }
 
 /**
@@ -87,5 +88,6 @@ export function settingsToConfig(
     chatWallpaper: s.chatWallpaper ?? fallback?.chatWallpaper,
     chatWallpaperDim: s.chatWallpaperDim ?? fallback?.chatWallpaperDim,
     chatWallpaperBlur: s.chatWallpaperBlur ?? fallback?.chatWallpaperBlur,
+    customSound: s.customSound ?? fallback?.customSound,
   })
 }

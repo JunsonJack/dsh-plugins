@@ -91,7 +91,7 @@ function sameConfig(left: QQSkinConfig, right: QQSkinConfig): boolean {
 }
 
 /** 音效运行时消费的字段:其余字段(色板/宽度/尾巴…)变更不必重建观察链。 */
-const SOUND_CONFIG_FIELDS = ['messageSound', 'sendSound', 'soundVariant', 'soundVolume', 'remindOnlyWhenUnfocused', 'quietHoursStart', 'quietHoursEnd', 'windowShake'] as const
+const SOUND_CONFIG_FIELDS = ['messageSound', 'sendSound', 'soundVariant', 'soundVolume', 'remindOnlyWhenUnfocused', 'quietHoursStart', 'quietHoursEnd', 'windowShake', 'customSound'] as const
 
 /** 两份配置的音效相关字段是否等价(等价时跳过音效链重建)。 */
 function sameSoundConfig(left: QQSkinConfig, right: QQSkinConfig): boolean {

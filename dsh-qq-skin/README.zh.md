@@ -39,7 +39,8 @@
 | `chatMaxWidth` | `880` | 聊天流最大宽度（px，约束在 480～1600 之间） |
 | `messageSound` | `false` | 新助手消息提示音总开关（Web Audio 纯合成，零外部资源依赖，历史加载静音保护） |
 | `sendSound` | `false` | 用户发送消息即时反馈音（Web Audio 纯合成清脆正弦轻响，补齐交互闭环） |
-| `soundVariant` | `'beep'` | 提示声音效类型：`beep` 经典寻呼机 6-beep / `waterdrop` 灵动清脆水滴 / `knock` 经典两声敲门 |
+| `soundVariant` | `'beep'` | 提示声音效类型：`beep` 经典寻呼机 6-beep / `waterdrop` 灵动清脆水滴 / `knock` 经典两声敲门（设置自定义音效后此选择让位） |
+| `customSound` | `''` | 自定义提示音：本地音效文件（mp3/wav/ogg/m4a 等，卡片选择后存为 data URI，上限 512KB）或 https 音频 URL（空 = 用内置合成音色）；非空时优先于 `soundVariant`，音量跟随 `soundVolume` |
 | `soundVolume` | `1` | 提示音音量（0~1，1 = 原始合成音量；同时作用于消息提示音与发送反馈音） |
 | `remindOnlyWhenUnfocused` | `false` | 仅失焦提醒：窗口在前台时新消息保持安静，失焦/最小化时才发声与抖动（QQ 经典习惯） |
 | `quietHoursStart` / `quietHoursEnd` | `''` / `''` | 免打扰时段（24 小时制 `HH:mm`，两端都填才生效；支持跨午夜如 `22:00`→`08:00`，时段内提示音/发送音/抖动全部静默） |
@@ -64,6 +65,7 @@
   "messageSound": true,
   "sendSound": true,
   "soundVariant": "waterdrop",
+  "customSound": "",
   "windowShake": true,
   "frostedGlass": true,
   "typing": true,

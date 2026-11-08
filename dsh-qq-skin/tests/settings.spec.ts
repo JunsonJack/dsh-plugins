@@ -13,7 +13,7 @@ describe('QQ skin settings', () => {
       chatMaxWidth: 880, messageSound: false, sendSound: false, soundVariant: 'beep',
       soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
       windowShake: false, frostedGlass: false, typing: true, timeDivider: true,
-      chatWallpaper: '', chatWallpaperDim: 0, chatWallpaperBlur: 0,
+      chatWallpaper: '', chatWallpaperDim: 0, chatWallpaperBlur: 0, customSound: '',
     })
   })
 
@@ -26,7 +26,7 @@ describe('QQ skin settings', () => {
       chatMaxWidth: 720, messageSound: false, sendSound: false, soundVariant: 'waterdrop',
       soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
       windowShake: false, frostedGlass: false, typing: true, timeDivider: true,
-      chatWallpaper: '', chatWallpaperDim: 0, chatWallpaperBlur: 0,
+      chatWallpaper: '', chatWallpaperDim: 0, chatWallpaperBlur: 0, customSound: '',
     })
   })
 
@@ -39,7 +39,7 @@ describe('QQ skin settings', () => {
       chatMaxWidth: 640, messageSound: false, sendSound: false, soundVariant: 'beep',
       soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
       windowShake: true, frostedGlass: false, typing: true, timeDivider: true,
-      chatWallpaper: '', chatWallpaperDim: 0, chatWallpaperBlur: 0,
+      chatWallpaper: '', chatWallpaperDim: 0, chatWallpaperBlur: 0, customSound: '',
     })
   })
 
@@ -97,6 +97,16 @@ describe('QQ skin settings', () => {
     expect(settingsToConfig({ soundVolume: -0.2 }).soundVolume).toBe(0)
     expect(settingsToConfig({ soundVolume: Number.NaN }).soundVolume).toBe(1)
     expect(settingsToConfig(undefined, { soundVolume: 0.6 }).soundVolume).toBe(0.6)
+  })
+
+  it('customSound flows through settings and rejects invalid sources', () => {
+    expect(settingsToConfig({ customSound: 'data:audio/mpeg;base64,SUQzBAAAAA' }).customSound).toBe('data:audio/mpeg;base64,SUQzBAAAAA')
+    expect(settingsToConfig({ customSound: 'https://example.com/ding.mp3' }).customSound).toBe('https://example.com/ding.mp3')
+    expect(settingsToConfig({ customSound: 'http://insecure.example/ding.mp3' }).customSound).toBe('')
+    expect(settingsToConfig({ customSound: 'data:text/html;base64,PGI+' }).customSound).toBe('')
+    expect(settingsToConfig({ customSound: `data:audio/wav;base64,${'A'.repeat(600 * 1024)}` }).customSound).toBe('')
+    expect(settingsToConfig({ customSound: '   ' }).customSound).toBe('')
+    expect(settingsToConfig(undefined, { customSound: 'data:audio/ogg;base64,T2dnUw' }).customSound).toBe('data:audio/ogg;base64,T2dnUw')
   })
 
   it('remindOnlyWhenUnfocused flows through settings and rejects non-boolean', () => {

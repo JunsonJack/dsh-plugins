@@ -71,6 +71,8 @@ export interface Config {
   chatWallpaperDim: Volatile<number>
   /** 壁纸模糊 0~20px(0=清晰)。 */
   chatWallpaperBlur: Volatile<number>
+  /** 自定义消息提示音(data:audio/* URI 或 https URL;空 = 内置音色)。 */
+  customSound: Volatile<string>
 }
 
 /** 设置分节 schema:宿主校验条目配置、设置面板渲染表单共用。 */
@@ -98,4 +100,5 @@ export const Config = z.object({
   chatWallpaper: z.string().default('').volatile(),
   chatWallpaperDim: z.number().min(0).max(1).default(0).volatile(),
   chatWallpaperBlur: z.number().min(0).max(20).default(0).volatile(),
+  customSound: z.string().default('').volatile(),
 })

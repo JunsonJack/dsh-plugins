@@ -38,8 +38,10 @@ import {
   AVATAR_SIZE_MIN,
   CHAT_MAX_WIDTH_MAX,
   CHAT_MAX_WIDTH_MIN,
+  CUSTOM_SOUND_MAX_LENGTH,
   DEFAULT_AVATAR_SIZE,
   DEFAULT_CUSTOM_COLOR,
+  normalizeCustomSound,
   QQ_AVATAR_STYLES,
   QQ_SKIN_DENSITIES,
   QQ_SKIN_PALETTES,
@@ -533,6 +535,74 @@ function WallpaperImagePicker({ t, onPicked, onError }: {
   )
 }
 
+/**
+ * 本地音频文件 → data URI(FileReader 原样转码,不重采样):
+ * 浏览器 <audio> 支持 mp3/wav/ogg/m4a/flac 等,直接透传给解码器。
+ */
+function readLocalSound(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => { reject(new Error('file read failed')) }
+    reader.onload = () => { resolve(String(reader.result ?? '')) }
+    reader.readAsDataURL(file)
+  })
+}
+
+/** 本地音效选择按钮:与壁纸选择器同链路(不做缩图,只查 MIME 与体积)。 */
+function SoundPicker({ t, onPicked, onError, onClear, hasSound }: {
+  t: (key: QQSkinPluginKey) => string
+  onPicked: (dataUri: string) => void
+  onError: () => void
+  onClear: () => void
+  hasSound: boolean
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const [busy, setBusy] = useState(false)
+  return (
+    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/flac,audio/aac,audio/*"
+        style={{ display: 'none' }}
+        onChange={event => {
+          const file = event.currentTarget.files?.[0]
+          event.currentTarget.value = ''
+          if (file === undefined) return
+          setBusy(true)
+          readLocalSound(file).then(dataUri => {
+            setBusy(false)
+            // 与运行时 normalizeCustomSound 同规则:前缀不符(如
+            // application/octet-stream 误标)或超限一律拒收,避免
+            // "保存后静默失效"。
+            if (normalizeCustomSound(dataUri) === '' || dataUri.length > CUSTOM_SOUND_MAX_LENGTH) {
+              onError()
+              return
+            }
+            onPicked(dataUri)
+          }).catch(() => {
+            setBusy(false)
+            onError()
+          })
+        }}
+      />
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => { inputRef.current?.click() }}
+        style={discardButtonStyle}
+      >
+        {t('card.soundPick')}
+      </button>
+      {hasSound && (
+        <button type="button" onClick={onClear} style={discardButtonStyle}>
+          {t('card.soundClear')}
+        </button>
+      )}
+    </span>
+  )
+}
+
 /** 数值输入(失焦/回车提交,聚焦描边):值域钳制由调用方的 commit 完成。 */
 function NumberField({ value, focused, onFocusChange, onChange, onCommit, width, min, max, step }: {
   value: string
@@ -800,14 +870,23 @@ function QQSkinEditor({ t, config, revision, writable, mutate }: {
     edit('avatarCustomImage', dataUri)
   }
 
+  /** 本地音效选中:data URI 落草稿(随「保存」一并写入)。 */
+  const pickLocalSound = (dataUri: string): void => {
+    setSoundError(false)
+    edit('customSound', dataUri)
+  }
+
   // 本地图片读取失败提示(下一次任何编辑或重新选择时清除)。
   const [imageError, setImageError] = useState(false)
   const [wallpaperError, setWallpaperError] = useState(false)
+  const [soundError, setSoundError] = useState(false)
   const imageIsLocal = (draft.avatarCustomImage ?? '').startsWith('data:image/')
+  const soundIsLocal = (draft.customSound ?? '').startsWith('data:audio/')
 
   const showColor = (draft.palette ?? 'classic') === 'custom'
   const showAvatarFields = (draft.assistantAvatar ?? true)
   const showVariant = (draft.messageSound ?? false)
+  const showCustomSound = (draft.messageSound ?? false)
   const showVolume = (draft.messageSound ?? false) || (draft.sendSound ?? false)
   const showWallpaper = (draft.chatWallpaper ?? '').trim() !== ''
 
@@ -1022,6 +1101,22 @@ function QQSkinEditor({ t, config, revision, writable, mutate }: {
             options={QQ_SKIN_SOUND_VARIANTS.map(variant => ({ id: variant, label: t(SOUND_VARIANT_LABEL_KEYS[variant]) }))}
             onChange={id => { edit('soundVariant', id as QQSkinSoundVariant) }}
           />
+        </div>
+      )}
+
+      {/* 自定义音效:开启消息提示音时展开;data:audio/* 优先于内置音色 */}
+      {showCustomSound && (
+        <div style={{ ...fieldRowStyle, alignItems: 'flex-start', flexDirection: 'column', gap: '6px' }}>
+          <span style={fieldLabelStyle}>{t('row.customSound')}</span>
+          <SoundPicker
+            t={t}
+            hasSound={(draft.customSound ?? '') !== ''}
+            onPicked={pickLocalSound}
+            onError={() => { setSoundError(true) }}
+            onClear={() => { setSoundError(false); edit('customSound', '') }}
+          />
+          {soundError && <span style={{ ...captionStyle, color: 'var(--dsw-alias-state-error-primary)' }}>{t('card.soundError')}</span>}
+          {soundIsLocal && !soundError && <span style={captionStyle}>{t('card.soundSet')}</span>}
         </div>
       )}
 
