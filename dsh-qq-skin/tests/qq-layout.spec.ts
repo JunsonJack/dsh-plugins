@@ -108,6 +108,20 @@ describe('QQ NT layout config branches', () => {
     expect(off).not.toContain(avatarRule)
   })
 
+  it('assistant card tail mirrors the bubble tail and follows the avatar switch', () => {
+    const tailRule = "[data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root']::after"
+    expect(QQ_LAYOUT_CSS).toContain(tailRule)
+    // 左尾巴 = 右尾巴的水平镜像:clip-path 的 x 坐标翻转到另一侧,
+    // 尖端(100% 100%)落在左下角,阴影方向同样翻成向左。
+    expect(QQ_LAYOUT_CSS).toContain('clip-path: polygon(100.0% 0.0%,')
+    expect(QQ_LAYOUT_CSS).toContain('filter: drop-shadow(-1px 2px 3px')
+    // 头像关闭时尾巴一并停用(尾巴指向头像,没有头像的尾巴是断箭)。
+    const off = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, assistantAvatar: false })
+    expect(off).not.toContain(tailRule)
+    // 卡片本体需要 position:relative 作为 ::after 的定位锚。
+    expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {\n  position: relative;")
+  })
+
   it('chat flow width follows the config value', () => {
     expect(QQ_LAYOUT_CSS).toContain(`max-width: ${QQ_SKIN_DEFAULT_CONFIG.chatMaxWidth}px`)
     const narrow = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, chatMaxWidth: 720 })

@@ -34,7 +34,7 @@
 | `avatarCustomImage` | `''` | 自定义助手头像图片（插件页卡片可「选择本地图片…」——缩图后以 data URI 持久化；或填 `https://` 图片链接；设置后完全替代企鹅与装扮层，清空恢复官方企鹅） |
 | `avatarSize` | `22` | 助手头像尺寸（px，16~40；气泡让位随尺寸自动换算，大头像不会顶歪文字） |
 | `bubbleTail` | `true` | 用户气泡右侧"尾巴"小三角 |
-| `assistantAvatar` | `true` | 助手消息左侧官方 QQ 企鹅头像圆标 |
+| `assistantAvatar` | `true` | 助手消息左侧官方 QQ 企鹅头像圆标；同时联动助手卡片左下角的 QQ 弧形尾巴（形状与用户气泡右尾巴水平镜像，投影取色板主色），关头像即一并收起尾巴 |
 | `chatMaxWidth` | `880` | 聊天流最大宽度（px，约束在 480～1600 之间） |
 | `messageSound` | `false` | 新助手消息提示音总开关（Web Audio 纯合成，零外部资源依赖，历史加载静音保护） |
 | `sendSound` | `false` | 用户发送消息即时反馈音（Web Audio 纯合成清脆正弦轻响，补齐交互闭环） |

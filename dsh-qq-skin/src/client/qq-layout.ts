@@ -124,6 +124,21 @@ function tailClipPolygon(): string {
 }
 
 /**
+ * 尾巴形状的水平镜像:坐标 x → 100 - x,弧形小勾翻到左下角,
+ * 尖端指向左侧头像 —— 助手消息卡片(QQ"对方消息")的左尾巴。
+ */
+function tailClipPolygonMirrored(): string {
+  const points = tailClipPolygon()
+    .slice('polygon('.length, -'polygon)'.length)
+    .split(', ')
+    .map(pair => {
+      const [x, y] = pair.split(' ')
+      return `${(100 - Number.parseFloat(x ?? '0')).toFixed(1)}% ${y ?? '0%'}`
+    })
+  return `polygon(${points.join(', ')})`
+}
+
+/**
  * 用户气泡"尾巴"(默认开启时注入,QQ 右侧指向头像的小三角)。
  * @param tailShadow - 尾巴投影的主色 RGB。
  * @param tailBackground - 尾巴底色(与气泡一致;QQ蓝为渐变)。
@@ -198,6 +213,30 @@ function timeDividerRule(): string {
   flex: 1;
   height: 1px;
   background: var(--dsw-alias-border-l1);
+}
+`
+}
+
+/**
+ * 助手卡片左尾巴:QQ"对方消息"的弧形小勾,贴在卡片左下角指向头像。
+ * 与用户气泡右尾巴同款形状(水平镜像);底色跟随卡片 token(bg-layer-1),
+ * 投影取色板主色,与头像光晕同一色源。头像关闭时尾巴一并停用 ——
+ * 尾巴指向头像,没有头像的尾巴是断箭。
+ */
+function assistantTailRule(tailShadow: [number, number, number]): string {
+  const shadow = `${tailShadow[0]}, ${tailShadow[1]}, ${tailShadow[2]}`
+  return `
+[data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root']::after {
+  content: '';
+  position: absolute;
+  left: -6px;
+  bottom: 2px;
+  width: 16px;
+  height: 16px;
+  background: var(--dsw-alias-bg-layer-1);
+  clip-path: ${tailClipPolygonMirrored()};
+  filter: drop-shadow(-1px 2px 3px rgba(${shadow}, 0.18));
+  pointer-events: none;
 }
 `
 }
@@ -463,6 +502,7 @@ ${reducedMotionRule()}
    卡片 padding-top 12px + Think 行高 24px 垂直居中:12 + 12 - 11 = 13。 */
 ${assistantAvatar ? avatarRule(config.avatarStyle, glow, config.avatarCustomImage, config.avatarSize) : ''}
 [data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {
+  position: relative;
   border-radius: 16px 16px 16px 6px;
   padding: 12px 16px;
   background: var(--dsw-alias-bg-layer-1);
@@ -471,6 +511,7 @@ ${assistantAvatar ? avatarRule(config.avatarStyle, glow, config.avatarCustomImag
     0 1px 2px rgba(15, 23, 42, 0.04),
     0 4px 14px rgba(15, 23, 42, 0.05);
 }
+${assistantAvatar ? assistantTailRule(shadow) : ''}
 ${typing ? typingRule() : ''}
 ${timeDivider ? timeDividerRule() : ''}
 

@@ -34,7 +34,7 @@ Options persist under the `qq-skin` namespace in the profile config document (sc
 | `avatarCustomImage` | `''` | Custom assistant avatar image (the plugin-page card offers "Pick local image…" — the picture is downscaled and persisted as a data URI; or an `https://` image URL; when set it fully replaces the penguin and its decoration layers, clearing it restores the official penguin) |
 | `avatarSize` | `22` | Assistant avatar size in px (16~40; the bubble shifts by the same amount so larger avatars stay aligned) |
 | `bubbleTail` | `true` | Small triangular "tail" on the right of user bubbles |
-| `assistantAvatar` | `true` | Official QQ-penguin avatar disc left of assistant messages |
+| `assistantAvatar` | `true` | Official QQ-penguin avatar disc left of assistant messages; it also drives the mirrored QQ tail at the assistant card's bottom-left corner (same arc shape flipped horizontally, shadow tinted by the palette), and turning the avatar off tucks the tail away too |
 | `chatMaxWidth` | `880` | Max width of the chat flow (px, clamped between 480 and 1600) |
 | `messageSound` | `false` | Master switch for synthesized audio prompt on new assistant message (zero network/asset dependency, muted on history load) |
 | `sendSound` | `false` | Immediate audio feedback on sent user message (synthesized upward chirp) |
