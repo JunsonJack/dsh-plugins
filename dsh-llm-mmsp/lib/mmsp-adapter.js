@@ -24,8 +24,16 @@ import {
   isQuotaExceededError,
   normalizeApiKey,
 } from '@deepseek-ai/dsh-llm';
-import { MmspStreamDecoder, MMSP_OPAQUE_ERROR, buildMmspRequest, thinkingLevelsForModel } from './mmsp-protocol.js';
+import {
+  MmspStreamDecoder,
+  MMSP_OPAQUE_ERROR,
+  buildMmspRequest,
+  parseHeaders,
+  thinkingLevelsForModel,
+} from './mmsp-protocol.js';
 import { isKeyFault } from './key-pool.js';
+
+export { parseHeaders };
 
 /** 插件名，用于错误前缀。 */
 const PKG = 'mmsp';
@@ -105,11 +113,36 @@ export class MmspAdapter extends LlmAdapter {
    * @param {(message: string) => void} [options.warn] - 诊断输出。
    * @param {number} [options.modelsTimeoutMs] - 模型目录超时。
    * @param {() => boolean} [options.thinkingSummary] - 是否请求思考摘要（每次请求现读，可热改）。
+   * @param {() => string} [options.resolveBaseURL] - 动态获取上游根地址（可热改）。
+   * @param {(() => unknown) | unknown} [options.customHeaders] - 自定义请求头（可热改）。
    */
   constructor(options) {
     super();
     this.options = options;
-    this.baseURL = options.baseURL.replace(/\/+$/, '');
+  }
+
+  /**
+   * MMSP 服务端根地址。
+   * 支持通过 options.resolveBaseURL 动态读取最新配置，改动即时生效。
+   *
+   * @returns {string} 归一化后的 Base URL。
+   */
+  get baseURL() {
+    const base = this.options.resolveBaseURL?.() ?? this.options.baseURL ?? DEFAULT_BASE_URL;
+    return String(base).replace(/\/+$/, '');
+  }
+
+  /**
+   * 当前生效的自定义请求头。
+   * 每次请求时动态计算，支持热更新。
+   *
+   * @returns {Record<string, string>}
+   */
+  customHeaders() {
+    const raw = typeof this.options.customHeaders === 'function'
+      ? this.options.customHeaders()
+      : this.options.customHeaders;
+    return parseHeaders(raw);
   }
 
   /**
@@ -226,6 +259,7 @@ export class MmspAdapter extends LlmAdapter {
       for (const candidate of candidates) {
         const checked = normalizeApiKey(candidate.value);
         if (!checked.ok) continue;
+        const custom = this.customHeaders();
         const response = await fetch(`${this.baseURL}/api/v1/models`, {
           method: 'GET',
           redirect: 'error',
@@ -235,6 +269,7 @@ export class MmspAdapter extends LlmAdapter {
             accept: 'application/json',
             authorization: `Bearer ${checked.value}`,
             'x-api-key': checked.value,
+            ...custom,
           },
         });
         if (!response.ok) {
@@ -368,6 +403,7 @@ export class MmspAdapter extends LlmAdapter {
         continue;
       }
 
+      const custom = this.customHeaders();
       let response;
       try {
         response = await fetch(`${this.baseURL}/api/v1/stream`, {
@@ -380,6 +416,7 @@ export class MmspAdapter extends LlmAdapter {
             accept: 'text/event-stream',
             authorization: `Bearer ${checked.value}`,
             'x-api-key': checked.value,
+            ...custom,
           },
           body: JSON.stringify(payload),
         });

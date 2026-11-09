@@ -118,6 +118,11 @@ window.__ModuleLoader__.load({
       thinkingSummaryOn: '显示思考过程（推荐）',
       thinkingSummaryOff: '不显示思考过程',
       thinkingSummaryHint: '开启后向 MMSP 请求思考摘要。Gemini 系不开就只计费、看不到思考；开启不会增加 token。',
+      advanced: '高级设置',
+      advancedHint: '配置自定义上游根地址与请求头（在拉取模型列表与流式推理时自动注入）。',
+      headers: '自定义请求头',
+      headersPlaceholder: 'X-Custom-Header: value\n# 支持每行一个 Header: Value 或 JSON 字典',
+      headersHint: '格式：每行一条 Header-Name: Header-Value（支持 # 注释），或直接输入 JSON 字典。保存后热生效。',
     };
 
     const en = {
@@ -187,6 +192,11 @@ window.__ModuleLoader__.load({
       thinkingSummaryOn: 'Show the reasoning (recommended)',
       thinkingSummaryOff: 'Hide the reasoning',
       thinkingSummaryHint: 'Requests a thinking summary from MMSP. Without it the Gemini family bills thoughts but returns none; enabling it adds no tokens.',
+      advanced: 'Advanced Settings',
+      advancedHint: 'Configure custom upstream baseURL and request headers (injected into model listing and streaming requests).',
+      headers: 'Custom Headers',
+      headersPlaceholder: 'X-Custom-Header: value\n# One Header: Value per line or a JSON object',
+      headersHint: 'Format: one Header-Name: Header-Value per line (with # comments), or a JSON dictionary. Applies live on save.',
     };
 
     /**
@@ -254,6 +264,15 @@ window.__ModuleLoader__.load({
         background: 'var(--dsw-alias-settings-card-fill)',
         color: 'var(--dsw-alias-label-primary)',
         font: 'inherit', fontSize: '13px',
+      },
+      textarea: {
+        boxSizing: 'border-box', width: '100%', minHeight: '88px', padding: '8px 10px',
+        border: '0.5px solid var(--dsw-alias-border-l3)',
+        borderRadius: 'var(--dsw-radius-md)',
+        background: 'var(--dsw-alias-settings-card-fill)',
+        color: 'var(--dsw-alias-label-primary)',
+        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+        fontSize: '12px', lineHeight: '18px', resize: 'vertical',
       },
       row: { display: 'flex', alignItems: 'center', gap: '8px' },
       primary: {
@@ -396,6 +415,24 @@ window.__ModuleLoader__.load({
     }
 
     /**
+     * 从表单快照读自定义请求头配置（转为编辑文本）。
+     *
+     * @param {object | undefined} snapshot - 表单快照。
+     * @returns {string} 多行或 JSON 格式的字符串。
+     */
+    function headersOf(snapshot) {
+      const value = snapshot?.value;
+      if (value === null || typeof value !== 'object') return '';
+      const raw = Reflect.get(value, 'headers');
+      if (raw === null || raw === undefined) return '';
+      if (typeof raw === 'string') return raw;
+      if (typeof raw === 'object' && !Array.isArray(raw)) {
+        return Object.entries(raw).map(([k, v]) => `${k}: ${v}`).join('\n');
+      }
+      return '';
+    }
+
+    /**
      * 从表单快照读出密钥表（保序 —— 顺序就是优先级）。
      *
      * @param {object | undefined} snapshot - 表单快照。
@@ -514,10 +551,11 @@ window.__ModuleLoader__.load({
         useCallback(() => (typeof form?.store?.getSnapshot === 'function' ? form.store.getSnapshot() : undefined), [form]),
       );
 
-      const [draft, setDraft] = useState({ provider: '', baseURL: '', apiKeyEnv: '' });
+      const [draft, setDraft] = useState({ provider: '', baseURL: '', apiKeyEnv: '', headers: '' });
       const [busy, setBusy] = useState(false);
       const [notice, setNotice] = useState(undefined);
       const [touched, setTouched] = useState(false);
+      const [advancedOpen, setAdvancedOpen] = useState(false);
 
       // 思考摘要开关。与 `draft` 分开：它是布尔，控件类型也不同。
       const [draftSummary, setDraftSummary] = useState(true);
@@ -537,6 +575,7 @@ window.__ModuleLoader__.load({
         //    删掉这里会让第 546 行的 `.length` 抛 TypeError → 整个组件崩 →
         //    表单空白（`active: false`）。这是踩过的坑。
         apiKeyEnv: fieldOf(snapshot, 'apiKeyEnv'),
+        headers: headersOf(snapshot),
       };
       const effectiveKeys = keysOf(snapshot);
       const effectiveStrategy = strategyOf(snapshot);
@@ -545,9 +584,14 @@ window.__ModuleLoader__.load({
 
       useEffect(() => {
         if (touched || snapshot === undefined) return;
-        setDraft({ provider: effective.provider, baseURL: effective.baseURL, apiKeyEnv: effective.apiKeyEnv });
+        setDraft({
+          provider: effective.provider,
+          baseURL: effective.baseURL,
+          apiKeyEnv: effective.apiKeyEnv,
+          headers: effective.headers,
+        });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [touched, snapshot, effective.provider, effective.baseURL, effective.apiKeyEnv]);
+      }, [touched, snapshot, effective.provider, effective.baseURL, effective.apiKeyEnv, effective.headers]);
 
       useEffect(() => {
         if (touched || snapshot === undefined) return;
@@ -566,6 +610,7 @@ window.__ModuleLoader__.load({
       const dirty = draft.provider !== effective.provider
         || draft.baseURL !== effective.baseURL
         || draft.apiKeyEnv !== effective.apiKeyEnv
+        || draft.headers !== effective.headers
         || draftSummary !== effectiveSummary;
       const keysDirty = JSON.stringify(draftKeys) !== JSON.stringify(effectiveKeys)
         || draftStrategy !== effectiveStrategy;
@@ -620,6 +665,10 @@ window.__ModuleLoader__.load({
           if (draft.baseURL !== effective.baseURL) await form.set('baseURL', draft.baseURL);
           if (draft.apiKeyEnv !== effective.apiKeyEnv) {
             await form.set('apiKeyEnv', draft.apiKeyEnv.length > 0 ? draft.apiKeyEnv : undefined);
+          }
+          if (draft.headers !== effective.headers) {
+            const val = draft.headers.trim();
+            await form.set('headers', val.length > 0 ? val : null);
           }
           if (draftSummary !== effectiveSummary) await form.set('thinkingSummary', draftSummary);
           setTouched(false);
@@ -696,6 +745,44 @@ window.__ModuleLoader__.load({
               h('option', { value: 'off' }, t('thinkingSummaryOff')),
             ),
             h('p', { style: S.hint }, t('thinkingSummaryHint')),
+          ),
+
+          // 高级设置折叠区
+          h('div', {
+            style: {
+              borderTop: '0.5px solid var(--dsw-alias-border-l3)',
+              paddingTop: '10px',
+              marginTop: '4px',
+            },
+          },
+            h('div', {
+              style: {
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                userSelect: 'none',
+              },
+              onClick: () => setAdvancedOpen((prev) => !prev),
+            },
+              h('span', { style: { fontSize: '13px', fontWeight: 500 } },
+                `${advancedOpen ? '▾' : '▸'} ${t('advanced')}`,
+              ),
+              h('span', { style: S.hint }, advancedOpen ? '' : t('advancedHint')),
+            ),
+            advancedOpen ? h('div', { style: { ...S.field, marginTop: '10px' } },
+              h('label', { style: S.label }, t('headers')),
+              h('textarea', {
+                style: S.textarea,
+                value: draft.headers,
+                spellCheck: false,
+                autoComplete: 'off',
+                disabled: !hasForm || !writable || busy,
+                placeholder: t('headersPlaceholder'),
+                onChange: (event) => edit('headers', event.target.value),
+              }),
+              h('p', { style: S.hint }, t('headersHint')),
+            ) : null,
           ),
 
           h('div', { style: S.row },

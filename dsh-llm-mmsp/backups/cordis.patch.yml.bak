@@ -1,0 +1,36 @@
+# dsh-llm-mmsp —— bundle 补丁层。
+#
+# 本文件由 bundle 的 `dsh.bundle.patch` 指向，DSH loader 会自动加载它，
+# 并向 loader 条目表插入下面这一行。
+#
+# ⚠️ 重要：**不要再**把 `- id: mmsp` 写进用户自己的 `cordis.patch.yml`，
+#    否则会产生两条同 id 的 loader entry，DSH 启动时直接校验失败：
+#    `duplicate loader entry id "mmsp" (2 rows)`
+#
+# 用户要改配置（换上游、换密钥引用、指定模型目录）时，改**本行**的
+# `config`，或者在 profile 的 patch 里**按 id 覆盖**本行：
+#
+# ```yaml
+# - id: mmsp
+#   config:
+#     baseURL: https://go.penguin.ooo
+#     apiKeyEnv: MMSP_API_KEY
+# ```
+- insert:
+    - id: mmsp
+      name: dsh-llm-mmsp
+      config:
+        provider: mmsp
+        baseURL: https://go.penguin.ooo
+        # 单密钥模式（keys 为空时用它，兼容老配置）：
+        apiKeyEnv: MMSP_API_KEY
+        # 多密钥池：数组顺序 = 优先级，靠前优先。
+        # 留空则退回上面的单密钥模式。密钥值在 DSH 凭据库，这里只有引用名。
+        keys: []
+        # round-robin = 每次请求换下一个；priority = 只用最靠前的。
+        keyStrategy: round-robin
+        # 是否向 MMSP 请求思考摘要（config.thinking_summary: true）。
+        # Gemini 系不传这个键就只计费 thoughts_tokens、不返回思考文本；
+        # 开摘要不增加 token，只是把已计费的思考暴露出来 ⇒ 默认 true。
+        # relay 只接受布尔值，写 "auto" 这类字符串会 400。
+        thinkingSummary: true
