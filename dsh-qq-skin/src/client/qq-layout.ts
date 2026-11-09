@@ -513,9 +513,10 @@ body[data-ds-dark-theme] [data-composer-card] {
      于是宽表容器被算成**比卡片还宽**(让它"溢出到气泡之外"),
      `margin-left:-lead` + `padding-left:lead` 把左边补回来。
 
-   本插件的助手卡片与用户气泡都是 `overflow-x: hidden`(需求:普通文本块
-   不出现滚动条),于是 harness 这套"故意超出卡片"的宽表容器被裁掉右侧 →
-   用户看到的"少一列/少两列"(本轮要修的核心问题)。
+   本插件的助手卡片与用户气泡都不设 `overflow-x: hidden`——尾巴 ::after
+   要伸出卡片/气泡外侧 6px,设了会连尾巴一起裁掉(0.5.6 的回归)。
+   harness 这套"故意超出卡片"的宽表容器靠下面的变量归零 + width:100%
+   压回卡片内,容器保留 `overflow-x:auto` 承担横向滚动,一列不少。
 
    修复策略:
    1) 把 harness 的撑宽变量归零、宽度压回 100%、margin/padding 复位,
@@ -708,13 +709,14 @@ ${isClean ? '' : `
 }
 `}
 
-/* ── 卡片兜底:只做"防外溢",不产生滚动条 ─────────────────────────────
+/* ── 卡片兜底:宽度压回,不产生滚动条 ─────────────────────────────────
     需求:只有表格区域可以横向滚动;正常不溢出的文字块不应出现任何滚动条。
-    因此卡片用 overflow-x: hidden(裁掉溢出,不生成滚动条),而不是 auto;
-    长文本改为按词换行(break-word)而不是靠滚动查看。
-    代码块 pre 自带 overflow-x: auto,超长代码仍可在块内滚动。 */
+    ⚠ 卡片根不能设 overflow-x: hidden——尾巴 ::after 要伸出卡片左侧 6px,
+    设了会连尾巴一起裁掉(0.5.6 引入、0.5.7 修复的回归)。宽表靠
+    .md-table-wide 容器自身 overflow-x:auto 兜底;长文本按词换行
+    (break-word)而不是靠滚动查看;代码块 pre 自带 overflow-x: auto,
+    超长代码仍可在块内滚动。 */
 [data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {
-  overflow-x: hidden;
   max-width: 100%;
 }
 [data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] :not(pre):not(pre *):not(table):not(table *) {

@@ -381,9 +381,10 @@ describe('QQ NT layout config branches', () => {
 
   it('undoes the harness wide-table bleed so no column is cropped', () => {
     // harness 会用容器查询单位把 ≥4 列的宽表容器撑得比卡片更宽
-    // (--dsh-table-lead / --dsh-table-spare),而卡片是 overflow-x:hidden
-    // → 右侧列被裁掉。这里把撑宽变量与宽度复位,列一个不少,超宽时在
-    // 容器内横向滚动。
+    // (--dsh-table-lead / --dsh-table-spare)→ 宽表溢出卡片。这里把撑宽
+    // 变量与宽度复位,列一个不少,超宽时在容器内横向滚动(卡片根不设
+    // overflow-x: hidden——尾巴 ::after 伸出卡片外侧 6px,设了会连尾巴
+    // 一起裁掉)。
     expect(QQ_LAYOUT_CSS).toContain(".md-table-wide {")
     expect(QQ_LAYOUT_CSS).toContain('--dsh-table-lead: 0px')
     expect(QQ_LAYOUT_CSS).toContain('--dsh-table-spare: 0px')
@@ -407,9 +408,10 @@ describe('QQ NT layout config branches', () => {
   })
 
   it('never shows a scrollbar on ordinary text blocks', () => {
-    // 卡片与气泡只是"防外溢"(hidden),不产生滚动条;
-    // 只有 table 允许 overflow-x: auto。
-    expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {\n  overflow-x: hidden;")
+    // 卡片与气泡都不设 overflow-x: hidden——尾巴 ::after 要伸出卡片/气泡
+    // 外侧 6px,设了会连尾巴一起裁掉,且把 overflow-y 隐式变成 auto,
+    // 凭空多出纵向滚动条;只有 table 允许 overflow-x: auto。
+    expect(QQ_LAYOUT_CSS).not.toMatch(/\[data-chat-flow-kind='assistant-step'\] > \[data-slot\] > \[class\$='_root'\] \{[^}]*overflow-x: hidden/)
     // 气泡不能设 overflow-x: hidden——会裁掉伸出气泡的尾巴,且把 overflow-y
     // 隐式变成 auto,凭空多出纵向滚动条。
     expect(QQ_LAYOUT_CSS).not.toMatch(/\[data-message-bubble\]\[data-message-bubble\] \{[^}]*overflow-x: hidden/)
