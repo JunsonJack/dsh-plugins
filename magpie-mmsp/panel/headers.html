@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>MMSP 设置</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --fg: #1a1a1f;
+    --muted: #6b7280;
+    --line: rgba(0, 0, 0, .14);
+    --field: rgba(0, 0, 0, .04);
+    --accent: #477dfb;
+    --ok: #1a7f37;
+    --bad: #c0392b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fg: #e8e8ec;
+      --muted: #9aa0a6;
+      --line: rgba(255, 255, 255, .16);
+      --field: rgba(255, 255, 255, .06);
+      --ok: #4ac26b;
+      --bad: #ff6b6b;
+    }
+  }
+  /* 面板高度跟 <html> 走，别给固定高度 */
+  html, body { margin: 0; padding: 0; background: transparent; }
+  body {
+    font: 13px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Microsoft YaHei", sans-serif;
+    color: var(--fg);
+  }
+  .wrap { display: flex; flex-direction: column; gap: 10px; padding: 2px 0 4px; }
+  .head { display: flex; align-items: baseline; gap: 8px; }
+  .title { font-weight: 600; }
+  .row { display: flex; flex-direction: column; gap: 4px; }
+  .row > span { font-size: 12px; color: var(--muted); }
+  input, textarea {
+    font: inherit; color: inherit; background: var(--field);
+    border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; width: 100%; box-sizing: border-box;
+  }
+  textarea { resize: vertical; min-height: 74px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; }
+  input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .foot { display: flex; align-items: center; gap: 10px; }
+  button {
+    font: inherit; color: #fff; background: var(--accent); border: 0;
+    border-radius: 8px; padding: 5px 14px; cursor: pointer;
+  }
+  button[disabled] { opacity: .55; cursor: default; }
+  .note { font-size: 12px; color: var(--muted); }
+  .note[data-tone="ok"] { color: var(--ok); }
+  .note[data-tone="bad"] { color: var(--bad); }
+  .hint { margin: 0; font-size: 11.5px; color: var(--muted); }
+  code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 11.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <span class="title">MMSP 设置</span>
+  </div>
+
+  <label class="row">
+    <span>上游地址（留空用默认 https://go.penguin.ooo）</span>
+    <input id="base" spellcheck="false" placeholder="https://go.penguin.ooo">
+  </label>
+
+  <label class="row">
+    <span>自定义请求头（每行一条 <code>名称: 值</code>，也支持 JSON）</span>
+    <textarea id="headers" spellcheck="false" placeholder="x-example: 1&#10;x-another: abc"></textarea>
+  </label>
+
+  <div class="foot">
+    <button id="save">保存</button>
+    <span class="note" id="note"></span>
+  </div>
+
+  <p class="hint">
+    保存后对<strong>下一次请求</strong>立即生效。请求头经 <code>chat.headers</code> 钩子加到每个 MMSP 请求上，排在网关自身的头之后，所以能覆盖。
+  </p>
+  <p class="hint">
+    <code>authorization</code> 与 <code>content-type</code> 由插件接管，写在这里会被覆盖；逐跳头（如 <code>host</code>）不会转发。
+    这里存的是本插件的选项，和命令行 <code>magpie plugin options magpie-mmsp</code> 是同一份。
+  </p>
+</div>
+
+<script src="_magpie/bridge.js"></script>
+<script>
+  const $ = (sel) => document.querySelector(sel);
+  const note = $('#note');
+
+  function say(text, tone) {
+    note.textContent = text;
+    if (tone) note.dataset.tone = tone;
+    else delete note.dataset.tone;
+    clearTimeout(say.timer);
+    say.timer = setTimeout(() => { note.textContent = ''; delete note.dataset.tone; }, 2200);
+  }
+
+  function bridge() {
+    return typeof window.magpie === 'object' && window.magpie ? window.magpie : null;
+  }
+
+  async function load() {
+    const api = bridge();
+    if (!api || typeof api.options?.get !== 'function') {
+      say('拿不到插件选项：面板 bridge 不可用', 'bad');
+      return;
+    }
+    try {
+      const opts = (await api.options.get()) || {};
+      $('#base').value = typeof opts.baseURL === 'string' ? opts.baseURL : '';
+      $('#headers').value = typeof opts.headers === 'string' ? opts.headers : '';
+    } catch (err) {
+      say('读取失败：' + (err?.message || err), 'bad');
+    }
+  }
+
+  $('#save').addEventListener('click', async () => {
+    const api = bridge();
+    if (!api || typeof api.options?.set !== 'function') {
+      say('拿不到插件选项：面板 bridge 不可用', 'bad');
+      return;
+    }
+    const out = {
+      baseURL: $('#base').value.trim(),
+      headers: $('#headers').value.replace(/\r\n/g, '\n'),
+    };
+    const btn = $('#save');
+    btn.disabled = true;
+    try {
+      await api.options.set(out);
+      say('已保存，下一次请求生效', 'ok');
+    } catch (err) {
+      say('保存失败：' + (err?.message || err), 'bad');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // 先跟宿主握手（magpie.ready）：面板 10 秒内不 hello 会被判成「页面停止工作」。
+  // 握手失败或久等不来也照样把界面填上，最多是操作时提示 bridge 不可用。
+  (async () => {
+    try {
+      if (bridge()) await Promise.race([window.magpie.ready, new Promise((r) => setTimeout(r, 3000))]);
+    } catch {}
+    await load();
+  })();
+</script>
+</body>
+</html>
