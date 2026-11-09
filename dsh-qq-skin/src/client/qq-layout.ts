@@ -129,9 +129,9 @@ function tailClipPolygon(): string {
  */
 function tailClipPolygonMirrored(): string {
   // ⚠ 末尾只切掉一个 ")" —— 字符串以 ")" 结尾,不是 "polygon)"。
-  // 若按 'polygon)'.length 切 8 个字符,会把最后一个顶点的 y 值
-  // (" 100.0%")一并切掉,尾端从 (0,100%) 退化成 (0,0),整个多边形
-  // 塌成一条细缝,尾巴肉眼不可见(0.5.5 的回归,修于 0.5.6)。
+  // 若按 -'polygon)'.length 切 8 个字符,恰好把整个收口点 "0% 100%)"
+  // (正好 8 字符)一并切掉:镜像后多边形只剩弧线,首尾沿对角线直线闭合,
+  // 填色区域塌成一条细缝,尾巴肉眼不可见(0.5.5 回归,修于 0.5.6)。
   const points = tailClipPolygon()
     .slice('polygon('.length, -1)
     .split(', ')
