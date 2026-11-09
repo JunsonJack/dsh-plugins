@@ -41,6 +41,9 @@ const COOLDOWN_BY_VARIANT: Record<QQSkinSoundVariant, number> = {
   knock: 600,
 }
 
+/** 自定义提示音的防抖冷却时间(ms):统一取值,避免长音频拖住后续提醒。 */
+const CUSTOM_SOUND_COOLDOWN_MS = 800
+
 /**
  * 音效与提醒运行时:持有当前开关状态,管理 sentinel + flow 两个 observer。
  *
@@ -64,6 +67,8 @@ export class QQSoundRuntime {
   private lastSentPlayedTime = 0
   /** 复用的 AudioContext 实例,空闲时释放。 */
   private audioCtx: AudioContext | undefined
+  /** 最近一次自定义音效的 HTMLAudioElement,新消息到来时先停掉旧的防叠播。 */
+  private customAudio: HTMLAudioElement | undefined
   /** 自动关闭 AudioContext 的定时器。 */
   private closeTimer: ReturnType<typeof setTimeout> | undefined
   /** 窗口抖动定时器。 */
@@ -106,6 +111,8 @@ export class QQSoundRuntime {
   dispose(): void {
     this.disposeObserver()
     this.disposeSentinel()
+    this.customAudio?.pause()
+    this.customAudio = undefined
     this.disposeAudio()
     this.disposeShake()
   }
@@ -235,12 +242,16 @@ export class QQSoundRuntime {
 
     // 单条真实新消息:提示音播放与防抖冷却保护
     if (this.config.messageSound) {
-      const variant = this.config.soundVariant || 'beep'
-      const cooldown = COOLDOWN_BY_VARIANT[variant] ?? 1200
+      const custom = this.config.customSound
+      const cooldown = custom ? CUSTOM_SOUND_COOLDOWN_MS : COOLDOWN_BY_VARIANT[this.config.soundVariant] ?? 1200
       const now = Date.now()
       if (now - this.lastPlayedTime < cooldown) return
       this.lastPlayedTime = now
-      void this.playSound(variant)
+      if (custom) {
+        void this.playCustomSound(custom)
+      } else {
+        void this.playSound(this.config.soundVariant || 'beep')
+      }
     }
   }
 
@@ -333,6 +344,26 @@ export class QQSoundRuntime {
       }, 600)
     } catch {
       // 忽略自动播放策略拦截
+    }
+  }
+
+  /**
+   * 播放自定义提示音(data:audio/* URI 或 https 音频 URL)。
+   * 走 HTMLAudioElement(解码交给浏览器,格式覆盖 mp3/wav/ogg/m4a 等);
+   * 播放失败(自动播放策略/解码失败/元素不可用)静默吞掉——音效是
+   * 锦上添花,不回落合成音,避免"失败后突然换声"的突兀体验。
+   */
+  private async playCustomSound(source: string): Promise<void> {
+    if (typeof window === 'undefined' || typeof window.Audio !== 'function') return
+    try {
+      // 停掉上一条未播完的自定义音频,避免长铃声在新消息到来时叠播。
+      this.customAudio?.pause()
+      const audio = new window.Audio(source)
+      this.customAudio = audio
+      audio.volume = Math.min(1, Math.max(0, this.config.soundVolume))
+      await audio.play()
+    } catch {
+      // 自动播放策略拦截或解码失败,静默吞掉。
     }
   }
 

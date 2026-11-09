@@ -25,12 +25,20 @@ export const QQ_SKIN_SOUND_VARIANTS = ['beep', 'waterdrop', 'knock'] as const
 /** 提示声音色标识。 */
 export type QQSkinSoundVariant = (typeof QQ_SKIN_SOUND_VARIANTS)[number]
 
+/** 消息密度档位:normal=标准呼吸感,compact=紧凑(收紧行距与内边距)。 */
+export const QQ_SKIN_DENSITIES = ['normal', 'compact'] as const
+
+/** 消息密度档位标识。 */
+export type QQSkinDensity = (typeof QQ_SKIN_DENSITIES)[number]
+
 /** 用户可调配置。 */
 export interface QQSkinConfig {
   /** 色板变体。 */
   palette: QQSkinPalette
   /** 自定义主色十六进制色值(当 palette 为 custom 时生效,如 #12B7F5)。 */
   customColor: string
+  /** 消息密度:normal=标准,compact=紧凑单屏更多消息(默认 normal)。 */
+  density: QQSkinDensity
   /** 企鹅头像装扮(classic=经典, sunglasses=墨镜, scarf=围巾)。 */
   avatarStyle: QQAvatarStyle
   /** 自定义助手头像图片(URL 或 data:image/* URI;空串 = 用官方企鹅)。 */
@@ -63,6 +71,18 @@ export interface QQSkinConfig {
   frostedGlass: boolean
   /** 助手消息打字机揭示动效开关(默认开)。 */
   typing: boolean
+  /** 消息时间分隔条开关:跨天消息前插入 QQ 风格日期条(默认开)。 */
+  timeDivider: boolean
+  /** 聊天区壁纸(https URL 或 data:image/* URI;空串 = 关闭,默认关)。 */
+  chatWallpaper: string
+  /** 壁纸暗化程度 0~1(0=原亮度,1=全黑;便于阅读消息文字,默认 0)。 */
+  chatWallpaperDim: number
+  /** 壁纸模糊 0~20px(0=清晰;QQ NT 风格的轻磨砂默认 0)。 */
+  chatWallpaperBlur: number
+  /** 全窗沉浸:壁纸铺满整个窗口(侧栏/详情栏/输入区透出壁纸),而不是只铺会话区(默认关)。 */
+  wallpaperFull: boolean
+  /** 自定义消息提示音(data:audio/* URI;空串 = 用内置音色 soundVariant)。 */
+  customSound: string
 }
 
 /** 聊天流最大宽度边界限制(px),与宿主 schema 对齐。 */
@@ -85,6 +105,23 @@ export const SOUND_VOLUME_MAX = 1
 /** 免打扰时段默认值:空串 = 不启用。 */
 export const DEFAULT_QUIET_HOURS = ''
 
+/** 壁纸暗化边界:0(原亮度)~1(全黑)。 */
+export const WALLPAPER_DIM_MIN = 0
+export const WALLPAPER_DIM_MAX = 1
+/** 壁纸模糊边界(px):0(清晰)~20。 */
+export const WALLPAPER_BLUR_MIN = 0
+export const WALLPAPER_BLUR_MAX = 20
+
+/**
+ * 自定义提示音可接受的来源:
+ * - data:audio/* URI(内联,零网络依赖,推荐);
+ * - https:// 音频 URL(http:// 不收,避免混合内容与降级风险)。
+ */
+const CUSTOM_SOUND_DATA_URI = /^data:audio\//i
+const CUSTOM_SOUND_HTTPS = /^https:\/\/\S+$/i
+/** 自定义提示音数据上限(data URI 体积 512KB,对应原始音频约 384KB:base64 有 4/3 膨胀)。 */
+export const CUSTOM_SOUND_MAX_LENGTH = 512 * 1024
+
 /** HH:mm 时间格式(24 小时制,分钟允许 00/15/30/45 等任意 0~59)。 */
 const HHMM_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/
 
@@ -100,6 +137,7 @@ const AVATAR_IMAGE_HTTPS = /^https:\/\/\S+$/i
 export const QQ_SKIN_DEFAULT_CONFIG: QQSkinConfig = {
   palette: 'classic',
   customColor: DEFAULT_CUSTOM_COLOR,
+  density: 'normal',
   avatarStyle: 'classic',
   avatarCustomImage: '',
   bubbleTail: true,
@@ -116,6 +154,12 @@ export const QQ_SKIN_DEFAULT_CONFIG: QQSkinConfig = {
   windowShake: false,
   frostedGlass: false,
   typing: true,
+  timeDivider: true,
+  chatWallpaper: '',
+  chatWallpaperDim: 0,
+  chatWallpaperBlur: 0,
+  wallpaperFull: false,
+  customSound: '',
 }
 
 /** 规范化十六进制色值:格式错误回落默认 #12B7F5,3位扩展为6位。 */
@@ -176,6 +220,32 @@ export function normalizeAvatarImage(value: unknown): string {
   return AVATAR_IMAGE_DATA_URI.test(trimmed) || AVATAR_IMAGE_HTTPS.test(trimmed) ? trimmed : ''
 }
 
+/** 规范化聊天壁纸:与头像同规则(https 或 data:image/*),空串 = 关闭。 */
+export function normalizeWallpaperImage(value: unknown): string {
+  return normalizeAvatarImage(value)
+}
+
+/** 规范化壁纸暗化:非法回落 0,合法值钳制在 [0,1]。 */
+export function normalizeWallpaperDim(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0
+  return Math.min(WALLPAPER_DIM_MAX, Math.max(WALLPAPER_DIM_MIN, value))
+}
+
+/** 规范化壁纸模糊(px):非法回落 0,合法值钳制在 [0,20] 整数。 */
+export function normalizeWallpaperBlur(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0
+  return Math.min(WALLPAPER_BLUR_MAX, Math.max(WALLPAPER_BLUR_MIN, Math.round(value)))
+}
+
+/** 规范化自定义提示音:仅接受 data:audio/* URI 或 https:// URL,其余回落空串(用内置音色)。 */
+export function normalizeCustomSound(value: unknown): string {
+  if (typeof value !== 'string') return ''
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  if (trimmed.length > CUSTOM_SOUND_MAX_LENGTH) return ''
+  return CUSTOM_SOUND_DATA_URI.test(trimmed) || CUSTOM_SOUND_HTTPS.test(trimmed) ? trimmed : ''
+}
+
 /**
  * 判定"当前时刻"是否落在免打扰时段内(支持跨午夜,如 22:00→08:00)。
  * 起点或终点任一为空 = 功能未启用,返回 false。
@@ -218,6 +288,9 @@ export function resolveQQSkinConfig(config?: PartialQQSkinConfig): QQSkinConfig 
       ? (raw.palette as QQSkinPalette)
       : QQ_SKIN_DEFAULT_CONFIG.palette,
     customColor: normalizeHexColor(raw.customColor),
+    density: QQ_SKIN_DENSITIES.includes(raw.density as QQSkinDensity)
+      ? (raw.density as QQSkinDensity)
+      : QQ_SKIN_DEFAULT_CONFIG.density,
     avatarStyle: QQ_AVATAR_STYLES.includes(raw.avatarStyle as QQAvatarStyle)
       ? (raw.avatarStyle as QQAvatarStyle)
       : QQ_SKIN_DEFAULT_CONFIG.avatarStyle,
@@ -254,5 +327,31 @@ export function resolveQQSkinConfig(config?: PartialQQSkinConfig): QQSkinConfig 
     typing: typeof raw.typing === 'boolean'
       ? raw.typing
       : QQ_SKIN_DEFAULT_CONFIG.typing,
+    timeDivider: typeof raw.timeDivider === 'boolean'
+      ? raw.timeDivider
+      : QQ_SKIN_DEFAULT_CONFIG.timeDivider,
+    chatWallpaper: normalizeWallpaperImage(raw.chatWallpaper),
+    chatWallpaperDim: normalizeWallpaperDim(raw.chatWallpaperDim),
+    chatWallpaperBlur: normalizeWallpaperBlur(raw.chatWallpaperBlur),
+    wallpaperFull: typeof raw.wallpaperFull === 'boolean'
+      ? raw.wallpaperFull
+      : QQ_SKIN_DEFAULT_CONFIG.wallpaperFull,
+    customSound: normalizeCustomSound(raw.customSound),
   }
+}
+
+/**
+ * 主题导入的字段级合并:只归一化 JSON 中显式出现的键并并入基底,
+ * 未出现的键保持基底原值——导入不重置未提及的设置,保存时也不会把
+ * 未触碰字段钉进用户配置文档(与卡片保存的差异提交语义一致)。
+ */
+export function mergeQQSkinTheme(base: QQSkinConfig, patch: Record<string, unknown>): QQSkinConfig {
+  const resolved = resolveQQSkinConfig(patch)
+  const merged: Record<string, unknown> = { ...base }
+  for (const key of Object.keys(resolved)) {
+    if (key in patch) {
+      merged[key] = (resolved as unknown as Record<string, unknown>)[key]
+    }
+  }
+  return merged as unknown as QQSkinConfig
 }

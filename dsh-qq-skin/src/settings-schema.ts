@@ -14,9 +14,11 @@ import type { Volatile } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import {
   QQ_AVATAR_STYLES,
+  QQ_SKIN_DENSITIES,
   QQ_SKIN_PALETTES,
   QQ_SKIN_SOUND_VARIANTS,
   type QQAvatarStyle,
+  type QQSkinDensity,
   type QQSkinPalette,
   type QQSkinSoundVariant,
 } from './client/config.ts'
@@ -27,6 +29,8 @@ export interface Config {
   palette: Volatile<QQSkinPalette>
   /** 自定义主色十六进制色值(如 #12B7F5)。 */
   customColor: Volatile<string>
+  /** 消息密度:normal=标准,compact=紧凑(默认 normal)。 */
+  density: Volatile<QQSkinDensity>
   /** 企鹅头像装扮(classic=经典, sunglasses=墨镜, scarf=围巾)。 */
   avatarStyle: Volatile<QQAvatarStyle>
   /** 自定义助手头像图片(URL 或 data:image/* URI;空 = 官方企鹅)。 */
@@ -59,12 +63,25 @@ export interface Config {
   frostedGlass: Volatile<boolean>
   /** 助手消息打字机揭示动效开关(默认开)。 */
   typing: Volatile<boolean>
+  /** 消息时间分隔条开关:跨天消息前插入 QQ 风格日期条(默认开)。 */
+  timeDivider: Volatile<boolean>
+  /** 聊天区壁纸(https URL 或 data:image/* URI;空 = 关闭)。 */
+  chatWallpaper: Volatile<string>
+  /** 壁纸暗化程度 0~1(0=原亮度,1=全黑)。 */
+  chatWallpaperDim: Volatile<number>
+  /** 壁纸模糊 0~20px(0=清晰)。 */
+  chatWallpaperBlur: Volatile<number>
+  /** 全窗沉浸:壁纸铺满整个窗口,而不是只铺会话区。 */
+  wallpaperFull: Volatile<boolean>
+  /** 自定义消息提示音(data:audio/* URI 或 https URL;空 = 内置音色)。 */
+  customSound: Volatile<string>
 }
 
 /** 设置分节 schema:宿主校验条目配置、设置面板渲染表单共用。 */
 export const Config = z.object({
   palette: z.union([...QQ_SKIN_PALETTES]).default('classic').volatile(),
   customColor: z.string().default('#12B7F5').volatile(),
+  density: z.union([...QQ_SKIN_DENSITIES]).default('normal').volatile(),
   avatarStyle: z.union([...QQ_AVATAR_STYLES]).default('classic').volatile(),
   avatarCustomImage: z.string().default('').volatile(),
   bubbleTail: z.boolean().default(true).volatile(),
@@ -81,4 +98,10 @@ export const Config = z.object({
   windowShake: z.boolean().default(false).volatile(),
   frostedGlass: z.boolean().default(false).volatile(),
   typing: z.boolean().default(true).volatile(),
+  timeDivider: z.boolean().default(true).volatile(),
+  chatWallpaper: z.string().default('').volatile(),
+  chatWallpaperDim: z.number().min(0).max(1).default(0).volatile(),
+  chatWallpaperBlur: z.number().min(0).max(20).default(0).volatile(),
+  wallpaperFull: z.boolean().default(false).volatile(),
+  customSound: z.string().default('').volatile(),
 })

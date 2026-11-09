@@ -17,6 +17,7 @@ import {
   type PartialQQSkinConfig,
   type QQAvatarStyle,
   type QQSkinConfig,
+  type QQSkinDensity,
   type QQSkinPalette,
   type QQSkinSoundVariant,
 } from './config.ts'
@@ -28,6 +29,7 @@ export const QQ_SKIN_SETTINGS_NS = 'qq-skin'
 export interface QQSkinSettings {
   palette?: QQSkinPalette | undefined
   customColor?: string | undefined
+  density?: QQSkinDensity | undefined
   avatarStyle?: QQAvatarStyle | undefined
   avatarCustomImage?: string | undefined
   bubbleTail?: boolean | undefined
@@ -44,6 +46,12 @@ export interface QQSkinSettings {
   windowShake?: boolean | undefined
   frostedGlass?: boolean | undefined
   typing?: boolean | undefined
+  timeDivider?: boolean | undefined
+  chatWallpaper?: string | undefined
+  chatWallpaperDim?: number | undefined
+  chatWallpaperBlur?: number | undefined
+  wallpaperFull?: boolean | undefined
+  customSound?: string | undefined
 }
 
 /**
@@ -60,6 +68,7 @@ export function settingsToConfig(
   return resolveQQSkinConfig({
     palette: s.palette ?? fallback?.palette,
     customColor: s.customColor ?? fallback?.customColor,
+    density: s.density ?? fallback?.density,
     avatarStyle: s.avatarStyle ?? fallback?.avatarStyle,
     avatarCustomImage: s.avatarCustomImage ?? fallback?.avatarCustomImage,
     bubbleTail: s.bubbleTail ?? fallback?.bubbleTail,
@@ -76,5 +85,11 @@ export function settingsToConfig(
     windowShake: s.windowShake ?? fallback?.windowShake,
     frostedGlass: s.frostedGlass ?? fallback?.frostedGlass,
     typing: s.typing ?? fallback?.typing,
+    timeDivider: s.timeDivider ?? fallback?.timeDivider,
+    chatWallpaper: s.chatWallpaper ?? fallback?.chatWallpaper,
+    chatWallpaperDim: s.chatWallpaperDim ?? fallback?.chatWallpaperDim,
+    chatWallpaperBlur: s.chatWallpaperBlur ?? fallback?.chatWallpaperBlur,
+    wallpaperFull: s.wallpaperFull ?? fallback?.wallpaperFull,
+    customSound: s.customSound ?? fallback?.customSound,
   })
 }

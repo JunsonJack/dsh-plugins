@@ -16,6 +16,7 @@ import {
   buildMmspRequest,
   messagesToMmsp,
   normalizeToolCallId,
+  parseHeaders,
   thinkingLevelFor,
   thinkingLevelOf,
   thinkingLevelsForModel,
@@ -484,4 +485,55 @@ test('MmspStreamDecoder: stop 之后不再产出内容', () => {
   const decoder = new MmspStreamDecoder('m');
   decoder.feed({ event_type: 'stop', finish_reason: 'stop' });
   assert.deepEqual(decoder.feed({ event_type: 'delta', content_items: [{ type: 'text.delta', text: 'late' }] }), []);
+});
+
+test('parseHeaders: null / undefined / 空输入返回空对象', () => {
+  assert.deepEqual(parseHeaders(null), {});
+  assert.deepEqual(parseHeaders(undefined), {});
+  assert.deepEqual(parseHeaders(''), {});
+  assert.deepEqual(parseHeaders('   \n  \t '), {});
+});
+
+test('parseHeaders: 解析多行 Key: Value 文本', () => {
+  const input = `
+# 注释行应该被忽略
+// 另外一种注释
+X-Custom-Header: value123
+CF-Access-Client-Id: client-id-abc
+Authorization: Bearer secret-token
+  Custom-Trim:   spaced-value  
+EmptyVal:
+`;
+  const result = parseHeaders(input);
+  assert.equal(result['X-Custom-Header'], 'value123');
+  assert.equal(result['CF-Access-Client-Id'], 'client-id-abc');
+  assert.equal(result['Authorization'], 'Bearer secret-token');
+  assert.equal(result['Custom-Trim'], 'spaced-value');
+  assert.equal(result['EmptyVal'], '');
+});
+
+test('parseHeaders: 处理带冒号的 Value（如 URL）', () => {
+  const input = 'X-Callback: https://example.com/api?a=1:2';
+  const result = parseHeaders(input);
+  assert.equal(result['X-Callback'], 'https://example.com/api?a=1:2');
+});
+
+test('parseHeaders: 解析 JSON 文本格式', () => {
+  const input = JSON.stringify({
+    'X-Api-Key': 'key1',
+    'X-Version': '2.0',
+  });
+  const result = parseHeaders(input);
+  assert.equal(result['X-Api-Key'], 'key1');
+  assert.equal(result['X-Version'], '2.0');
+});
+
+test('parseHeaders: 直接传入对象输入', () => {
+  const input = {
+    'X-Header-A': 'alpha',
+    'X-Header-B': 42,
+  };
+  const result = parseHeaders(input);
+  assert.equal(result['X-Header-A'], 'alpha');
+  assert.equal(result['X-Header-B'], '42');
 });

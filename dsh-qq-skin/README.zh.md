@@ -22,6 +22,8 @@
 
 全部配置集中在**插件管理页的「QQ 皮肤」配置卡片**（插件自绘的 `plugins.row.config` 条目）：打开「插件」页 → 找到 QQ 皮肤 → 点「配置」即可可视化调整。卡片以草稿方式编辑，点「保存」才写入宿主配置文档（`ctx.configForms` 的 `qq-skin` 命名空间）并立即热更新（重挂两层，不重启）；「放弃」还原为已保存值。曾注册于 App 设置 General 区的「QQ 皮肤」设置行已自 0.4.7 起下线（配置项增多后收敛到插件页，避免设置面板拥挤）。
 
+卡片底部的「主题导入导出」：**导出**把当前草稿（含未保存修改）序列化为 JSON 并尝试写入剪贴板；**导入**按字段级合并套用到草稿——只应用 JSON 中显式出现的键（非法值回落默认），未提及的设置保持原值——点「保存」才真正写入。适合备份个人主题、在多个 profile 之间迁移配置。
+
 ## 配置
 
 配置以命名空间 `qq-skin` 持久化在 profile 配置文档中（默认值 → profile 配置 → 用户在插件页卡片的改写），未配置的字段回落默认值：
@@ -30,21 +32,28 @@
 | --- | --- | --- |
 | `palette` | `'classic'` | 色板变体：`classic` 经典蓝 / `vivid` 炫彩紫 / `clean` 简洁白（白底气泡 + 深色文字） / `green` 经典绿气泡 / `black` 深空黑 / `qqblue` QQ蓝（采样自 QQ NT 实色发送气泡 `#2E65D1`，四角均匀圆角，亮色带轻微 135° 渐变） / `custom` 自定义主色 |
 | `customColor` | `'#12B7F5'` | 自定义主色调（十六进制颜色，如 `#FF5722`）；当 `palette: 'custom'` 时所有品牌相关 token 全部跟随——按钮、链接文字、选中态 accent 以及 static blue/deepseek 整条刻度 |
+| `density` | `'normal'` | 消息密度：`normal` 标准呼吸感（宿主原样） / `compact` 紧凑（收紧行间距、气泡与卡片内边距、分隔条外边距，单屏容纳更多消息） |
 | `avatarStyle` | `'classic'` | 企鹅头像装扮：`classic` 经典原版 / `sunglasses` 酷炫墨镜 / `scarf` 暖冬红围巾（高精度 SVG 动态图层叠加） |
 | `avatarCustomImage` | `''` | 自定义助手头像图片（插件页卡片可「选择本地图片…」——缩图后以 data URI 持久化；或填 `https://` 图片链接；设置后完全替代企鹅与装扮层，清空恢复官方企鹅） |
 | `avatarSize` | `22` | 助手头像尺寸（px，16~40；气泡让位随尺寸自动换算，大头像不会顶歪文字） |
 | `bubbleTail` | `true` | 用户气泡右侧"尾巴"小三角 |
-| `assistantAvatar` | `true` | 助手消息左侧官方 QQ 企鹅头像圆标 |
+| `assistantAvatar` | `true` | 助手消息左侧官方 QQ 企鹅头像圆标；同时联动助手卡片左下角的 QQ 弧形尾巴（形状与用户气泡右尾巴水平镜像，投影取色板主色），关头像即一并收起尾巴 |
 | `chatMaxWidth` | `880` | 聊天流最大宽度（px，约束在 480～1600 之间） |
 | `messageSound` | `false` | 新助手消息提示音总开关（Web Audio 纯合成，零外部资源依赖，历史加载静音保护） |
 | `sendSound` | `false` | 用户发送消息即时反馈音（Web Audio 纯合成清脆正弦轻响，补齐交互闭环） |
-| `soundVariant` | `'beep'` | 提示声音效类型：`beep` 经典寻呼机 6-beep / `waterdrop` 灵动清脆水滴 / `knock` 经典两声敲门 |
+| `soundVariant` | `'beep'` | 提示声音效类型：`beep` 经典寻呼机 6-beep / `waterdrop` 灵动清脆水滴 / `knock` 经典两声敲门（设置自定义音效后此选择让位） |
+| `customSound` | `''` | 自定义提示音：本地音效文件（mp3/wav/ogg/m4a 等，卡片选择后存为 data URI，上限 512KB）或 https 音频 URL（空 = 用内置合成音色）；非空时优先于 `soundVariant`，音量跟随 `soundVolume` |
 | `soundVolume` | `1` | 提示音音量（0~1，1 = 原始合成音量；同时作用于消息提示音与发送反馈音） |
 | `remindOnlyWhenUnfocused` | `false` | 仅失焦提醒：窗口在前台时新消息保持安静，失焦/最小化时才发声与抖动（QQ 经典习惯） |
 | `quietHoursStart` / `quietHoursEnd` | `''` / `''` | 免打扰时段（24 小时制 `HH:mm`，两端都填才生效；支持跨午夜如 `22:00`→`08:00`，时段内提示音/发送音/抖动全部静默） |
 | `windowShake` | `false` | 助手新消息到来时轻微抖动聊天窗口（QQ 经典窗口抖动效果） |
 | `frostedGlass` | `false` | 侧边栏 / 右栏详情 / 输入框的毛玻璃玻璃面板(品牌色晕染渐变 + 半透明底 + 玻璃边缘光;输入卡额外 `blur(16px)` 背景模糊——三栏列不加 blur,避免破坏折叠按钮的 fixed 定位) |
 | `typing` | `true` | 助手消息打字机揭示动效开关 |
+| `timeDivider` | `true` | 消息时间分隔条：跨天消息前插入 QQ 风格居中日期条（当天显示「今天」，日期文本与宿主语言格式一致） |
+| `chatWallpaper` | `''` | 聊天区壁纸：https 图片 URL 或 data:image/* URI（空 = 关闭）；只铺当前会话区（含助手卡片与气泡之间的空隙），欢迎页不铺 |
+| `chatWallpaperDim` | `0` | 壁纸暗化 0~1（0=原亮度，1=全黑）：保证消息文字可读性 |
+| `chatWallpaperBlur` | `0` | 壁纸模糊 0~20px（0=清晰）：QQ NT 风格轻磨砂 |
+| `wallpaperFull` | `false` | 全窗沉浸：壁纸铺满整个窗口（侧栏/详情栏/输入区透出壁纸），而不是只铺会话区；毛玻璃开启时其半透明渐变叠加在壁纸上 |
 
 示例（在 profile 的插件配置里指定）：
 
@@ -52,15 +61,19 @@
 {
   "palette": "custom",
   "customColor": "#FF5722",
+  "density": "compact",
   "avatarStyle": "sunglasses",
   "bubbleTail": true,
   "chatMaxWidth": 880,
   "messageSound": true,
   "sendSound": true,
   "soundVariant": "waterdrop",
+  "customSound": "",
+  "wallpaperFull": false,
   "windowShake": true,
   "frostedGlass": true,
-  "typing": true
+  "typing": true,
+  "timeDivider": true
 }
 ```
 

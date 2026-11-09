@@ -22,6 +22,8 @@ The chat view in the Classic Blue palette: centered, narrowed chat flow, light-b
 
 All options live in the **QQ Skin config card on the Plugins page** (a plugin-drawn `plugins.row.config` entry): open the Plugins page → QQ Skin → Configure for visual toggles. The card edits a draft and only writes to the host config document (the `qq-skin` namespace of `ctx.configForms`) when you press Save, which hot-reloads both layers immediately; Discard restores the saved values. The **QQ Skin** settings row formerly registered in the App settings General section was retired in 0.4.7 (options converged onto the plugin page to keep the settings panel uncluttered).
 
+The **Theme import / export** block at the bottom of the card: **Export** serializes the current draft (including unsaved edits) as JSON and tries to copy it to the clipboard; **Import** merges the pasted JSON field by field onto the draft — only keys explicitly present in the JSON are applied (invalid values fall back to defaults), untouched settings keep their values — press Save to write it for real. Handy for backing up a personal theme or moving configuration between profiles.
+
 ## Configuration
 
 Options persist under the `qq-skin` namespace in the profile config document (schema defaults → profile config → user edits on the plugin-page card); unset fields fall back to defaults:
@@ -30,21 +32,28 @@ Options persist under the `qq-skin` namespace in the profile config document (sc
 | --- | --- | --- |
 | `palette` | `'classic'` | Palette variant: `classic` Classic Blue / `vivid` Vivid Purple / `clean` Clean White (white bubble with dark text) / `green` Green Bubble / `black` Deep Black / `qqblue` QQ Blue (sampled QQ NT outgoing-bubble blue `#2E65D1`, uniform corners, subtle 135° gradient in light mode) / `custom` Custom Accent Color |
 | `customColor` | `'#12B7F5'` | Hex custom brand color (e.g. `#FF5722`); when `palette: 'custom'` every brand-bound token follows it — buttons, links, selected accents, and the static blue/deepseek scales |
+| `density` | `'normal'` | Message density: `normal` standard spacing (host default) / `compact` tighter rows, bubble and card padding, and divider margins so more messages fit on screen |
 | `avatarStyle` | `'classic'` | Penguin avatar decoration: `classic` Original penguin / `sunglasses` Cool black sunglasses / `scarf` Warm winter red scarf |
 | `avatarCustomImage` | `''` | Custom assistant avatar image (the plugin-page card offers "Pick local image…" — the picture is downscaled and persisted as a data URI; or an `https://` image URL; when set it fully replaces the penguin and its decoration layers, clearing it restores the official penguin) |
 | `avatarSize` | `22` | Assistant avatar size in px (16~40; the bubble shifts by the same amount so larger avatars stay aligned) |
 | `bubbleTail` | `true` | Small triangular "tail" on the right of user bubbles |
-| `assistantAvatar` | `true` | Official QQ-penguin avatar disc left of assistant messages |
+| `assistantAvatar` | `true` | Official QQ-penguin avatar disc left of assistant messages; it also drives the mirrored QQ tail at the assistant card's bottom-left corner (same arc shape flipped horizontally, shadow tinted by the palette), and turning the avatar off tucks the tail away too |
 | `chatMaxWidth` | `880` | Max width of the chat flow (px, clamped between 480 and 1600) |
 | `messageSound` | `false` | Master switch for synthesized audio prompt on new assistant message (zero network/asset dependency, muted on history load) |
 | `sendSound` | `false` | Immediate audio feedback on sent user message (synthesized upward chirp) |
-| `soundVariant` | `'beep'` | Audio theme: `beep` Classic 6-beep pager / `waterdrop` Crisp water droplet / `knock` Two-tap wooden door knock |
+| `soundVariant` | `'beep'` | Audio theme: `beep` Classic 6-beep pager / `waterdrop` Crisp water droplet / `knock` Two-tap wooden door knock (yielded when a custom sound is set) |
+| `customSound` | `''` | Custom assistant sound: local audio file (mp3/wav/ogg/m4a etc., picked on the card and stored as a data URI, 512KB cap) or https audio URL (empty = built-in synth tone); when set it takes precedence over `soundVariant` and follows `soundVolume` |
 | `soundVolume` | `1` | Sound volume (0–1, 1 = full synthesized level; applies to both the assistant sound and the sent sound) |
 | `remindOnlyWhenUnfocused` | `false` | Remind only when unfocused: keep the window silent for new messages while it is visible, and only chime/shake when it is hidden or minimized (classic QQ habit) |
 | `quietHoursStart` / `quietHoursEnd` | `''` / `''` | Do-not-disturb window (24-hour `HH:mm`, both ends required; overnight ranges like `22:00`→`08:00` work, and all sounds/shakes stay silent inside the window) |
 | `windowShake` | `false` | Subtle window shake animation on incoming assistant message (QQ window nudge effect) |
 | `frostedGlass` | `false` | Tinted frosted-glass panels on the sidebar, right details column, and composer (brand-tint gradient + translucent base + glass-edge highlight; the composer also gets `blur(16px)` backdrop blur — columns stay blur-free so the fixed-positioned sidebar toggle keeps its window anchoring) |
 | `typing` | `true` | Assistant message typing reveal animation |
+| `timeDivider` | `true` | Message time dividers: insert a QQ-style centered date chip before the first message of each day ("Today" for the current day; date text follows the host locale format) |
+| `chatWallpaper` | `''` | Chat-area wallpaper: https image URL or data:image/* URI (empty = off); covers the active conversation area only, never the welcome page |
+| `chatWallpaperDim` | `0` | Wallpaper dim 0~1 (0 = original brightness, 1 = black) to keep message text readable |
+| `chatWallpaperBlur` | `0` | Wallpaper blur 0~20px (0 = sharp): the QQ NT frosted look |
+| `wallpaperFull` | `false` | Full-window immersion: the wallpaper covers the entire window (sidebar/detail/composer show it through) instead of the conversation area only; frosted-glass gradients stack on top when enabled |
 
 Example (set in the profile's plugin config):
 
@@ -52,15 +61,19 @@ Example (set in the profile's plugin config):
 {
   "palette": "custom",
   "customColor": "#FF5722",
+  "density": "compact",
   "avatarStyle": "sunglasses",
   "bubbleTail": true,
   "chatMaxWidth": 880,
   "messageSound": true,
   "sendSound": true,
   "soundVariant": "waterdrop",
+  "customSound": "",
+  "wallpaperFull": false,
   "windowShake": true,
   "frostedGlass": true,
-  "typing": true
+  "typing": true,
+  "timeDivider": true
 }
 ```
 

@@ -50,14 +50,15 @@ function stubSlots() {
   return { inject, register, injectedKeys, registered }
 }
 
-/** locale.register 的最小 stub:记录命名空间与字典。 */
+/** locale 的最小 stub:记录字典注册,bind 返回键名直译(apply 需要「今天」文案)。 */
 function stubLocale() {
   const registered: Array<{ ns: string; dicts: unknown }> = []
   const register = vi.fn((ns: string, dicts: unknown) => {
     registered.push({ ns, dicts })
     return () => {}
   })
-  return { register, registered }
+  const bind = vi.fn(() => (key: string) => key)
+  return { register, bind, registered }
 }
 
 /** 最小 ctx:theme + configForms stub,供 apply 走完全链。 */
@@ -72,7 +73,7 @@ function makeCtx(
   const slots = stubSlots()
   ctx.provide('slots', { inject: slots.inject, register: slots.register } as never)
   const locale = stubLocale()
-  ctx.provide('locale', { register: locale.register } as never)
+  ctx.provide('locale', { register: locale.register, bind: locale.bind } as never)
   return { ctx, overrideTokens, host, slots, locale }
 }
 
@@ -118,8 +119,8 @@ describe('dsh-qq-skin client apply', () => {
     expect(locale.registered[0].ns).toBe(QQ_SKIN_PLUGIN_NS)
     expect(zh['card.summary']).toContain('QQ')
     // typed register 保证键集一致;这里钉住数量,防止增删键时漏改字典。
-    expect(Object.keys(zh)).toHaveLength(41)
-    expect(Object.keys(en)).toHaveLength(41)
+    expect(Object.keys(zh)).toHaveLength(62)
+    expect(Object.keys(en)).toHaveLength(62)
   })
 
   it('stacks the QQ override layer on activation with the default palette', () => {
@@ -156,7 +157,7 @@ describe('dsh-qq-skin client apply', () => {
     ctx.provide('theme', { overrideTokens: vi.fn(() => vi.fn()) } as unknown as ThemeRuntime)
     ctx.provide('configForms', { get } as never)
     ctx.provide('slots', { inject: vi.fn(), register: vi.fn() } as never)
-    ctx.provide('locale', { register: vi.fn() } as never)
+    ctx.provide('locale', { register: vi.fn(), bind: vi.fn(() => (key: string) => key) } as never)
 
     apply(ctx as never)
 
@@ -242,7 +243,7 @@ describe('dsh-qq-skin client apply', () => {
     ctx.provide('theme', { overrideTokens, setTheme } as unknown as ThemeRuntime)
     ctx.provide('configForms', { get: () => stubConfigForm().form } as never)
     ctx.provide('slots', { inject: vi.fn(), register: vi.fn() } as never)
-    ctx.provide('locale', { register: vi.fn() } as never)
+    ctx.provide('locale', { register: vi.fn(), bind: vi.fn(() => (key: string) => key) } as never)
 
     apply(ctx as never)
     await ctx.fiber.dispose()
@@ -268,5 +269,16 @@ describe('dsh-qq-skin client apply', () => {
     expect(zh['card.imageClear']).toContain('企鹅')
     expect(zh['card.imageError']).toContain('图片')
     expect(zh['card.imageSet']).toContain('保存')
+  })
+
+  it('keeps the theme import/export copy in both dictionaries', () => {
+    // 主题导入导出:标题/两按钮/复制提示/导入错误双语齐全。
+    expect(zh['card.theme']).toContain('主题')
+    expect(zh['card.themeExport']).toContain('导出')
+    expect(zh['card.themeImport']).toContain('导入')
+    expect(zh['card.themeCopied']).toContain('剪贴板')
+    expect(zh['card.themeImportError']).toContain('JSON')
+    expect(en['card.theme']).toContain('Theme')
+    expect(en['card.themeImportError']).toContain('JSON')
   })
 })

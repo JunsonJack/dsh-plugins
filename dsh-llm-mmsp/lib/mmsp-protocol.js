@@ -994,3 +994,55 @@ export class MmspStreamDecoder {
     }
   }
 }
+
+/**
+ * 解析用户输入的自定义请求头配置。
+ *
+ * 支持两种输入格式：
+ * 1. 键值对象，例如 `{ "X-Custom": "val" }`；
+ * 2. 多行文本（每行一条 `Key: Value`，支持 `#` 或 `//` 注释），或者 JSON 文本。
+ *
+ * @param {unknown} raw - 原始配置值。
+ * @returns {Record<string, string>} 归一化的合法请求头字典。
+ */
+export function parseHeaders(raw) {
+  if (raw === null || raw === undefined) return {};
+  if (typeof raw === 'object' && !Array.isArray(raw)) {
+    const out = {};
+    for (const [key, val] of Object.entries(raw)) {
+      if (typeof key === 'string' && key.trim().length > 0 && val !== undefined && val !== null) {
+        out[key.trim()] = String(val).trim();
+      }
+    }
+    return out;
+  }
+  if (typeof raw !== 'string') return {};
+  const text = raw.trim();
+  if (text.length === 0) return {};
+
+  if (text.startsWith('{') && text.endsWith('}')) {
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parseHeaders(parsed);
+      }
+    } catch {
+      // 非 JSON 则降级按行解析
+    }
+  }
+
+  const out = {};
+  const lines = text.split(/\r?\n/);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.length === 0 || trimmed.startsWith('#') || trimmed.startsWith('//')) continue;
+    const colonIndex = trimmed.indexOf(':');
+    if (colonIndex <= 0) continue;
+    const key = trimmed.slice(0, colonIndex).trim();
+    const val = trimmed.slice(colonIndex + 1).trim();
+    if (key.length > 0) {
+      out[key] = val;
+    }
+  }
+  return out;
+}

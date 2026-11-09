@@ -33,6 +33,9 @@ export type QQSkinPluginKey =
   | 'palette.qqblue'
   | 'palette.custom'
   | 'row.customColor'
+  | 'row.density'
+  | 'density.normal'
+  | 'density.compact'
   | 'row.avatarStyle'
   | 'row.avatarCustomImage'
   | 'avatar.classic'
@@ -46,6 +49,7 @@ export type QQSkinPluginKey =
   | 'row.sendSound'
   | 'row.soundVariant'
   | 'row.soundVolume'
+  | 'row.customSound'
   | 'row.remindOnlyWhenUnfocused'
   | 'row.quietHours'
   | 'sound.beep'
@@ -54,6 +58,23 @@ export type QQSkinPluginKey =
   | 'row.windowShake'
   | 'row.frostedGlass'
   | 'row.typing'
+  | 'row.timeDivider'
+  | 'row.chatWallpaper'
+  | 'row.wallpaperDim'
+  | 'row.wallpaperBlur'
+  | 'row.wallpaperFull'
+  | 'card.wallpaperPick'
+  | 'card.wallpaperClear'
+  | 'card.soundPick'
+  | 'card.soundClear'
+  | 'card.soundSet'
+  | 'card.soundError'
+  | 'card.theme'
+  | 'card.themeExport'
+  | 'card.themeImport'
+  | 'card.themeCopied'
+  | 'card.themeImportError'
+  | 'divider.today'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -84,6 +105,9 @@ export const zh: Record<QQSkinPluginKey, string> = {
   'palette.qqblue': 'QQ蓝',
   'palette.custom': '自定义主色',
   'row.customColor': '主色调色盘',
+  'row.density': '消息密度',
+  'density.normal': '标准',
+  'density.compact': '紧凑',
   'row.avatarStyle': '企鹅装扮',
   'row.avatarCustomImage': '自定义头像',
   'avatar.classic': '经典企鹅',
@@ -97,6 +121,7 @@ export const zh: Record<QQSkinPluginKey, string> = {
   'row.sendSound': '发送消息反馈音',
   'row.soundVariant': '提示声音色',
   'row.soundVolume': '提示音音量',
+  'row.customSound': '自定义音效',
   'row.remindOnlyWhenUnfocused': '仅失焦时提醒',
   'row.quietHours': '免打扰时段',
   'sound.beep': '经典寻呼机',
@@ -105,6 +130,23 @@ export const zh: Record<QQSkinPluginKey, string> = {
   'row.windowShake': '窗口抖动提醒',
   'row.frostedGlass': '毛玻璃质感',
   'row.typing': '打字机效果',
+  'row.timeDivider': '时间分隔条',
+  'row.chatWallpaper': '聊天壁纸',
+  'row.wallpaperDim': '暗化',
+  'row.wallpaperBlur': '模糊',
+  'row.wallpaperFull': '全窗沉浸',
+  'card.wallpaperPick': '选择壁纸…',
+  'card.wallpaperClear': '移除壁纸',
+  'card.soundPick': '选择本地音效…',
+  'card.soundClear': '恢复内置音色',
+  'card.soundSet': '已选择本地音效,保存后生效。',
+  'card.soundError': '音频读取失败,请换一个文件。',
+  'card.theme': '主题导入导出',
+  'card.themeExport': '导出当前草稿',
+  'card.themeImport': '导入并套用到草稿',
+  'card.themeCopied': '已复制到剪贴板。',
+  'card.themeImportError': 'JSON 解析失败或内容为空,请检查粘贴的主题文本。',
+  'divider.today': '今天',
 }
 
 /** 英文文案。 */
@@ -129,6 +171,9 @@ export const en: Record<QQSkinPluginKey, string> = {
   'palette.qqblue': 'QQ Blue',
   'palette.custom': 'Custom Color',
   'row.customColor': 'Accent color',
+  'row.density': 'Density',
+  'density.normal': 'Standard',
+  'density.compact': 'Compact',
   'row.avatarStyle': 'Avatar style',
   'row.avatarCustomImage': 'Custom avatar',
   'avatar.classic': 'Classic',
@@ -142,6 +187,7 @@ export const en: Record<QQSkinPluginKey, string> = {
   'row.sendSound': 'Sent sound',
   'row.soundVariant': 'Sound tone',
   'row.soundVolume': 'Sound volume',
+  'row.customSound': 'Custom sound',
   'row.remindOnlyWhenUnfocused': 'Remind only when unfocused',
   'row.quietHours': 'Quiet hours',
   'sound.beep': 'Classic Pager',
@@ -150,4 +196,21 @@ export const en: Record<QQSkinPluginKey, string> = {
   'row.windowShake': 'Window shake',
   'row.frostedGlass': 'Frosted glass',
   'row.typing': 'Typing effect',
+  'row.timeDivider': 'Time dividers',
+  'row.chatWallpaper': 'Chat wallpaper',
+  'row.wallpaperDim': 'Dim',
+  'row.wallpaperBlur': 'Blur',
+  'row.wallpaperFull': 'Full-window wallpaper',
+  'card.wallpaperPick': 'Pick wallpaper…',
+  'card.wallpaperClear': 'Remove wallpaper',
+  'card.soundPick': 'Pick local sound…',
+  'card.soundClear': 'Restore built-in tone',
+  'card.soundSet': 'Local sound picked; takes effect after Save.',
+  'card.soundError': 'Failed to read the audio; try another file.',
+  'card.theme': 'Theme import / export',
+  'card.themeExport': 'Export current draft',
+  'card.themeImport': 'Import onto the draft',
+  'card.themeCopied': 'Copied to the clipboard.',
+  'card.themeImportError': 'JSON parsing failed or the text is empty; check the pasted theme.',
+  'divider.today': 'Today',
 }

@@ -107,6 +107,9 @@ export const Config = z.object({
   // deepseek 系本来就把原始思考流出来（无视该键），开与不开都一样。
   // relay 只接受**布尔值**：`"auto"` 这种字符串会 400（旧结论仍成立）。
   thinkingSummary: z.boolean().default(true).volatile(),
+  // ── 自定义请求头 ──────────────────────────────────────────────────────────
+  // 支持多行 Key: Value 或 JSON 文本，在发起模型目录与流式请求时合并注入。
+  headers: z.union([z.string(), z.const(null)]).default(null).volatile(),
 });
 
 /**
@@ -230,6 +233,15 @@ export function apply(ctx, config) {
     return value === 'priority' ? 'priority' : 'round-robin';
   };
 
+  /** 上游根地址（每次读当前值，可热改）。 */
+  const currentBaseURL = () => {
+    const value = valueOf(config.baseURL);
+    return typeof value === 'string' && value.length > 0 ? value : DEFAULT_BASE_URL;
+  };
+
+  /** 自定义请求头（每次读当前值，可热改）。 */
+  const currentHeaders = () => valueOf(config.headers);
+
   /** 是否请求思考摘要（每次读当前值，可热改）。 */
   const currentThinkingSummary = () => valueOf(config.thinkingSummary) !== false;
 
@@ -278,6 +290,8 @@ export function apply(ctx, config) {
 
   const adapter = new MmspAdapter({
     baseURL,
+    resolveBaseURL: currentBaseURL,
+    customHeaders: currentHeaders,
     // ⚠️ 每次请求都**重新读**配置：volatile 字段是引用，改了设置页里的
     //    上游地址、密钥表或策略，下一次请求就该用新值——不必重启插件。
     resolveApiKeyCandidates: resolveCandidates,

@@ -108,6 +108,26 @@ describe('QQ NT layout config branches', () => {
     expect(off).not.toContain(avatarRule)
   })
 
+  it('assistant card tail mirrors the bubble tail and follows the avatar switch', () => {
+    const tailRule = "[data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root']::after"
+    expect(QQ_LAYOUT_CSS).toContain(tailRule)
+    // 左尾巴 = 右尾巴的水平镜像:clip-path 的 x 坐标翻转到另一侧,
+    // 尖端(0% 100%)落在左下角,阴影方向同样翻成向左。
+    expect(QQ_LAYOUT_CSS).toContain('clip-path: polygon(100.0% 0.0%,')
+    // 回归(0.5.5):镜像切片曾把末尾按 'polygon)'.length 切 8 字符,
+    // 误删最后一个顶点的 y 值,尾端退化成 (0,0),多边形塌成细缝隐形。
+    // 修复后最后一个点必须是 "0.0% 100.0%"(完整左下角)。
+    expect(QQ_LAYOUT_CSS).toContain('0.0% 100.0%, 100.0% 100%)')
+    expect(QQ_LAYOUT_CSS).toContain('filter: drop-shadow(-1px 2px 3px')
+    // 亮色主题画布与卡片同为 #fff,白尾巴需要 0.5px 毛边才可见。
+    expect(QQ_LAYOUT_CSS).toContain('drop-shadow(0 0 0.5px var(--dsw-alias-border-l2))')
+    // 头像关闭时尾巴一并停用(尾巴指向头像,没有头像的尾巴是断箭)。
+    const off = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, assistantAvatar: false })
+    expect(off).not.toContain(tailRule)
+    // 卡片本体需要 position:relative 作为 ::after 的定位锚。
+    expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {\n  position: relative;")
+  })
+
   it('chat flow width follows the config value', () => {
     expect(QQ_LAYOUT_CSS).toContain(`max-width: ${QQ_SKIN_DEFAULT_CONFIG.chatMaxWidth}px`)
     const narrow = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, chatMaxWidth: 720 })
@@ -120,6 +140,87 @@ describe('QQ NT layout config branches', () => {
     expect(QQ_LAYOUT_CSS).toContain('animation: dsh-qq-typing 0.2s ease-out')
     const off = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, typing: false })
     expect(off).not.toContain('dsh-qq-typing')
+  })
+
+  it('time divider styles are present by default and removable', () => {
+    expect(QQ_LAYOUT_CSS).toContain('[data-qq-time-divider]')
+    expect(QQ_LAYOUT_CSS).toContain('[data-qq-time-divider]::before')
+    const off = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, timeDivider: false })
+    expect(off).not.toContain('data-qq-time-divider')
+  })
+
+  it('compact density tightens spacing and normal injects nothing', () => {
+    // normal 档不注入任何规则(宿主原样呼吸感)。
+    expect(QQ_LAYOUT_CSS).not.toContain('data-chat-flow-key] + [data-chat-flow-key]')
+    const compact = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, density: 'compact' })
+    expect(compact).toContain("[data-chat-flow] > [data-chat-flow-key] + [data-chat-flow-key]")
+    expect(compact).toContain('margin-top: 4px')
+    expect(compact).toContain("padding: 8px 12px")
+    expect(compact).toContain('[data-message-bubble][data-message-bubble] {\n  padding-top: 6px;')
+    // 紧凑档同时收紧分隔条的垂直外边距。
+    expect(compact).toContain('[data-qq-time-divider] {\n  margin: 6px 0;')
+  })
+
+  it('chat wallpaper covers the conversation root only while set', () => {
+    // 默认无壁纸:不注入任何壁纸规则。
+    expect(QQ_LAYOUT_CSS).not.toContain("[data-phase='active']::before")
+    const on = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, chatWallpaper: 'https://example.com/bg.jpg', chatWallpaperDim: 0.4, chatWallpaperBlur: 6 })
+    // 壁纸铺在会话根(data-phase=active)的 ::before,不铺 hero 欢迎页。
+    expect(on).toContain("[data-phase='active']::before")
+    expect(on).toContain('background-image: url("https://example.com/bg.jpg")')
+    expect(on).toContain('background-size: cover')
+    expect(on).toContain("background: rgba(0, 0, 0, 0.4)")
+    expect(on).toContain('filter: blur(6px)')
+    // 根层背景透明化让壁纸透出;内容提到伪元素之上。
+    expect(on).toContain("[data-phase='active'] {\n  background: transparent;")
+    expect(on).toContain("[data-phase='active'] > * {\n  position: relative;\n  z-index: 1;")
+    // dim=0 时暗化层透明度 0(仍注入,保持结构稳定);blur=0 时无 filter 行。
+    const noBlur = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, chatWallpaper: 'data:image/png;base64,iVBORw0K' })
+    expect(noBlur).toContain('background-image: url("data:image/png;base64,iVBORw0K")')
+    expect(noBlur).not.toContain('filter: blur(')
+  })
+
+  it('full-window wallpaper extends the image behind every panel and never adds backdrop-filter', () => {
+    // 默认(壁纸关/全窗关):不注入 body::before 全窗层。
+    expect(QQ_LAYOUT_CSS).not.toContain('body::before')
+    const full = buildQQLayoutCss({
+      ...QQ_SKIN_DEFAULT_CONFIG,
+      chatWallpaper: 'https://example.com/bg.jpg',
+      wallpaperFull: true,
+    })
+    // 全窗层挂在 body::before(position:fixed,z-index:-1)——所有内容之下,不遮文字。
+    expect(full).toContain('body::before')
+    expect(full).toContain('position: fixed;\n  inset: 0;\n  z-index: -1;')
+    expect(full).toContain('background-image: url("https://example.com/bg.jpg")')
+    expect(full).toContain('background: rgba(0, 0, 0, 0)')
+    // 壁纸图加载失败时的纯色兜底(不露 html 白画布)。
+    expect(full).toContain('background-color: var(--dsw-static-neutral-bluish-950, #151517);')
+    // body 自身 boot 底色(#fff/#151517)会盖住 z-index:-1 伪元素,必须透明化。
+    expect(full).toContain('body {\n  background: transparent;\n}')
+    // frame 根层(.mP3x-q_frame 铺满 #root,bg-base/sidebar-fill 实色)也必须退位,
+    // 否则 Windows 上壁纸被完整遮挡。
+    expect(full).toContain("body [class$='_frame'] {\n  background: transparent !important;")
+    // 三栏与输入卡透明兜底(无 important,毛玻璃渐变恒赢=晕染叠壁纸,亮暗一致)。
+    expect(full).toContain("body [class$='_sidebarCol'],")
+    expect(full).toContain("body [class$='_centerCol'],")
+    expect(full).toContain("body [class$='_rightbarCol'] {\n  background: transparent;")
+    expect(full).toContain("body [data-composer-card] {\n  background: transparent;\n  box-shadow: none;")
+    // 毛玻璃 + 全窗组合:渐变 !important 恒赢兜底透明(叠加语义)。
+    const fullWithGlass = buildQQLayoutCss({
+      ...QQ_SKIN_DEFAULT_CONFIG,
+      chatWallpaper: 'https://example.com/bg.jpg',
+      wallpaperFull: true,
+      frostedGlass: true,
+    })
+    expect(fullWithGlass).toContain('linear-gradient(168deg')
+    expect(fullWithGlass).toContain("body [class$='_frame'] {\n  background: transparent !important;")
+    // 全窗模式会话根层不重复供图(避免双图层)。
+    expect(full).not.toContain("[data-phase='active']::before")
+    // 两个既有回归的护栏:全窗模式也绝不出现 backdrop-filter。
+    expect(full).not.toContain('backdrop-filter')
+    // 只开全窗不开壁纸:同样不注入(全窗依赖壁纸图)。
+    const fullWithoutImage = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, wallpaperFull: true })
+    expect(fullWithoutImage).not.toContain('body::before')
   })
 
   it('stops decorative animations under prefers-reduced-motion', () => {

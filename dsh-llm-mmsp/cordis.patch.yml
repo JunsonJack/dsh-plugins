@@ -34,3 +34,5 @@
         # 开摘要不增加 token，只是把已计费的思考暴露出来 ⇒ 默认 true。
         # relay 只接受布尔值，写 "auto" 这类字符串会 400。
         thinkingSummary: true
+        # 自定义请求头（可写多行 Key: Value 或 JSON 对象）：
+        headers: null

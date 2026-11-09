@@ -5,6 +5,7 @@ import {
   QQ_SKIN_PALETTES,
   currentLocalMinutes,
   isWithinQuietHours,
+  mergeQQSkinTheme,
   normalizeAvatarImage,
   normalizeQuietTime,
   resolveQQSkinConfig,
@@ -201,5 +202,21 @@ describe('QQ skin config', () => {
     expect(resolveQQSkinConfig().frostedGlass).toBe(false)
     expect(resolveQQSkinConfig({ frostedGlass: true }).frostedGlass).toBe(true)
     expect(resolveQQSkinConfig({ frostedGlass: 1 as never }).frostedGlass).toBe(false)
+  })
+
+  it('mergeQQSkinTheme applies only the keys present in the patch', () => {
+    // 主题导入的字段级合并:显式出现的键经归一化套用,未提及的键保持基底。
+    const base = resolveQQSkinConfig({ palette: 'qqblue', soundVolume: 0.4, chatMaxWidth: 1200 })
+    const merged = mergeQQSkinTheme(base, { palette: 'green', soundVolume: 2, unknownKey: 'x' })
+    expect(merged.palette).toBe('green')
+    expect(merged.soundVolume).toBe(1)
+    expect(merged.chatMaxWidth).toBe(1200)
+    // 未提及的其余字段与基底逐字节一致(导入不重置既有配置)。
+    for (const key of Object.keys(base) as Array<keyof typeof base>) {
+      if (key === 'palette' || key === 'soundVolume') continue
+      expect(merged[key]).toBe(base[key])
+    }
+    // 空补丁 = 原样返回基底内容。
+    expect(mergeQQSkinTheme(base, {})).toEqual(base)
   })
 })

@@ -124,6 +124,25 @@ function tailClipPolygon(): string {
 }
 
 /**
+ * 尾巴形状的水平镜像:坐标 x → 100 - x,弧形小勾翻到左下角,
+ * 尖端指向左侧头像 —— 助手消息卡片(QQ"对方消息")的左尾巴。
+ */
+function tailClipPolygonMirrored(): string {
+  // ⚠ 末尾只切掉一个 ")" —— 字符串以 ")" 结尾,不是 "polygon)"。
+  // 若按 -'polygon)'.length 切 8 个字符,恰好把整个收口点 "0% 100%)"
+  // (正好 8 字符)一并切掉:镜像后多边形只剩弧线,首尾沿对角线直线闭合,
+  // 填色区域塌成一条细缝,尾巴肉眼不可见(0.5.5 回归,修于 0.5.6)。
+  const points = tailClipPolygon()
+    .slice('polygon('.length, -1)
+    .split(', ')
+    .map(pair => {
+      const [x, y] = pair.split(' ')
+      return `${(100 - Number.parseFloat(x ?? '0')).toFixed(1)}% ${y ?? '0%'}`
+    })
+  return `polygon(${points.join(', ')})`
+}
+
+/**
  * 用户气泡"尾巴"(默认开启时注入,QQ 右侧指向头像的小三角)。
  * @param tailShadow - 尾巴投影的主色 RGB。
  * @param tailBackground - 尾巴底色(与气泡一致;QQ蓝为渐变)。
@@ -172,6 +191,197 @@ function typingRule(): string {
 }
 [data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {
   animation: dsh-qq-typing 0.2s ease-out;
+}
+`
+}
+
+/**
+ * 紧凑密度:收紧消息流的垂直呼吸(行间距、卡片内边距、气泡间距),
+ * 单屏容纳更多消息;normal 档不注入任何规则(宿主原样)。
+ * 用 data-qq-density 作用域选择器,避免覆盖宿主未知的内部间距。
+ */
+function densityRule(): string {
+  return `
+[data-chat-flow] {
+  padding-top: 8px;
+  padding-bottom: 4px;
+}
+[data-chat-flow] > [data-chat-flow-key] + [data-chat-flow-key] {
+  margin-top: 4px;
+}
+[data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {
+  padding: 8px 12px;
+}
+[data-message-bubble][data-message-bubble] {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+[data-qq-time-divider] {
+  margin: 6px 0;
+}
+`
+}
+
+/**
+ * 消息时间分隔条:跨天消息前的居中日期条(细线 + 说明文字,QQ NT 原味)。
+ * 元素由 qq-time-divider.ts 注入(带 data-qq-time-divider 标记),这里只
+ * 负责视觉;文本取自宿主时间 chip 的日期部分,与宿主本地化格式一致。
+ */
+function timeDividerRule(): string {
+  return `
+[data-qq-time-divider] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+  color: var(--dsw-alias-label-caption);
+  font-size: 12px;
+  line-height: 20px;
+}
+[data-qq-time-divider]::before,
+[data-qq-time-divider]::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--dsw-alias-border-l1);
+}
+`
+}
+
+/**
+ * 聊天区壁纸:铺在会话根容器(ConversationRoot,持 data-phase 属性且
+ * background 为 bg-base)的 ::before 伪元素上 —— asar 取证确认中间层
+ * (scrollBody/ChatView scroll/column)全部无背景,根层透出即达聊天区;
+ * 根层不滚动,伪元素模糊/亮度稳定不抖。暗化用叠加半透明黑层而非
+ * filter: brightness(避免 filter 生成 stacking context 把伪元素
+ * 提到内容之下的问题一致化,叠加层还可与模糊解耦独立调节)。
+ * 模糊伪元素四边内缩负 inset,避免 blur 在边缘采样出白边。
+ * hero(欢迎页)/settling(加载中)不铺 —— 壁纸只属于真实会话。
+ */
+function chatWallpaperRule(wallpaper: string, dim: number, blur: number): string {
+  const image = wallpaper.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+  const dimAlpha = Math.round(dim * 100) / 100
+  const blurPx = Math.max(0, Math.round(blur))
+  const filterLine = blurPx > 0 ? `\n  filter: blur(${blurPx}px);` : ''
+  return `
+[data-phase='active']::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: url("${image}");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;${filterLine}
+}
+[data-phase='active']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: rgba(0, 0, 0, ${dimAlpha});
+  pointer-events: none;
+}
+[data-phase='active'] {
+  background: transparent;
+}
+[data-phase='active'] > * {
+  position: relative;
+  z-index: 1;
+}
+`
+}
+
+/**
+ * 全窗沉浸:壁纸铺满整个窗口(不只是会话根),左栏/详情栏/输入区透出壁纸。
+ *
+ * 实现说明:
+ * - 铺底层挂在 body::before(position:fixed, z-index:-1):伪元素画在 body
+ *   背景之下、html 画布之上,因此宿主三层不透明底必须依次退位——
+ *   body(boot 主题 background-color:#fff/#151517)→ frame 根层
+ *   (.mP3x-q_frame 铺满 #root,bg-base/sidebar-fill 实色)→ 三栏列。
+ *   绝不给任何元素加 backdrop-filter/transform/filter(0.3.16 折叠按钮
+ *   fixed 包含块、0.3.17 弹窗 backdrop root 两个回归的根因)。
+ * - 透明化采用"无 important、毛玻璃优先"策略:三栏与输入卡的透明兜底
+ *   不带 !important,毛玻璃渐变(!important)恒赢——观感=壁纸+品牌色晕染
+ *   叠加,亮暗主题行为一致,弹窗 backdrop 语义不受影响;毛玻璃关闭时
+ *   兜底透明生效(特异度 (0,1,1) 压宿主基础背景)。
+ * - full 模式下会话根层(chatWallpaperRule)不输出:body 层供图,
+ *   [data-phase='active'] 只做透明化,避免双图层重复绘制。
+ * - body::before 带 background-color 兜底:壁纸图加载失败时不露 html
+ *   白画布(暗色主题下白窗突兀),退为纯色底。
+ */
+function wallpaperFullRule(wallpaper: string, dim: number, blur: number): string {
+  const image = wallpaper.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+  const dimAlpha = Math.round(dim * 100) / 100
+  const blurPx = Math.max(0, Math.round(blur))
+  const filterLine = blurPx > 0 ? `\n  filter: blur(${blurPx}px);` : ''
+  return `
+body {
+  background: transparent;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--dsw-static-neutral-bluish-950, #151517);
+  background-image: url("${image}");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;${filterLine}
+}
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: rgba(0, 0, 0, ${dimAlpha});
+  pointer-events: none;
+}
+body [class$='_frame'] {
+  background: transparent !important;
+}
+body [class$='_sidebarCol'],
+body [class$='_centerCol'],
+body [class$='_rightbarCol'] {
+  background: transparent;
+}
+body [data-composer-card] {
+  background: transparent;
+  box-shadow: none;
+}
+[data-phase='active'] {
+  background: transparent;
+}
+`
+}
+
+/**
+ * 助手卡片左尾巴:QQ"对方消息"的弧形小勾,贴在卡片左下角指向头像。
+ * 与用户气泡右尾巴同款形状(水平镜像);底色跟随卡片 token(bg-layer-1),
+ * 投影取色板主色,与头像光晕同一色源。亮色主题下画布(bg-base)与卡片
+ * (bg-layer-1)同为 #fff,白尾巴贴白画布会隐形 —— 追加一道与卡片描边
+ * 同色的 0.5px 毛边(简洁白色板气泡尾巴的既有做法),让形状在白底上
+ * 依然可辨。头像关闭时尾巴一并停用 —— 尾巴指向头像,没有头像的尾巴
+ * 是断箭。
+ */
+function assistantTailRule(tailShadow: [number, number, number]): string {
+  const shadow = `${tailShadow[0]}, ${tailShadow[1]}, ${tailShadow[2]}`
+  return `
+[data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root']::after {
+  content: '';
+  position: absolute;
+  left: -6px;
+  bottom: 2px;
+  width: 16px;
+  height: 16px;
+  background: var(--dsw-alias-bg-layer-1);
+  clip-path: ${tailClipPolygonMirrored()};
+  filter: drop-shadow(-1px 2px 3px rgba(${shadow}, 0.18)) drop-shadow(0 0 0.5px var(--dsw-alias-border-l2));
+  pointer-events: none;
 }
 `
 }
@@ -398,7 +608,8 @@ const PALETTE_SHADOW_RGB: Record<string, [number, number, number]> = {
  * @param config - 用户配置(可缺省,回落默认)。
  */
 export function buildQQLayoutCss(config: QQSkinConfig = QQ_SKIN_DEFAULT_CONFIG): string {
-  const { bubbleTail, assistantAvatar, chatMaxWidth, typing, windowShake, frostedGlass } = config
+  const { bubbleTail, assistantAvatar, chatMaxWidth, typing, windowShake, frostedGlass, timeDivider, density } = config
+  const { chatWallpaper, chatWallpaperDim, chatWallpaperBlur, wallpaperFull } = config
   // 头像光晕与气泡阴影的主色:custom 色板跟随自定义主色,其余色板各取本色。
   const isCustom = config.palette === 'custom'
   const customRgb = isCustom ? parseHexColor(config.customColor) : null
@@ -421,6 +632,9 @@ export function buildQQLayoutCss(config: QQSkinConfig = QQ_SKIN_DEFAULT_CONFIG):
 }
 ${windowShake ? shakeRule() : ''}
 ${frostedGlass ? frostedGlassRule() : ''}
+${density === 'compact' ? densityRule() : ''}
+${chatWallpaper && wallpaperFull ? wallpaperFullRule(chatWallpaper, chatWallpaperDim, chatWallpaperBlur) : ''}
+${chatWallpaper && !wallpaperFull ? chatWallpaperRule(chatWallpaper, chatWallpaperDim, chatWallpaperBlur) : ''}
 ${reducedMotionRule()}
 
 /* ── 助手消息:左侧官方 QQ 企鹅头像 + 白色卡片(QQ"对方消息"观感) ──
@@ -437,6 +651,7 @@ ${reducedMotionRule()}
    卡片 padding-top 12px + Think 行高 24px 垂直居中:12 + 12 - 11 = 13。 */
 ${assistantAvatar ? avatarRule(config.avatarStyle, glow, config.avatarCustomImage, config.avatarSize) : ''}
 [data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {
+  position: relative;
   border-radius: 16px 16px 16px 6px;
   padding: 12px 16px;
   background: var(--dsw-alias-bg-layer-1);
@@ -445,7 +660,9 @@ ${assistantAvatar ? avatarRule(config.avatarStyle, glow, config.avatarCustomImag
     0 1px 2px rgba(15, 23, 42, 0.04),
     0 4px 14px rgba(15, 23, 42, 0.05);
 }
+${assistantAvatar ? assistantTailRule(shadow) : ''}
 ${typing ? typingRule() : ''}
+${timeDivider ? timeDividerRule() : ''}
 
 /* ── Markdown 引用块:主题主色竖条 + 柔和浅底 ───────────────────────── */
 [data-chat-flow-kind='assistant-step'] blockquote {

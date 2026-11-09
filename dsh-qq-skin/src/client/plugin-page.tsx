@@ -38,14 +38,24 @@ import {
   AVATAR_SIZE_MIN,
   CHAT_MAX_WIDTH_MAX,
   CHAT_MAX_WIDTH_MIN,
+  CUSTOM_SOUND_MAX_LENGTH,
   DEFAULT_AVATAR_SIZE,
   DEFAULT_CUSTOM_COLOR,
+  mergeQQSkinTheme,
+  normalizeCustomSound,
   QQ_AVATAR_STYLES,
+  QQ_SKIN_DENSITIES,
   QQ_SKIN_PALETTES,
   QQ_SKIN_SOUND_VARIANTS,
+  resolveQQSkinConfig,
   SOUND_VOLUME_MAX,
   SOUND_VOLUME_MIN,
+  WALLPAPER_BLUR_MAX,
+  WALLPAPER_BLUR_MIN,
+  WALLPAPER_DIM_MAX,
+  WALLPAPER_DIM_MIN,
   type QQAvatarStyle,
+  type QQSkinDensity,
   type QQSkinPalette,
   type QQSkinSoundVariant,
 } from './config.ts'
@@ -91,6 +101,12 @@ const AVATAR_STYLE_LABEL_KEYS: Record<QQAvatarStyle, QQSkinPluginKey> = {
   classic: 'avatar.classic',
   sunglasses: 'avatar.sunglasses',
   scarf: 'avatar.scarf',
+}
+
+/** 消息密度档位选项文案键。 */
+const DENSITY_LABEL_KEYS: Record<QQSkinDensity, QQSkinPluginKey> = {
+  normal: 'density.normal',
+  compact: 'density.compact',
 }
 
 /** 色板卡片的渐变色块预览(与旧设置行一致,纯辨识度点缀)。 */
@@ -249,6 +265,23 @@ const actionRowStyle: CSSProperties = {
   alignItems: 'center',
 }
 
+/** 主题导入导出 textarea(等宽字体,便于 JSON 阅读)。 */
+const themeTextareaStyle: CSSProperties = {
+  boxSizing: 'border-box',
+  width: '100%',
+  height: '96px',
+  padding: '8px 10px',
+  border: '1px solid var(--dsw-alias-border-l2)',
+  borderRadius: '10px',
+  background: 'var(--dsw-specific-input-major)',
+  color: 'var(--dsw-alias-label-primary)',
+  fontSize: '12px',
+  fontFamily: 'Consolas, "Courier New", monospace',
+  lineHeight: '18px',
+  resize: 'vertical',
+  outline: 'none',
+}
+
 /** 单个色板卡片:渐变色块在上、文案在下,role=radio。 */
 function PaletteCard({ palette, label, selected, onSelect }: {
   palette: QQSkinPalette
@@ -388,6 +421,35 @@ function readLocalAvatarImage(file: File): Promise<string> {
   })
 }
 
+/** 本地壁纸文件 → 缩图后的 JPEG data URI(照片类 JPEG 体积小,质量 0.82)。 */
+function readLocalWallpaperImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => { reject(new Error('file read failed')) }
+    reader.onload = () => {
+      const image = new Image()
+      image.onerror = () => { reject(new Error('image decode failed')) }
+      image.onload = () => {
+        const scale = Math.min(1, WALLPAPER_IMAGE_MAX_EDGE / Math.max(image.width, image.height))
+        const width = Math.max(1, Math.round(image.width * scale))
+        const height = Math.max(1, Math.round(image.height * scale))
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const context = canvas.getContext('2d')
+        if (context === null) {
+          reject(new Error('canvas unavailable'))
+          return
+        }
+        context.drawImage(image, 0, 0, width, height)
+        resolve(canvas.toDataURL('image/jpeg', 0.82))
+      }
+      image.src = String(reader.result ?? '')
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
 /** 本地头像选择按钮(隐藏 file input + 按钮触发;选中即缩图落草稿)。 */
 function AvatarImagePicker({ t, onPicked, onError, onClear, hasImage }: {
   t: (key: QQSkinPluginKey) => string
@@ -435,6 +497,125 @@ function AvatarImagePicker({ t, onPicked, onError, onClear, hasImage }: {
       {hasImage && (
         <button type="button" onClick={onClear} style={discardButtonStyle}>
           {t('card.imageClear')}
+        </button>
+      )}
+    </span>
+  )
+}
+
+/** 壁纸缩图最长边(px):壁纸是背景图,512px 在常见窗口尺寸下足够清晰。 */
+const WALLPAPER_IMAGE_MAX_EDGE = 512
+
+/** 壁纸 data URI 体积上限(约 256 KB)。 */
+const WALLPAPER_IMAGE_DATA_MAX_LENGTH = 256 * 1024
+
+/** 本地壁纸选择按钮:与头像选择器同链路,但缩图尺寸与体积上限更宽。 */
+function WallpaperImagePicker({ t, onPicked, onError }: {
+  t: (key: QQSkinPluginKey) => string
+  onPicked: (dataUri: string) => void
+  onError: () => void
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const [busy, setBusy] = useState(false)
+  return (
+    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/gif,image/webp,image/avif"
+        style={{ display: 'none' }}
+        onChange={event => {
+          const file = event.currentTarget.files?.[0]
+          event.currentTarget.value = ''
+          if (file === undefined) return
+          setBusy(true)
+          readLocalWallpaperImage(file).then(dataUri => {
+            setBusy(false)
+            if (dataUri.length > WALLPAPER_IMAGE_DATA_MAX_LENGTH) {
+              onError()
+              return
+            }
+            onPicked(dataUri)
+          }).catch(() => {
+            setBusy(false)
+            onError()
+          })
+        }}
+      />
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => { inputRef.current?.click() }}
+        style={discardButtonStyle}
+      >
+        {t('card.wallpaperPick')}
+      </button>
+    </span>
+  )
+}
+
+/**
+ * 本地音频文件 → data URI(FileReader 原样转码,不重采样):
+ * 浏览器 <audio> 支持 mp3/wav/ogg/m4a/flac 等,直接透传给解码器。
+ */
+function readLocalSound(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => { reject(new Error('file read failed')) }
+    reader.onload = () => { resolve(String(reader.result ?? '')) }
+    reader.readAsDataURL(file)
+  })
+}
+
+/** 本地音效选择按钮:与壁纸选择器同链路(不做缩图,只查 MIME 与体积)。 */
+function SoundPicker({ t, onPicked, onError, onClear, hasSound }: {
+  t: (key: QQSkinPluginKey) => string
+  onPicked: (dataUri: string) => void
+  onError: () => void
+  onClear: () => void
+  hasSound: boolean
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const [busy, setBusy] = useState(false)
+  return (
+    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/flac,audio/aac,audio/*"
+        style={{ display: 'none' }}
+        onChange={event => {
+          const file = event.currentTarget.files?.[0]
+          event.currentTarget.value = ''
+          if (file === undefined) return
+          setBusy(true)
+          readLocalSound(file).then(dataUri => {
+            setBusy(false)
+            // 与运行时 normalizeCustomSound 同规则:前缀不符(如
+            // application/octet-stream 误标)或超限一律拒收,避免
+            // "保存后静默失效"。
+            if (normalizeCustomSound(dataUri) === '' || dataUri.length > CUSTOM_SOUND_MAX_LENGTH) {
+              onError()
+              return
+            }
+            onPicked(dataUri)
+          }).catch(() => {
+            setBusy(false)
+            onError()
+          })
+        }}
+      />
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => { inputRef.current?.click() }}
+        style={discardButtonStyle}
+      >
+        {t('card.soundPick')}
+      </button>
+      {hasSound && (
+        <button type="button" onClick={onClear} style={discardButtonStyle}>
+          {t('card.soundClear')}
         </button>
       )}
     </span>
@@ -556,6 +737,10 @@ function QQSkinEditor({ t, config, revision, writable, mutate }: {
   const [widthFocused, setWidthFocused] = useState(false)
   const [volumeDraft, setVolumeDraft] = useState(String(config.soundVolume ?? 1))
   const [volumeFocused, setVolumeFocused] = useState(false)
+  const [dimDraft, setDimDraft] = useState(String(config.chatWallpaperDim ?? 0))
+  const [dimFocused, setDimFocused] = useState(false)
+  const [blurDraft, setBlurDraft] = useState(String(config.chatWallpaperBlur ?? 0))
+  const [blurFocused, setBlurFocused] = useState(false)
 
   useEffect(() => {
     if (!sizeFocused) setSizeDraft(String(config.avatarSize ?? DEFAULT_AVATAR_SIZE))
@@ -566,6 +751,12 @@ function QQSkinEditor({ t, config, revision, writable, mutate }: {
   useEffect(() => {
     if (!volumeFocused) setVolumeDraft(String(config.soundVolume ?? 1))
   }, [config.soundVolume])
+  useEffect(() => {
+    if (!dimFocused) setDimDraft(String(config.chatWallpaperDim ?? 0))
+  }, [config.chatWallpaperDim])
+  useEffect(() => {
+    if (!blurFocused) setBlurDraft(String(config.chatWallpaperBlur ?? 0))
+  }, [config.chatWallpaperBlur])
 
   // 自定义主色:40ms 防抖同步草稿(视觉即时),真正写入仍走「保存」。
   const [colorDraft, setColorDraft] = useState(config.customColor ?? DEFAULT_CUSTOM_COLOR)
@@ -587,6 +778,47 @@ function QQSkinEditor({ t, config, revision, writable, mutate }: {
 
   /** 是否有未保存修改:草稿与外部快照按 JSON 全量比较。 */
   const dirty = JSON.stringify(draft) !== externalText
+
+  /** 主题导入导出:textarea 文本、聚焦态、复制成功提示、导入失败提示。 */
+  const [themeText, setThemeText] = useState('')
+  const [themeTextFocused, setThemeTextFocused] = useState(false)
+  const [themeCopied, setThemeCopied] = useState(false)
+  const [themeImportError, setThemeImportError] = useState(false)
+  /** 导出:把当前草稿(未保存的也包含)序列化为可读 JSON,并尝试写剪贴板。 */
+  const exportTheme = (): void => {
+    const text = JSON.stringify(draft, null, 2)
+    setThemeText(text)
+    setThemeImportError(false)
+    // 剪贴板是锦上添花:失败(权限/非安全上下文)静默,textarea 仍可手动复制。
+    if (typeof navigator !== 'undefined' && typeof navigator.clipboard?.writeText === 'function') {
+      navigator.clipboard.writeText(text).then(() => {
+        setThemeCopied(true)
+      }).catch(() => {
+        setThemeCopied(false)
+      })
+    } else {
+      setThemeCopied(false)
+    }
+  }
+  /** 导入:解析 JSON → 字段级合并归一化 → 落草稿(保存后才写入)。 */
+  const importTheme = (): void => {
+    try {
+      const parsed: unknown = JSON.parse(themeText)
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        setThemeImportError(true)
+        return
+      }
+      // 字段级合并导入后,只有 JSON 中显式出现的键会进入差异提交;
+      // 未提及的键保持草稿原值,不会被钉进用户配置文档。
+      setDraft(previous => mergeQQSkinTheme(
+        resolveQQSkinConfig(previous),
+        parsed as Record<string, unknown>,
+      ))
+      setThemeImportError(false)
+    } catch {
+      setThemeImportError(true)
+    }
+  }
 
   /** 保存:只提交与外部快照有差异的字段(一次原子提交,共享 revision fence)。 */
   const [saving, setSaving] = useState(false)
@@ -661,20 +893,62 @@ function QQSkinEditor({ t, config, revision, writable, mutate }: {
     }
   }
 
+  const commitWallpaper = (): void => {
+    const trimmed = (draft.chatWallpaper ?? '').trim()
+    if (trimmed !== (draft.chatWallpaper ?? '')) {
+      setDraft(previous => ({ ...previous, chatWallpaper: trimmed }))
+    }
+  }
+
+  const commitWallpaperDim = (): void => {
+    // 与 commitVolume 同款空串守卫:Number('') === 0,清空输入框不该把
+    // 暗化写成 0(回落到当前配置值,让用户显式拖动才归零)。
+    if (dimDraft.trim() !== '' && Number.isFinite(Number(dimDraft)) && Number(dimDraft) >= 0) {
+      const parsed = Number(dimDraft)
+      const clamped = Math.min(WALLPAPER_DIM_MAX, Math.max(WALLPAPER_DIM_MIN, parsed))
+      edit('chatWallpaperDim', clamped)
+      setDimDraft(String(clamped))
+    } else {
+      setDimDraft(String(config.chatWallpaperDim ?? 0))
+    }
+  }
+
+  const commitWallpaperBlur = (): void => {
+    if (blurDraft.trim() !== '' && Number.isFinite(Number(blurDraft)) && Number(blurDraft) >= 0) {
+      const parsed = Number(blurDraft)
+      const clamped = Math.min(WALLPAPER_BLUR_MAX, Math.max(WALLPAPER_BLUR_MIN, Math.round(parsed)))
+      edit('chatWallpaperBlur', clamped)
+      setBlurDraft(String(clamped))
+    } else {
+      setBlurDraft(String(config.chatWallpaperBlur ?? 0))
+    }
+  }
+
   /** 本地图片选中:缩图 data URI 落草稿(随「保存」一并写入)。 */
   const pickLocalImage = (dataUri: string): void => {
     setImageError(false)
     edit('avatarCustomImage', dataUri)
   }
 
+  /** 本地音效选中:data URI 落草稿(随「保存」一并写入)。 */
+  const pickLocalSound = (dataUri: string): void => {
+    setSoundError(false)
+    edit('customSound', dataUri)
+  }
+
   // 本地图片读取失败提示(下一次任何编辑或重新选择时清除)。
   const [imageError, setImageError] = useState(false)
+  const [wallpaperError, setWallpaperError] = useState(false)
+  const [soundError, setSoundError] = useState(false)
   const imageIsLocal = (draft.avatarCustomImage ?? '').startsWith('data:image/')
+  const soundIsLocal = (draft.customSound ?? '').startsWith('data:audio/')
 
   const showColor = (draft.palette ?? 'classic') === 'custom'
   const showAvatarFields = (draft.assistantAvatar ?? true)
   const showVariant = (draft.messageSound ?? false)
+  const showCustomSound = (draft.messageSound ?? false)
   const showVolume = (draft.messageSound ?? false) || (draft.sendSound ?? false)
+  const showWallpaper = (draft.chatWallpaper ?? '').trim() !== ''
 
   return (
     <div style={cardStyle}>
@@ -731,6 +1005,16 @@ function QQSkinEditor({ t, config, revision, writable, mutate }: {
         </div>
       )}
 
+      {/* 消息密度:normal=标准呼吸感,compact=紧凑(单屏更多消息) */}
+      <div style={fieldRowStyle}>
+        <span style={fieldLabelStyle}>{t('row.density')}</span>
+        <PillGroup
+          value={draft.density ?? 'normal'}
+          options={QQ_SKIN_DENSITIES.map(id => ({ id, label: t(DENSITY_LABEL_KEYS[id]) }))}
+          onChange={id => { edit('density', id as QQSkinDensity) }}
+        />
+      </div>
+
       {/* 开关网格:2 列紧凑布局 */}
       <div style={toggleGridStyle}>
         <ToggleRow
@@ -773,6 +1057,82 @@ function QQSkinEditor({ t, config, revision, writable, mutate }: {
           checked={draft.typing ?? true}
           onChange={value => { edit('typing', value) }}
         />
+        <ToggleRow
+          label={t('row.timeDivider')}
+          checked={draft.timeDivider ?? true}
+          onChange={value => { edit('timeDivider', value) }}
+        />
+        <ToggleRow
+          label={t('row.wallpaperFull')}
+          checked={draft.wallpaperFull ?? false}
+          onChange={value => { edit('wallpaperFull', value) }}
+        />
+      </div>
+
+      {/* 聊天壁纸:URL/本地图片 + 暗化与模糊(开了壁纸才展开调节) */}
+      <div style={{ ...fieldRowStyle, alignItems: 'flex-start', flexDirection: 'column', gap: '6px' }}>
+        <span style={fieldLabelStyle}>{t('row.chatWallpaper')}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <input
+            type="text"
+            value={draft.chatWallpaper ?? ''}
+            placeholder="https://… / data:image/…"
+            onChange={event => { edit('chatWallpaper', event.currentTarget.value) }}
+            onBlur={commitWallpaper}
+            style={{ ...inputStyle(false), width: '240px' }}
+          />
+          <WallpaperImagePicker
+            t={t}
+            onPicked={dataUri => { edit('chatWallpaper', dataUri) }}
+            onError={() => { setWallpaperError(true) }}
+          />
+          {(draft.chatWallpaper ?? '') !== '' && (
+            <button
+              type="button"
+              onClick={() => { setWallpaperError(false); edit('chatWallpaper', '') }}
+              style={discardButtonStyle}
+            >
+              {t('card.wallpaperClear')}
+            </button>
+          )}
+        </span>
+        {wallpaperError && <span style={{ ...captionStyle, color: 'var(--dsw-alias-state-error-primary)' }}>{t('card.imageError')}</span>}
+        {showWallpaper && (
+          <span style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={fieldLabelStyle}>{t('row.wallpaperDim')}</span>
+              <input
+                type="number"
+                min={WALLPAPER_DIM_MIN}
+                max={WALLPAPER_DIM_MAX}
+                step={0.05}
+                value={dimDraft}
+                onChange={event => { setDimDraft(event.currentTarget.value) }}
+                onFocus={() => { setDimFocused(true) }}
+                onBlur={() => { setDimFocused(false); commitWallpaperDim() }}
+                onKeyDown={event => { if (event.key === 'Enter') commitWallpaperDim() }}
+                style={{ ...inputStyle(dimFocused), width: '72px' }}
+              />
+              <span style={captionStyle}>0~1</span>
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={fieldLabelStyle}>{t('row.wallpaperBlur')}</span>
+              <input
+                type="number"
+                min={WALLPAPER_BLUR_MIN}
+                max={WALLPAPER_BLUR_MAX}
+                step={1}
+                value={blurDraft}
+                onChange={event => { setBlurDraft(event.currentTarget.value) }}
+                onFocus={() => { setBlurFocused(true) }}
+                onBlur={() => { setBlurFocused(false); commitWallpaperBlur() }}
+                onKeyDown={event => { if (event.key === 'Enter') commitWallpaperBlur() }}
+                style={{ ...inputStyle(blurFocused), width: '72px' }}
+              />
+              <span style={captionStyle}>0~20px</span>
+            </span>
+          </span>
+        )}
       </div>
 
       {/* 免打扰时段:两端都填才生效;跨午夜(22:00→08:00)也支持 */}
@@ -806,6 +1166,22 @@ function QQSkinEditor({ t, config, revision, writable, mutate }: {
             options={QQ_SKIN_SOUND_VARIANTS.map(variant => ({ id: variant, label: t(SOUND_VARIANT_LABEL_KEYS[variant]) }))}
             onChange={id => { edit('soundVariant', id as QQSkinSoundVariant) }}
           />
+        </div>
+      )}
+
+      {/* 自定义音效:开启消息提示音时展开;data:audio/* 优先于内置音色 */}
+      {showCustomSound && (
+        <div style={{ ...fieldRowStyle, alignItems: 'flex-start', flexDirection: 'column', gap: '6px' }}>
+          <span style={fieldLabelStyle}>{t('row.customSound')}</span>
+          <SoundPicker
+            t={t}
+            hasSound={(draft.customSound ?? '') !== ''}
+            onPicked={pickLocalSound}
+            onError={() => { setSoundError(true) }}
+            onClear={() => { setSoundError(false); edit('customSound', '') }}
+          />
+          {soundError && <span style={{ ...captionStyle, color: 'var(--dsw-alias-state-error-primary)' }}>{t('card.soundError')}</span>}
+          {soundIsLocal && !soundError && <span style={captionStyle}>{t('card.soundSet')}</span>}
         </div>
       )}
 
@@ -887,6 +1263,35 @@ function QQSkinEditor({ t, config, revision, writable, mutate }: {
           max={CHAT_MAX_WIDTH_MAX}
           step={20}
         />
+      </div>
+
+      {/* 主题导入导出:导出=草稿 JSON(尝试剪贴板);导入=解析后全字段落草稿,保存才写入 */}
+      <div style={{ ...fieldRowStyle, alignItems: 'flex-start', flexDirection: 'column', gap: '6px' }}>
+        <span style={fieldLabelStyle}>{t('card.theme')}</span>
+        <textarea
+          value={themeText}
+          onChange={event => { setThemeText(event.currentTarget.value); setThemeCopied(false); setThemeImportError(false) }}
+          onFocus={() => { setThemeTextFocused(true) }}
+          onBlur={() => { setThemeTextFocused(false) }}
+          placeholder='{"palette": "qqblue", ...}'
+          spellCheck={false}
+          style={{ ...themeTextareaStyle, borderColor: themeTextFocused ? 'var(--dsw-alias-brand-primary)' : 'var(--dsw-alias-border-l2)' }}
+        />
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+          <button type="button" onClick={exportTheme} style={discardButtonStyle}>
+            {t('card.themeExport')}
+          </button>
+          <button
+            type="button"
+            onClick={importTheme}
+            disabled={!writable}
+            style={{ ...discardButtonStyle, opacity: writable ? 1 : 0.5, cursor: writable ? 'pointer' : 'default' }}
+          >
+            {t('card.themeImport')}
+          </button>
+          {themeCopied && <span style={captionStyle}>{t('card.themeCopied')}</span>}
+          {themeImportError && <span style={{ ...captionStyle, color: 'var(--dsw-alias-state-error-primary)' }}>{t('card.themeImportError')}</span>}
+        </div>
       </div>
 
       {/* 保存/放弃行:只有保存才写入;只读文档时禁用并提示 */}
