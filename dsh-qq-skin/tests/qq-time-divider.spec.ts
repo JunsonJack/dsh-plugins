@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { parseClockText, planDividers, setTodayLabel, alignDividers, QQTimeDividerRuntime } from '../src/client/qq-time-divider.ts'
+import { parseClockText, planDividers, setTodayLabel, alignDividers, extractClock, QQTimeDividerRuntime } from '../src/client/qq-time-divider.ts'
 import { Context } from '@deepseek-ai/cordis'
 import { QQ_SKIN_DEFAULT_CONFIG } from '../src/client/config.ts'
 
@@ -11,20 +11,45 @@ function zhYesterdayChip(): { chip: string; label: string } {
 }
 
 /** 对齐链路用的最小 DOM stub:querySelectorAll 走数组过滤,元素带 before/remove。 */
-function stubFlow(rows: Array<{ chip?: string }>) {
+function stubFlow(rows: Array<{ chip?: string; turn?: string; nestedUnder?: string }>) {
   const inserted: Array<{ textContent: string; removed?: boolean; nextElementSibling?: unknown }> = []
+  // 分组容器(nestedUnder 指向的 ChatGroupSeat):分隔条应锚到容器本身。
+  type ContainerStub = { el: { before: ReturnType<typeof vi.fn>; nextElementSibling?: unknown } }
+  const containers = new Map<string, ContainerStub>()
+  const makeContainer = (key: string): ContainerStub => {
+    let entry = containers.get(key)
+    if (entry === undefined) {
+      const el: { before: ReturnType<typeof vi.fn>; nextElementSibling?: unknown } = { before: vi.fn() }
+      el.before = vi.fn((divider: { textContent: string; nextElementSibling?: unknown }) => {
+        divider.nextElementSibling = el
+        inserted.push(divider as { textContent: string; removed?: boolean; nextElementSibling?: unknown })
+      })
+      entry = { el }
+      containers.set(key, entry)
+    }
+    return entry
+  }
   const rowEls = rows.map(row => {
     const el = {
       textContent: row.chip ?? '',
       remove: vi.fn(),
+      getAttribute: (name: string) => (name === 'data-chat-turn' ? row.turn ?? null : null),
       before: vi.fn((divider: { textContent: string; nextElementSibling?: unknown }) => {
-        // 回填兄弟关系:对齐的幂等判定比对 divider.nextElementSibling === row。
+        // 回填兄弟关系:对齐的幂等判定比对 divider.nextElementSibling === 锚点。
         divider.nextElementSibling = el
         inserted.push(divider as { textContent: string; removed?: boolean; nextElementSibling?: unknown })
       }),
       nextElementSibling: undefined as unknown,
+      // 首行嵌在分组容器内时 closest 返回容器;其余行没有 closest(同真实 DOM 的叶子行)。
+      closest:
+        row.nestedUnder === undefined
+          ? undefined
+          : (selector: string) => {
+              if (!selector.includes('data-chat-flow-key')) return null
+              return makeContainer(row.nestedUnder as string).el
+            },
       querySelector: (selector: string) => {
-        // [data-clock] chip:返回带文本的最小节点;其余选择器无命中。
+        // [data-clock] chip:返回带文本的最小节点;分组判定用 [data-chat-flow-key] 无命中。
         if (selector.includes('data-clock')) {
           return { textContent: row.chip ?? '' }
         }
@@ -42,7 +67,7 @@ function stubFlow(rows: Array<{ chip?: string }>) {
       return []
     },
   }
-  return { flow, rowEls, inserted }
+  return { flow, rowEls, inserted, containers }
 }
 
 describe('QQ time divider', () => {
@@ -77,6 +102,17 @@ describe('QQ time divider', () => {
     expect(parseClockText('12:30:45')).toBeUndefined()
     expect(parseClockText('2025-13-40 25:99')).toBeUndefined()
     expect(parseClockText('11月8日 25:00')).toBeUndefined()
+  })
+
+  it('extracts the clock fragment out of the usage-prefixed chip text', () => {
+    // 实测 chip 文本:用量文案与时钟并列在同一个 [data-clock] 容器里。
+    expect(extractClock('用量 72.3K tok19:57')).toBe('19:57')
+    expect(extractClock('用量 73.1K tok11月8日 20:14')).toBe('11月8日 20:14')
+    expect(extractClock('72.3K tok used 2025-12-31 23:59')).toBe('2025-12-31 23:59')
+    // 带秒的串不是宿主 chip 格式,不能截出 12:30 冒充时间。
+    expect(extractClock('12:30:45')).toBeUndefined()
+    expect(extractClock('用量 3.4M tok')).toBeUndefined()
+    expect(parseClockText('用量 72.3K tok19:57')).toBeDefined()
   })
 
   it('plans a divider before the first row and on every day change', () => {
@@ -137,6 +173,115 @@ describe('QQ time divider', () => {
     expect(env.inserted[0].textContent).toBe('今天')
     expect(env.inserted[1].textContent).toBe(yest.label)
     // 再次对齐:状态已一致 → 零新增(幂等,不自我触发 observer 循环)。
+    alignDividers(env.flow as unknown as Element)
+    expect(env.inserted).toHaveLength(2)
+    vi.unstubAllGlobals()
+  })
+
+  it('inserts the divider before the first row of the turn carrying the clock', () => {
+    setTodayLabel(() => '今天')
+    const yest = zhYesterdayChip()
+    vi.stubGlobal('document', {
+      createElement: () => {
+        const el: { textContent: string; [key: string]: unknown } = { textContent: '' }
+        el.setAttribute = vi.fn()
+        el.className = ''
+        el.dataset = {}
+        el.remove = vi.fn()
+        el.appendChild = vi.fn((child: { textContent: string }) => {
+          el.textContent = child.textContent
+        })
+        return el
+      },
+    })
+    // 实测结构:用户行无 chip,时钟挂在回合尾部 turn-tail 行,文本带用量前缀。
+    const env = stubFlow([
+      { turn: '1' },
+      { turn: '1', chip: '用量 72.3K tok19:57' },
+      { turn: '1' },
+      { turn: '2' },
+      { turn: '2', chip: `用量 73.1K tok${yest.chip}` },
+    ])
+    alignDividers(env.flow as unknown as Element)
+    expect(env.inserted).toHaveLength(2)
+    expect(env.inserted[0].textContent).toBe('今天')
+    expect(env.inserted[1].textContent).toBe(yest.label)
+    // 分隔条落在回合首行(用户行)之前,而不是挂时钟的尾部行。
+    expect(env.rowEls[0].before).toHaveBeenCalledTimes(1)
+    expect(env.rowEls[3].before).toHaveBeenCalledTimes(1)
+    expect(env.rowEls[1].before).not.toHaveBeenCalled()
+    expect(env.rowEls[4].before).not.toHaveBeenCalled()
+    // 幂等:再跑一次不新增。
+    alignDividers(env.flow as unknown as Element)
+    expect(env.inserted).toHaveLength(2)
+    vi.unstubAllGlobals()
+  })
+
+  it('keeps a turn together when one of its rows misses the turn attribute', () => {
+    setTodayLabel(() => '今天')
+    const yest = zhYesterdayChip()
+    vi.stubGlobal('document', {
+      createElement: () => {
+        const el: { textContent: string; [key: string]: unknown } = { textContent: '' }
+        el.setAttribute = vi.fn()
+        el.className = ''
+        el.dataset = {}
+        el.remove = vi.fn()
+        el.appendChild = vi.fn((child: { textContent: string }) => {
+          el.textContent = child.textContent
+        })
+        return el
+      },
+    })
+    // 中间一行没有 data-chat-turn(宿主偶发不输出):不能因此把回合一分为二,
+    // 否则分隔条会落到缺属性的那一行而不是回合首行。
+    const env = stubFlow([
+      { turn: '1' },
+      { chip: '用量 72.3K tok08:00' },
+      { turn: '2' },
+      { chip: `用量 73.1K tok${yest.chip}` },
+    ])
+    alignDividers(env.flow as unknown as Element)
+    // 缺属性的行并入各自回合:08:00(今天)与昨天的 chip 各在自己的回合 → 两条,
+    // 都插在回合首行之前,而不是缺属性的那一行。
+    expect(env.inserted).toHaveLength(2)
+    expect(env.inserted[0].textContent).toBe('今天')
+    expect(env.inserted[1].textContent).toBe(yest.label)
+    expect(env.rowEls[0].before).toHaveBeenCalledTimes(1)
+    expect(env.rowEls[2].before).toHaveBeenCalledTimes(1)
+    expect(env.rowEls[1].before).not.toHaveBeenCalled()
+    expect(env.rowEls[3].before).not.toHaveBeenCalled()
+    vi.unstubAllGlobals()
+  })
+
+  it('anchors the divider outside a group container the first row is nested in', () => {
+    setTodayLabel(() => '今天')
+    const yest = zhYesterdayChip()
+    vi.stubGlobal('document', {
+      createElement: () => {
+        const el: { textContent: string; [key: string]: unknown } = { textContent: '' }
+        el.setAttribute = vi.fn()
+        el.className = ''
+        el.dataset = {}
+        el.remove = vi.fn()
+        el.appendChild = vi.fn((child: { textContent: string }) => {
+          el.textContent = child.textContent
+        })
+        return el
+      },
+    })
+    // 无 user 行的回合:首行躺在 ChatGroupSeat 的折叠 body 里,分隔条必须锚到
+    // 容器本身,否则会随折叠一起被裁掉(功能等于没有)。
+    const env = stubFlow([
+      { turn: '1', chip: '08:00' },
+      { turn: '2', nestedUnder: 'seat-2', chip: `用量 73.1K tok${yest.chip}` },
+    ])
+    alignDividers(env.flow as unknown as Element)
+    expect(env.inserted).toHaveLength(2)
+    expect(env.inserted[1].textContent).toBe(yest.label)
+    expect(env.containers.get('seat-2')?.el.before).toHaveBeenCalledTimes(1)
+    expect(env.rowEls[1].before).not.toHaveBeenCalled()
+    // 幂等:容器锚点已记录兄弟关系,重扫不新增。
     alignDividers(env.flow as unknown as Element)
     expect(env.inserted).toHaveLength(2)
     vi.unstubAllGlobals()

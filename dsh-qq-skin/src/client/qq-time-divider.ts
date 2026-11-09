@@ -2,11 +2,17 @@
  * QQ 风格消息时间分隔条:跨天消息前插入居中日期条(如「今天」/「11月8日」),
  * 还原 QQ 聊天流的时间分组观感。
  *
- * 时间源:宿主消息行的时间 chip(`[data-clock]` 容器,文本由
- * formatMessageClock 生成——当天 `HH:mm`、今年内 `M月D日 HH:mm`/`M/D HH:mm`、
- * 跨年 `YYYY年M月D日 HH:mm`/`YYYY-M-D HH:mm`)。宿主不在 DOM 上暴露原始
- * 时间戳(data-time/ts/created/timestamp 均无),故解析 chip 文本是唯一
- * 可靠时间源;解析失败(格式变动/非消息行)的行跳过,不插入分隔条。
+ * 时间源:宿主的时间 chip(`[data-clock]` 容器,文本由 formatMessageClock
+ * 生成——当天 `HH:mm`、今年内 `M月D日 HH:mm`/`M/D HH:mm`、跨年
+ * `YYYY年M月D日 HH:mm`/`YYYY-M-D HH:mm`)。宿主不在 DOM 上暴露原始时间戳
+ * (data-time/ts/created/timestamp 均无),故解析 chip 文本是唯一可靠时间源。
+ *
+ * ⚠ 该容器不只放时间,且不在用户行:宿主把「用量 xx tok」文案与时钟并列
+ * 渲染在同一个 `[data-clock]` 里(clock="end" 位于回合尾部的 turn-tail 行,
+ * 实测文本形如「用量 72.3K tok19:57」),用户行的 DOM 里没有 chip。所以:
+ * 1) 时间用 extractClock 在任意位置抽取,不做整段锚定匹配;
+ * 2) 分组以「回合」为单位——分隔条插在该回合首行(通常是用户行)之前,
+ *    时间取自同回合内任意一行的 chip(通常是结尾的 turn-tail)。
  *
  * 分隔条文本:直接复用 chip 的日期部分(去掉尾部时间),与宿主本地化格式
  * 天然一致;当天 chip 只有时间,替换为「今天」文案(setTodayLabel 注入)。
@@ -24,10 +30,26 @@ import type { QQSkinConfig } from './config.ts'
 
 /** 聊天流容器选择器(harness ChatView 的 data-chat-flow 属性)。 */
 const FLOW_SELECTOR = '[data-chat-flow]'
-/** 消息行选择器(排除处理中回合行;分组容器无 data-chat-flow-key)。 */
-const ROW_SELECTOR = '[data-chat-flow-key]:not([data-chat-flow-kind="turn-process"])'
-/** 时间 chip 容器(用户消息 clock='start',助手回合 clock='end')。 */
+/** 流 item 选择器:所有消息行与分组容器(ChatGroupSeat)都带该属性。 */
+const FLOW_KEY_SELECTOR = '[data-chat-flow-key]'
+/** 回合标识属性:同一回合的多行共享同一 data-chat-turn 值。 */
+const TURN_ATTRIBUTE = 'data-chat-turn'
+/** 时间 chip 容器(助手回合 clock='end',位于该回合的 turn-tail 行)。 */
 const CLOCK_SELECTOR = '[data-clock]'
+/**
+ * 时间片段的候选模式,按「信息量从多到少」排列:跨年 → 今年内 → 当天。
+ * 全部不锚定首尾,因为 chip 文本里可能混有「用量 xx tok」前缀。
+ *
+ * 前提:宿主 clock.md/clock.ymd 在全部 8 个 locale 下都是纯数字日期
+ * (zh `{m}月{d}日`/`{y}年{m}月{d}日`,其余 `{m}/{d}`/`{y}-{m}-{d}`),
+ * 不存在 `Dec 31, 2025` 这类文本月份。若将来宿主改成文本日期,这里只会
+ * 命中当天模式而把日期降级成「今天」——宁可无条也不要错条,故不额外兜底。
+ */
+const CLOCK_PATTERNS: ReadonlyArray<RegExp> = [
+  /(\d{4})[年/-](\d{1,2})[月/-](\d{1,2})日?\s+(\d{1,2}):(\d{2})/,
+  /(\d{1,2})[月/](\d{1,2})日?\s+(\d{1,2}):(\d{2})/,
+  /(\d{1,2}):(\d{2})/,
+]
 /** 插件注入的分隔条标记(对齐与清理都以它为准)。 */
 const DIVIDER_ATTRIBUTE = 'data-qq-time-divider'
 /** flow 子树变化后的防抖窗口(ms):流式输出期间新增行频繁,合并重扫。 */
@@ -45,14 +67,41 @@ export function setTodayLabel(get: () => string): void {
 }
 
 /**
- * 解析时间 chip 文本为时间戳。
- * @param text - chip 文本,格式见宿主 formatMessageClock。
- * @returns 时间戳(ms);无法识别或数值越界返回 undefined。
+ * 从 chip 容器文本里抽出宿主 formatMessageClock 生成的时间片段。
+ *
+ * 宿主把「用量 xx tok」文案与时钟并列渲染在同一个 `[data-clock]` 容器里,
+ * 实测文本形如「用量 72.3K tok19:57」,所以不能对整段文本做锚定匹配。
+ * 候选片段的尾巴若紧跟 ':' 或数字,说明它只是更长数字串的一部分
+ * (如「12:30:45」的秒),该候选作废,继续尝试信息量更少的模式。
+ * @param text - 容器文本(可能含前后噪声)。
+ * @returns 时间片段文本(如 `19:57`、`11月8日 20:14`);未匹配返回 undefined。
  */
-export function parseClockText(text: string | undefined | null): number | undefined {
+export function extractClock(text: string | undefined | null): string | undefined {
   if (!text) return undefined
   const value = text.trim()
   if (!value) return undefined
+  for (const pattern of CLOCK_PATTERNS) {
+    // 逐个候选检查:一条文本里可能有多个时间串(前面那个带秒被否掉),
+    // 不能用 exec 只取首个匹配就降级到更弱的模式。
+    const scanner = new RegExp(pattern.source, 'g')
+    for (const match of value.matchAll(scanner)) {
+      const next = value[(match.index ?? 0) + match[0].length]
+      if (next === ':' || (next !== undefined && /\d/.test(next))) continue
+      return match[0]
+    }
+  }
+  return undefined
+}
+
+/**
+ * 解析时间 chip 文本为时间戳。
+ * @param text - chip 容器文本,格式见宿主 formatMessageClock(可含用量前缀)。
+ * @returns 时间戳(ms);无法识别或数值越界返回 undefined。
+ */
+export function parseClockText(text: string | undefined | null): number | undefined {
+  const clock = extractClock(text)
+  if (!clock) return undefined
+  const value = clock
   const now = Date.now()
   const nowDate = new Date(now)
   // 当天:HH:mm
@@ -90,9 +139,9 @@ export function parseClockText(text: string | undefined | null): number | undefi
 }
 
 /**
- * 计算每条消息行前应插入的分隔条文本(undefined = 不插)。
- * 首条可解析行前必插;随后仅当日期键变化时插入。
- * @param chipTexts - 与消息行顺序一致的 chip 文本数组(无 chip 的行为 undefined)。
+ * 计算每个「回合」前应插入的分隔条文本(undefined = 不插)。
+ * 首个可解析的回合前必插;随后仅当日期键变化时插入。
+ * @param chipTexts - 与回合顺序一致的 chip 容器文本数组(该回合无 chip 为 undefined)。
  * @returns 与输入等长的数组,元素为分隔条文本或 undefined。
  */
 export function planDividers(
@@ -101,16 +150,16 @@ export function planDividers(
   const plan: Array<string | undefined> = []
   let lastKey: string | undefined
   for (const raw of chipTexts) {
-    // trim 防御:尾随空白会让「日期部分 vs 纯时间」判定失真,误回退「今天」。
-    const text = typeof raw === 'string' ? raw.trim() : raw
-    const timeMs = text ? parseClockText(text) : undefined
-    if (timeMs === undefined) {
+    // 先抽时间片段:chip 文本可能混有「用量 xx tok」前缀,整段匹配会失败。
+    const clock = extractClock(typeof raw === 'string' ? raw : undefined)
+    const timeMs = clock === undefined ? undefined : parseClockText(clock)
+    if (clock === undefined || timeMs === undefined) {
       plan.push(undefined)
       continue
     }
     const key = dayKey(timeMs)
     if (lastKey === undefined || key !== lastKey) {
-      plan.push(labelOf(text as string))
+      plan.push(labelOf(clock))
     } else {
       plan.push(undefined)
     }
@@ -120,19 +169,16 @@ export function planDividers(
 }
 
 /**
- * 全量对齐聊天流里的分隔条:先算期望分隔条,再与现有分隔条比对,
+ * 全量对齐聊天流里的分隔条:先按回合算出期望分隔条,再与现有分隔条比对,
  * 完全一致(数量/文本/位置)时零变更;不一致才先删旧条再按位置插入新条。
  * 幂等——同一批消息反复对齐结果一致,不会自我触发 observer 循环。
  * @param flow - 聊天流容器。
  */
 export function alignDividers(flow: Element): void {
   if (typeof flow.querySelectorAll !== 'function') return
-  const rows = Array.from(flow.querySelectorAll(ROW_SELECTOR))
-  const chipTexts = rows.map(row => {
-    const text = row.querySelector(CLOCK_SELECTOR)?.textContent
-    return text === undefined ? undefined : text.trim()
-  })
-  const plan = planDividers(chipTexts)
+  const rows = Array.from(flow.querySelectorAll(FLOW_KEY_SELECTOR)).filter(row => !containsFlowItem(row))
+  const groups = groupByTurn(rows)
+  const plan = planDividers(groups.map(group => clockTextOf(group.rows)))
   const existing = Array.from(flow.querySelectorAll(`[${DIVIDER_ATTRIBUTE}]`))
   if (existing.length === plan.filter(label => label !== undefined).length) {
     let aligned = true
@@ -140,7 +186,9 @@ export function alignDividers(flow: Element): void {
     for (let i = 0; i < plan.length; i++) {
       if (plan[i] === undefined) continue
       const el = existing[at]
-      if (!el || el.textContent !== plan[i] || el.nextElementSibling !== rows[i]) {
+      const first = groups[i]?.rows[0]
+      const anchor = first === undefined ? undefined : anchorOf(first)
+      if (!el || el.textContent !== plan[i] || el.nextElementSibling !== anchor) {
         aligned = false
         break
       }
@@ -150,13 +198,88 @@ export function alignDividers(flow: Element): void {
   }
   for (const el of existing) el.remove()
   for (let i = 0; i < plan.length; i++) {
-    if (plan[i] === undefined) continue
-    const row = rows[i]
-    if (!row) continue
-    // row.before 而非 flow.insertBefore:不假设行是 flow 直接子节点
+    const label = plan[i]
+    if (label === undefined) continue
+    const first = groups[i]?.rows[0]
+    if (!first) continue
+    // anchorOf 而非直接 first:首行可能位于 ChatGroupSeat 的折叠 body 内,
+    // 插在 body 里会随折叠一起被裁掉;锚到最近的流 item(=容器)才可见。
+    // 用 anchor.before 而非 flow.insertBefore:不假设锚点是 flow 直接子节点
     // (分组嵌套时 insertBefore 会抛 NotFoundError 且每次重扫重复抛)。
-    row.before(buildDivider(plan[i] as string))
+    anchorOf(first).before(buildDivider(label))
   }
+}
+
+/** 一个回合:同 data-chat-turn 的连续流 item。 */
+interface TurnGroup {
+  /** 回合标识;行上没有该属性时为 undefined(退化为「每行一组」)。 */
+  turn: string | undefined
+  /** 该回合的流 item,按 DOM 顺序。 */
+  rows: Element[]
+}
+
+/** 某行是否嵌套了其它流 item(ChatGroupSeat 分组容器):这类行不参与分组。 */
+function containsFlowItem(row: Element): boolean {
+  return typeof row.querySelector === 'function' && row.querySelector(FLOW_KEY_SELECTOR) !== null
+}
+
+/** 读取行所属回合标识;stub 环境(无 getAttribute)返回 undefined。 */
+function turnOf(row: Element): string | undefined {
+  if (typeof row.getAttribute !== 'function') return undefined
+  return row.getAttribute(TURN_ATTRIBUTE) ?? undefined
+}
+
+/**
+ * 按回合把流 item 分组(连续同 turn 归一组)。
+ * 行上都没有 turn 属性时退化为「每行一组」,与逐行判定等价。
+ * @param rows - 按 DOM 顺序排列的叶子流 item。
+ */
+function groupByTurn(rows: readonly Element[]): TurnGroup[] {
+  const groups: TurnGroup[] = []
+  let current: TurnGroup | undefined
+  for (const row of rows) {
+    const turn = turnOf(row)
+    // 缺 turn 属性的行并入当前组(宿主偶发不输出该属性,此时若新开组,
+    // 分隔条会落到该回合并未被时钟覆盖的那一行上);组本身无 turn 时
+    // (拿不到任何标识)仍退化为每行一组。
+    if (
+      current !== undefined &&
+      current.turn !== undefined &&
+      (turn === undefined || current.turn === turn)
+    ) {
+      current.rows.push(row)
+    } else {
+      current = { turn, rows: [row] }
+      groups.push(current)
+    }
+  }
+  return groups
+}
+
+/**
+ * 取回合内的时间 chip 文本:时钟通常挂在回合尾部的 turn-tail 行。
+ * @param rows - 该回合的流 item。
+ * @returns 首个非空 chip 文本;全无则 undefined。
+ */
+function clockTextOf(rows: readonly Element[]): string | undefined {
+  for (const row of rows) {
+    if (typeof row.querySelector !== 'function') continue
+    const text = row.querySelector(CLOCK_SELECTOR)?.textContent?.trim()
+    if (text) return text
+  }
+  return undefined
+}
+
+/**
+ * 取分隔条的实际锚点:首行若嵌在分组容器(ChatGroupSeat)内,锚到最近的流
+ * item(=容器本身),否则分隔条会跟着容器折叠一起被裁掉、等于没插。
+ * @param first - 回合首行。
+ * @returns 用于 `before()` 的锚点元素。
+ */
+function anchorOf(first: Element): Element {
+  const closest = (first as Element & { closest?: (selector: string) => Element | null }).closest
+  if (typeof closest !== 'function') return first
+  return closest.call(first, FLOW_KEY_SELECTOR) ?? first
 }
 
 /** 移除聊天流内全部已插入的分隔条(关闭开关/插件卸载时调用)。 */
