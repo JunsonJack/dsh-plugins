@@ -112,9 +112,15 @@ describe('QQ NT layout config branches', () => {
     const tailRule = "[data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root']::after"
     expect(QQ_LAYOUT_CSS).toContain(tailRule)
     // 左尾巴 = 右尾巴的水平镜像:clip-path 的 x 坐标翻转到另一侧,
-    // 尖端(100% 100%)落在左下角,阴影方向同样翻成向左。
+    // 尖端(0% 100%)落在左下角,阴影方向同样翻成向左。
     expect(QQ_LAYOUT_CSS).toContain('clip-path: polygon(100.0% 0.0%,')
+    // 回归(0.5.5):镜像切片曾把末尾按 'polygon)'.length 切 8 字符,
+    // 误删最后一个顶点的 y 值,尾端退化成 (0,0),多边形塌成细缝隐形。
+    // 修复后最后一个点必须是 "0.0% 100.0%"(完整左下角)。
+    expect(QQ_LAYOUT_CSS).toContain('0.0% 100.0%, 100.0% 100%)')
     expect(QQ_LAYOUT_CSS).toContain('filter: drop-shadow(-1px 2px 3px')
+    // 亮色主题画布与卡片同为 #fff,白尾巴需要 0.5px 毛边才可见。
+    expect(QQ_LAYOUT_CSS).toContain('drop-shadow(0 0 0.5px var(--dsw-alias-border-l2))')
     // 头像关闭时尾巴一并停用(尾巴指向头像,没有头像的尾巴是断箭)。
     const off = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, assistantAvatar: false })
     expect(off).not.toContain(tailRule)

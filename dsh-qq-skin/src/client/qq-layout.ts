@@ -128,8 +128,12 @@ function tailClipPolygon(): string {
  * 尖端指向左侧头像 —— 助手消息卡片(QQ"对方消息")的左尾巴。
  */
 function tailClipPolygonMirrored(): string {
+  // ⚠ 末尾只切掉一个 ")" —— 字符串以 ")" 结尾,不是 "polygon)"。
+  // 若按 'polygon)'.length 切 8 个字符,会把最后一个顶点的 y 值
+  // (" 100.0%")一并切掉,尾端从 (0,100%) 退化成 (0,0),整个多边形
+  // 塌成一条细缝,尾巴肉眼不可见(0.5.5 的回归,修于 0.5.6)。
   const points = tailClipPolygon()
-    .slice('polygon('.length, -'polygon)'.length)
+    .slice('polygon('.length, -1)
     .split(', ')
     .map(pair => {
       const [x, y] = pair.split(' ')
@@ -358,8 +362,11 @@ body [data-composer-card] {
 /**
  * 助手卡片左尾巴:QQ"对方消息"的弧形小勾,贴在卡片左下角指向头像。
  * 与用户气泡右尾巴同款形状(水平镜像);底色跟随卡片 token(bg-layer-1),
- * 投影取色板主色,与头像光晕同一色源。头像关闭时尾巴一并停用 ——
- * 尾巴指向头像,没有头像的尾巴是断箭。
+ * 投影取色板主色,与头像光晕同一色源。亮色主题下画布(bg-base)与卡片
+ * (bg-layer-1)同为 #fff,白尾巴贴白画布会隐形 —— 追加一道与卡片描边
+ * 同色的 0.5px 毛边(简洁白色板气泡尾巴的既有做法),让形状在白底上
+ * 依然可辨。头像关闭时尾巴一并停用 —— 尾巴指向头像,没有头像的尾巴
+ * 是断箭。
  */
 function assistantTailRule(tailShadow: [number, number, number]): string {
   const shadow = `${tailShadow[0]}, ${tailShadow[1]}, ${tailShadow[2]}`
@@ -373,7 +380,7 @@ function assistantTailRule(tailShadow: [number, number, number]): string {
   height: 16px;
   background: var(--dsw-alias-bg-layer-1);
   clip-path: ${tailClipPolygonMirrored()};
-  filter: drop-shadow(-1px 2px 3px rgba(${shadow}, 0.18));
+  filter: drop-shadow(-1px 2px 3px rgba(${shadow}, 0.18)) drop-shadow(0 0 0.5px var(--dsw-alias-border-l2));
   pointer-events: none;
 }
 `
