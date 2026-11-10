@@ -119,8 +119,8 @@ describe('dsh-qq-skin client apply', () => {
     expect(locale.registered[0].ns).toBe(QQ_SKIN_PLUGIN_NS)
     expect(zh['card.summary']).toContain('QQ')
     // typed register 保证键集一致;这里钉住数量,防止增删键时漏改字典。
-    expect(Object.keys(zh)).toHaveLength(62)
-    expect(Object.keys(en)).toHaveLength(62)
+    expect(Object.keys(zh)).toHaveLength(36)
+    expect(Object.keys(en)).toHaveLength(36)
   })
 
   it('stacks the QQ override layer on activation with the default palette', () => {
@@ -269,16 +269,5 @@ describe('dsh-qq-skin client apply', () => {
     expect(zh['card.imageClear']).toContain('企鹅')
     expect(zh['card.imageError']).toContain('图片')
     expect(zh['card.imageSet']).toContain('保存')
-  })
-
-  it('keeps the theme import/export copy in both dictionaries', () => {
-    // 主题导入导出:标题/两按钮/复制提示/导入错误双语齐全。
-    expect(zh['card.theme']).toContain('主题')
-    expect(zh['card.themeExport']).toContain('导出')
-    expect(zh['card.themeImport']).toContain('导入')
-    expect(zh['card.themeCopied']).toContain('剪贴板')
-    expect(zh['card.themeImportError']).toContain('JSON')
-    expect(en['card.theme']).toContain('Theme')
-    expect(en['card.themeImportError']).toContain('JSON')
   })
 })

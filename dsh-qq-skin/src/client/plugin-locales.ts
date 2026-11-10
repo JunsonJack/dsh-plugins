@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 插件管理页配置卡片(plugins.row.config)的文案字典:zh/en 双语,注册进
  * locale 服务。命名空间声明合并进 LocaleNamespaceMap,typed register
  * 缺键/多键在编译期报错。
@@ -45,35 +45,9 @@ export type QQSkinPluginKey =
   | 'row.assistantAvatar'
   | 'row.avatarSize'
   | 'row.chatMaxWidth'
-  | 'row.messageSound'
-  | 'row.sendSound'
-  | 'row.soundVariant'
-  | 'row.soundVolume'
-  | 'row.customSound'
-  | 'row.remindOnlyWhenUnfocused'
-  | 'row.quietHours'
-  | 'sound.beep'
-  | 'sound.waterdrop'
-  | 'sound.knock'
-  | 'row.windowShake'
   | 'row.frostedGlass'
   | 'row.typing'
   | 'row.timeDivider'
-  | 'row.chatWallpaper'
-  | 'row.wallpaperDim'
-  | 'row.wallpaperBlur'
-  | 'row.wallpaperFull'
-  | 'card.wallpaperPick'
-  | 'card.wallpaperClear'
-  | 'card.soundPick'
-  | 'card.soundClear'
-  | 'card.soundSet'
-  | 'card.soundError'
-  | 'card.theme'
-  | 'card.themeExport'
-  | 'card.themeImport'
-  | 'card.themeCopied'
-  | 'card.themeImportError'
   | 'divider.today'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -85,7 +59,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 /** 中文文案。 */
 export const zh: Record<QQSkinPluginKey, string> = {
-  'card.summary': 'QQ NT 皮肤:色板、气泡、企鹅头像、音效与毛玻璃等全部外观配置。',
+  'card.summary': 'QQ NT 皮肤:色板、气泡、企鹅头像、毛玻璃与时间分隔条等外观配置。',
   'card.loading': '配置加载中…',
   'card.readOnly': '当前配置文档为只读,修改无法保存。',
   'card.save': '保存',
@@ -117,41 +91,15 @@ export const zh: Record<QQSkinPluginKey, string> = {
   'row.assistantAvatar': '企鹅头像',
   'row.avatarSize': '头像尺寸',
   'row.chatMaxWidth': '会话宽度',
-  'row.messageSound': '助手消息提示音',
-  'row.sendSound': '发送消息反馈音',
-  'row.soundVariant': '提示声音色',
-  'row.soundVolume': '提示音音量',
-  'row.customSound': '自定义音效',
-  'row.remindOnlyWhenUnfocused': '仅失焦时提醒',
-  'row.quietHours': '免打扰时段',
-  'sound.beep': '经典寻呼机',
-  'sound.waterdrop': '灵动水滴',
-  'sound.knock': '清脆敲门',
-  'row.windowShake': '窗口抖动提醒',
   'row.frostedGlass': '毛玻璃质感',
   'row.typing': '打字机效果',
   'row.timeDivider': '时间分隔条',
-  'row.chatWallpaper': '聊天壁纸',
-  'row.wallpaperDim': '暗化',
-  'row.wallpaperBlur': '模糊',
-  'row.wallpaperFull': '全窗沉浸',
-  'card.wallpaperPick': '选择壁纸…',
-  'card.wallpaperClear': '移除壁纸',
-  'card.soundPick': '选择本地音效…',
-  'card.soundClear': '恢复内置音色',
-  'card.soundSet': '已选择本地音效,保存后生效。',
-  'card.soundError': '音频读取失败,请换一个文件。',
-  'card.theme': '主题导入导出',
-  'card.themeExport': '导出当前草稿',
-  'card.themeImport': '导入并套用到草稿',
-  'card.themeCopied': '已复制到剪贴板。',
-  'card.themeImportError': 'JSON 解析失败或内容为空,请检查粘贴的主题文本。',
   'divider.today': '今天',
 }
 
 /** 英文文案。 */
 export const en: Record<QQSkinPluginKey, string> = {
-  'card.summary': 'QQ NT skin: palette, bubbles, penguin avatar, sounds, frosted glass and every other appearance option.',
+  'card.summary': 'QQ NT skin: palette, bubbles, penguin avatar, frosted glass, time dividers and more.',
   'card.loading': 'Loading configuration…',
   'card.readOnly': 'The current configuration document is read-only; changes cannot be saved.',
   'card.save': 'Save',
@@ -183,34 +131,8 @@ export const en: Record<QQSkinPluginKey, string> = {
   'row.assistantAvatar': 'Penguin avatar',
   'row.avatarSize': 'Avatar size',
   'row.chatMaxWidth': 'Chat width',
-  'row.messageSound': 'Assistant sound',
-  'row.sendSound': 'Sent sound',
-  'row.soundVariant': 'Sound tone',
-  'row.soundVolume': 'Sound volume',
-  'row.customSound': 'Custom sound',
-  'row.remindOnlyWhenUnfocused': 'Remind only when unfocused',
-  'row.quietHours': 'Quiet hours',
-  'sound.beep': 'Classic Pager',
-  'sound.waterdrop': 'Water Drop',
-  'sound.knock': 'Door Knock',
-  'row.windowShake': 'Window shake',
   'row.frostedGlass': 'Frosted glass',
   'row.typing': 'Typing effect',
   'row.timeDivider': 'Time dividers',
-  'row.chatWallpaper': 'Chat wallpaper',
-  'row.wallpaperDim': 'Dim',
-  'row.wallpaperBlur': 'Blur',
-  'row.wallpaperFull': 'Full-window wallpaper',
-  'card.wallpaperPick': 'Pick wallpaper…',
-  'card.wallpaperClear': 'Remove wallpaper',
-  'card.soundPick': 'Pick local sound…',
-  'card.soundClear': 'Restore built-in tone',
-  'card.soundSet': 'Local sound picked; takes effect after Save.',
-  'card.soundError': 'Failed to read the audio; try another file.',
-  'card.theme': 'Theme import / export',
-  'card.themeExport': 'Export current draft',
-  'card.themeImport': 'Import onto the draft',
-  'card.themeCopied': 'Copied to the clipboard.',
-  'card.themeImportError': 'JSON parsing failed or the text is empty; check the pasted theme.',
   'divider.today': 'Today',
 }
