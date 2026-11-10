@@ -4,7 +4,7 @@ import { QQ_SKIN_SETTINGS_NS, settingsToConfig, type QQSkinSettings } from '../s
 const DEFAULTS = {
   palette: 'classic', customColor: '#12B7F5', density: 'normal', avatarStyle: 'classic', avatarCustomImage: '',
   bubbleTail: true, assistantAvatar: true, avatarSize: 22,
-  chatMaxWidth: 880, frostedGlass: false, typing: true, timeDivider: true,
+  chatMaxWidth: 880, frostedGlass: false, typing: true,
 }
 
 describe('QQ skin settings', () => {
@@ -45,10 +45,12 @@ describe('QQ skin settings', () => {
     expect(settingsToConfig(undefined, { frostedGlass: true }).frostedGlass).toBe(true)
   })
 
-  it('timeDivider flows through settings and rejects non-boolean', () => {
-    expect(settingsToConfig({ timeDivider: false }).timeDivider).toBe(false)
-    expect(settingsToConfig({ timeDivider: 'yes' as never }).timeDivider).toBe(true)
-    expect(settingsToConfig(undefined, { timeDivider: false }).timeDivider).toBe(false)
+  it('drops the removed timeDivider field from legacy sections', () => {
+    // 分隔条功能整体移除后，用户旧配置里残留的 timeDivider 不应出现在
+    // 解析结果里（否则会被热更新比较当成未知字段）。
+    const merged: Record<string, unknown> = settingsToConfig({ timeDivider: false } as never)
+    expect('timeDivider' in merged).toBe(false)
+    expect(merged).toEqual(DEFAULTS)
   })
 
   it('avatarCustomImage flows through settings and rejects insecure sources', () => {

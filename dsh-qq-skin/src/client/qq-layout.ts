@@ -199,8 +199,7 @@ function typingRule(): string {
  * 紧凑密度:收紧消息流的垂直呼吸(行间距、卡片内边距、气泡间距),
  * 单屏容纳更多消息;normal 档不注入任何规则(宿主原样)。
  * 选择器只命中本插件已依赖的稳定锚点(data-chat-flow、data-chat-flow-key、
- * data-message-bubble、data-qq-time-divider 与助手卡片链路),不碰宿主
- * 未知的内部间距。
+ * data-message-bubble 与助手卡片链路),不碰宿主未知的内部间距。
  */
 function densityRule(): string {
   return `
@@ -217,35 +216,6 @@ function densityRule(): string {
 [data-message-bubble][data-message-bubble] {
   padding-top: 6px;
   padding-bottom: 6px;
-}
-[data-qq-time-divider] {
-  margin: 6px 0;
-}
-`
-}
-
-/**
- * 消息时间分隔条:跨天消息前的居中日期条(细线 + 说明文字,QQ NT 原味)。
- * 元素由 qq-time-divider.ts 注入(带 data-qq-time-divider 标记),这里只
- * 负责视觉;文本取自宿主时间 chip 的日期部分,与宿主本地化格式一致。
- */
-function timeDividerRule(): string {
-  return `
-[data-qq-time-divider] {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 12px 0;
-  color: var(--dsw-alias-label-caption);
-  font-size: 12px;
-  line-height: 20px;
-}
-[data-qq-time-divider]::before,
-[data-qq-time-divider]::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--dsw-alias-border-l1);
 }
 `
 }
@@ -479,7 +449,7 @@ const PALETTE_SHADOW_RGB: Record<string, [number, number, number]> = {
  * @param config - 用户配置(可缺省,回落默认)。
  */
 export function buildQQLayoutCss(config: QQSkinConfig = QQ_SKIN_DEFAULT_CONFIG): string {
-  const { bubbleTail, assistantAvatar, chatMaxWidth, typing, frostedGlass, timeDivider, density } = config
+  const { bubbleTail, assistantAvatar, chatMaxWidth, typing, frostedGlass, density } = config
   // 头像光晕与气泡阴影的主色:custom 色板跟随自定义主色,其余色板各取本色。
   const isCustom = config.palette === 'custom'
   const customRgb = isCustom ? parseHexColor(config.customColor) : null
@@ -529,7 +499,6 @@ ${assistantAvatar ? avatarRule(config.avatarStyle, glow, config.avatarCustomImag
 }
 ${assistantAvatar ? assistantTailRule(shadow) : ''}
 ${typing ? typingRule() : ''}
-${timeDivider ? timeDividerRule() : ''}
 
 /* ── Markdown 引用块:主题主色竖条 + 柔和浅底 ───────────────────────── */
 [data-chat-flow-kind='assistant-step'] blockquote {

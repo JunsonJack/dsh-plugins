@@ -49,8 +49,6 @@ export interface QQSkinConfig {
   frostedGlass: boolean
   /** 助手消息打字机揭示动效开关(默认开)。 */
   typing: boolean
-  /** 消息时间分隔条开关:跨天消息前插入 QQ 风格日期条(默认开)。 */
-  timeDivider: boolean
 }
 
 /** 聊天流最大宽度边界限制(px),与宿主 schema 对齐。 */
@@ -87,7 +85,6 @@ export const QQ_SKIN_DEFAULT_CONFIG: QQSkinConfig = {
   chatMaxWidth: 880,
   frostedGlass: false,
   typing: true,
-  timeDivider: true,
 }
 
 /** 规范化十六进制色值:格式错误回落默认 #12B7F5,3位扩展为6位。 */
@@ -161,7 +158,6 @@ export const QQ_SKIN_CONFIG_FIELDS = [
   'chatMaxWidth',
   'frostedGlass',
   'typing',
-  'timeDivider',
 ] as const satisfies ReadonlyArray<keyof QQSkinConfig>
 
 /** 两份配置是否等价(逐字段比较以免无谓重挂皮肤层)。 */
@@ -185,6 +181,5 @@ export function resolveQQSkinConfig(config?: PartialQQSkinConfig): QQSkinConfig 
     chatMaxWidth: normalizeChatMaxWidth(raw.chatMaxWidth),
     frostedGlass: pickBool(raw.frostedGlass, def.frostedGlass),
     typing: pickBool(raw.typing, def.typing),
-    timeDivider: pickBool(raw.timeDivider, def.timeDivider),
   }
 }

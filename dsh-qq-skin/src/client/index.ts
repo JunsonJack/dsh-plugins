@@ -34,7 +34,6 @@ import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import { QQ_SKIN_DEFAULT_CONFIG, sameQQSkinConfig, type QQSkinConfig } from './config.ts'
 import { QQ_SKIN_SETTINGS_NS, settingsToConfig, type QQSkinSettings } from './settings.ts'
 import { QQSkinRuntime } from './runtime.ts'
-import { QQTimeDividerRuntime, setTodayLabel } from './qq-time-divider.ts'
 import { QQ_SKIN_PLUGIN_NS, zh, en } from './plugin-locales.ts'
 import { QQSkinPluginCard } from './plugin-page.tsx'
 
@@ -68,23 +67,15 @@ export const QQ_SKIN_CONFIG_ROW_KEY = 'dsh-qq-skin#qq-skin'
  * @param ctx - 客户端插件上下文。
  */
 export function apply(ctx: ClientContext): void {
-  // 文案字典:插件页卡片与时间分隔条共用的双语键(typed register,缺键编译期报错)。
+  // 文案字典:插件页卡片的双语键(typed register,缺键编译期报错)。
   ctx.effect(() => ctx.locale.register(QQ_SKIN_PLUGIN_NS, { zh, en }), 'dsh-qq-skin: plugin card dictionaries')
-  // 「今天」文案:时间分隔条用;bind 返回活翻译函数,语言切换后跟随。
-  const t = ctx.locale.bind(QQ_SKIN_PLUGIN_NS)
-  setTodayLabel(() => t('divider.today'))
 
   // 皮肤运行时:两层挂载 + 配置热更新,首帧按出厂默认值上皮肤。
   const runtime = new QQSkinRuntime(ctx, QQ_SKIN_DEFAULT_CONFIG)
 
-  // 时间分隔条运行时:跨天消息前插入 QQ 风格日期条,按 timeDivider 启停。
-  const divider = new QQTimeDividerRuntime(ctx, runtime.getConfig())
-
   // 设置表单:宿主条目配置的读写面(值 = 默认值 → profile 配置 → 用户改写)。
   const host = ctx.configForms.get<QQSkinSettings>(QQ_SKIN_SETTINGS_NS)
 
-  /** 上次采用后的完整配置:分隔条比较旧值,最后整体刷新。 */
-  let lastMerged = runtime.getConfig()
   /** 采用宿主快照:配置未到达(loading/unavailable)时保持出厂默认值。 */
   const adopt = (): void => {
     const section = host.getSnapshot().value
@@ -94,12 +85,6 @@ export function apply(ctx: ClientContext): void {
     if (!sameQQSkinConfig(merged, runtime.getConfig())) {
       runtime.update(merged)
     }
-
-    // 分隔条开关变化才重建观察链(日期文案不随配置变,无需比较)。
-    if (lastMerged.timeDivider !== merged.timeDivider) {
-      divider.update(merged)
-    }
-    lastMerged = merged
   }
   ctx.effect(() => host.subscribe(() => {
     // 首次快照可能在订阅前就已到达,主动 adopt 一次以免停在出厂默认值。

@@ -30,7 +30,7 @@
 | --- | --- | --- |
 | `palette` | `'classic'` | 色板变体：`classic` 经典蓝 / `vivid` 炫彩紫 / `clean` 简洁白（白底气泡 + 深色文字） / `green` 经典绿气泡 / `black` 深空黑 / `qqblue` QQ蓝（采样自 QQ NT 实色发送气泡 `#2E65D1`，四角均匀圆角，亮色带轻微 135° 渐变） / `custom` 自定义主色 |
 | `customColor` | `'#12B7F5'` | 自定义主色调（十六进制颜色，如 `#FF5722`）；当 `palette: 'custom'` 时所有品牌相关 token 全部跟随——按钮、链接文字、选中态 accent 以及 static blue/deepseek 整条刻度 |
-| `density` | `'normal'` | 消息密度：`normal` 标准呼吸感（宿主原样） / `compact` 紧凑（收紧行间距、气泡与卡片内边距、分隔条外边距，单屏容纳更多消息） |
+| `density` | `'normal'` | 消息密度：`normal` 标准呼吸感（宿主原样） / `compact` 紧凑（收紧行间距、气泡与卡片内边距，单屏容纳更多消息） |
 | `avatarStyle` | `'classic'` | 企鹅头像装扮：`classic` 经典原版 / `sunglasses` 酷炫墨镜 / `scarf` 暖冬红围巾（高精度 SVG 动态图层叠加） |
 | `avatarCustomImage` | `''` | 自定义助手头像图片（插件页卡片可「选择本地图片…」——缩图后以 data URI 持久化；或填 `https://` 图片链接；设置后完全替代企鹅与装扮层，清空恢复官方企鹅） |
 | `avatarSize` | `22` | 助手头像尺寸（px，16~40；气泡让位随尺寸自动换算，大头像不会顶歪文字） |
@@ -39,7 +39,6 @@
 | `chatMaxWidth` | `880` | 聊天流最大宽度（px，约束在 480～1600 之间） |
 | `frostedGlass` | `false` | 侧边栏 / 右栏详情 / 输入框的毛玻璃玻璃面板(品牌色晕染渐变 + 半透明底 + 玻璃边缘光;统一不加 `backdrop-filter`——三栏列会破坏折叠按钮的 fixed 定位,输入卡会让卡内弹窗的 backdrop blur 失效、文字重影) |
 | `typing` | `true` | 助手消息打字机揭示动效开关 |
-| `timeDivider` | `true` | 消息时间分隔条：跨天时在回合首行前插入 QQ 风格居中日期条（当天显示「今天」，日期文本与宿主语言格式一致；时间取自同回合任意位置的时间 chip） |
 
 示例（在 profile 的插件配置里指定）：
 
@@ -52,8 +51,7 @@
   "bubbleTail": true,
   "chatMaxWidth": 880,
   "frostedGlass": true,
-  "typing": true,
-  "timeDivider": true
+  "typing": true
 }
 ```
 

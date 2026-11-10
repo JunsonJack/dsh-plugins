@@ -119,8 +119,8 @@ describe('dsh-qq-skin client apply', () => {
     expect(locale.registered[0].ns).toBe(QQ_SKIN_PLUGIN_NS)
     expect(zh['card.summary']).toContain('QQ')
     // typed register 保证键集一致;这里钉住数量,防止增删键时漏改字典。
-    expect(Object.keys(zh)).toHaveLength(36)
-    expect(Object.keys(en)).toHaveLength(36)
+    expect(Object.keys(zh)).toHaveLength(34)
+    expect(Object.keys(en)).toHaveLength(34)
   })
 
   it('stacks the QQ override layer on activation with the default palette', () => {

@@ -142,13 +142,6 @@ describe('QQ NT layout config branches', () => {
     expect(off).not.toContain('dsh-qq-typing')
   })
 
-  it('time divider styles are present by default and removable', () => {
-    expect(QQ_LAYOUT_CSS).toContain('[data-qq-time-divider]')
-    expect(QQ_LAYOUT_CSS).toContain('[data-qq-time-divider]::before')
-    const off = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, timeDivider: false })
-    expect(off).not.toContain('data-qq-time-divider')
-  })
-
   it('compact density tightens spacing and normal injects nothing', () => {
     // normal 档不注入任何规则(宿主原样呼吸感)。
     expect(QQ_LAYOUT_CSS).not.toContain('data-chat-flow-key] + [data-chat-flow-key]')
@@ -157,8 +150,6 @@ describe('QQ NT layout config branches', () => {
     expect(compact).toContain('margin-top: 4px')
     expect(compact).toContain("padding: 8px 12px")
     expect(compact).toContain('[data-message-bubble][data-message-bubble] {\n  padding-top: 6px;')
-    // 紧凑档同时收紧分隔条的垂直外边距。
-    expect(compact).toContain('[data-qq-time-divider] {\n  margin: 6px 0;')
   })
 
   it('stops decorative animations under prefers-reduced-motion', () => {

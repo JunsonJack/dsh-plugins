@@ -725,11 +725,6 @@ function QQSkinEditor({ t, config, revision, writable, mutate }: {
           checked={draft.typing ?? true}
           onChange={value => { edit('typing', value) }}
         />
-        <ToggleRow
-          label={t('row.timeDivider')}
-          checked={draft.timeDivider ?? true}
-          onChange={value => { edit('timeDivider', value) }}
-        />
       </div>
 
       {/* 自定义助手头像:空 = 官方企鹅;本地图片走选择按钮,链接走输入框 */}

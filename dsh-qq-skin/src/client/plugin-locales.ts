@@ -47,8 +47,6 @@ export type QQSkinPluginKey =
   | 'row.chatMaxWidth'
   | 'row.frostedGlass'
   | 'row.typing'
-  | 'row.timeDivider'
-  | 'divider.today'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -59,7 +57,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 /** 中文文案。 */
 export const zh: Record<QQSkinPluginKey, string> = {
-  'card.summary': 'QQ NT 皮肤:色板、气泡、企鹅头像、毛玻璃与时间分隔条等外观配置。',
+  'card.summary': 'QQ NT 皮肤:色板、气泡、企鹅头像与毛玻璃等外观配置。',
   'card.loading': '配置加载中…',
   'card.readOnly': '当前配置文档为只读,修改无法保存。',
   'card.save': '保存',
@@ -93,13 +91,11 @@ export const zh: Record<QQSkinPluginKey, string> = {
   'row.chatMaxWidth': '会话宽度',
   'row.frostedGlass': '毛玻璃质感',
   'row.typing': '打字机效果',
-  'row.timeDivider': '时间分隔条',
-  'divider.today': '今天',
 }
 
 /** 英文文案。 */
 export const en: Record<QQSkinPluginKey, string> = {
-  'card.summary': 'QQ NT skin: palette, bubbles, penguin avatar, frosted glass, time dividers and more.',
+  'card.summary': 'QQ NT skin: palette, bubbles, penguin avatar, frosted glass and more.',
   'card.loading': 'Loading configuration…',
   'card.readOnly': 'The current configuration document is read-only; changes cannot be saved.',
   'card.save': 'Save',
@@ -133,6 +129,4 @@ export const en: Record<QQSkinPluginKey, string> = {
   'row.chatMaxWidth': 'Chat width',
   'row.frostedGlass': 'Frosted glass',
   'row.typing': 'Typing effect',
-  'row.timeDivider': 'Time dividers',
-  'divider.today': 'Today',
 }
