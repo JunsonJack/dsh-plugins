@@ -1,0 +1,43 @@
+{
+  "name": "magpie-mmsp",
+  "version": "0.1.6",
+  "description": "MMSP protocol conversion provider for magpie: speaks chat completions to the gateway and MMSP to go.penguin.ooo",
+  "type": "module",
+  "main": "./index.mjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "opencode",
+    "auth",
+    "plugin",
+    "provider",
+    "magpie",
+    "mmsp"
+  ],
+  "license": "MIT",
+  "files": [
+    "index.mjs",
+    "lib",
+    "panel",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test tests/"
+  },
+  "magpie": {
+    "name": "MMSP v0.1.6",
+    "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPHN0eWxlPi5ke2ZpbGw6IzExMTExNn1AbWVkaWEgKHByZWZlcnMtY29sb3Itc2NoZW1lOiBkYXJrKXsuZHtmaWxsOiMyYTJhMzN9fTwvc3R5bGU+CiAgPHBhdGggZD0iTTE1LjUgMEgyNWE3IDcgMCAwIDEgNyA3djkuNUgxNS41WiIgY2xhc3M9ImQiLz4KICA8cGF0aCBkPSJNMCAxNS41aDE2LjVWMzJIN2E3IDcgMCAwIDEtNy03WiIgY2xhc3M9ImQiLz4KICA8cGF0aCBkPSJNMCAxNlY3YTcgNyAwIDAgMSA3LTdoOXYxNloiIGZpbGw9IiM0NzdkZmIiLz4KICA8cGF0aCBkPSJNMTYgMTZoMTZ2OWE3IDcgMCAwIDEtNyA3aC05WiIgZmlsbD0iIzQ3N2RmYiIvPgogIDxnIGZpbGw9IiNmZmYiIGZvbnQtZmFtaWx5PSJ1aS1zYW5zLXNlcmlmLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sICdTZWdvZSBVSScsIFJvYm90bywgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMC41IiBmb250LXdlaWdodD0iNzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCI+CiAgICA8dGV4dCB4PSI4LjUiIHk9IjguNSI+TTwvdGV4dD4KICAgIDx0ZXh0IHg9IjIzLjUiIHk9IjguNSI+TTwvdGV4dD4KICAgIDx0ZXh0IHg9IjguNSIgeT0iMjMuNSI+UzwvdGV4dD4KICAgIDx0ZXh0IHg9IjIzLjUiIHk9IjIzLjUiPlA8L3RleHQ+CiAgPC9nPgo8L3N2Zz4K",
+    "options": {
+      "baseURL": "https://go.penguin.ooo",
+      "headers": ""
+    },
+    "panels": [
+      {
+        "slot": "settings",
+        "file": "panel/headers.html",
+        "title": "MMSP 设置"
+      }
+    ]
+  }
+}

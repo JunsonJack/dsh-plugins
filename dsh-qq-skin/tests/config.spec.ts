@@ -3,11 +3,7 @@ import {
   QQ_AVATAR_STYLES,
   QQ_SKIN_DEFAULT_CONFIG,
   QQ_SKIN_PALETTES,
-  currentLocalMinutes,
-  isWithinQuietHours,
-  mergeQQSkinTheme,
   normalizeAvatarImage,
-  normalizeQuietTime,
   resolveQQSkinConfig,
 } from '../src/client/config.ts'
 
@@ -82,84 +78,10 @@ describe('QQ skin config', () => {
     expect(resolveQQSkinConfig({ avatarSize: 'big' as never }).avatarSize).toBe(22)
   })
 
-  it('messageSound defaults to false and toggles via override', () => {
-    expect(resolveQQSkinConfig().messageSound).toBe(false)
-    expect(resolveQQSkinConfig({ messageSound: true }).messageSound).toBe(true)
-    expect(resolveQQSkinConfig({ messageSound: 'yes' as never }).messageSound).toBe(false)
-  })
-
   it('typing defaults to true and toggles via override', () => {
     expect(resolveQQSkinConfig().typing).toBe(true)
     expect(resolveQQSkinConfig({ typing: false }).typing).toBe(false)
     expect(resolveQQSkinConfig({ typing: 1 as never }).typing).toBe(true)
-  })
-
-  it('messageSound and sendSound default to false and toggle via override', () => {
-    expect(resolveQQSkinConfig().messageSound).toBe(false)
-    expect(resolveQQSkinConfig({ messageSound: true }).messageSound).toBe(true)
-    expect(resolveQQSkinConfig({ messageSound: 1 as never }).messageSound).toBe(false)
-
-    expect(resolveQQSkinConfig().sendSound).toBe(false)
-    expect(resolveQQSkinConfig({ sendSound: true }).sendSound).toBe(true)
-    expect(resolveQQSkinConfig({ sendSound: 'yes' as never }).sendSound).toBe(false)
-  })
-
-  it('soundVariant defaults to beep and accepts waterdrop or knock', () => {
-    expect(resolveQQSkinConfig().soundVariant).toBe('beep')
-    expect(resolveQQSkinConfig({ soundVariant: 'waterdrop' }).soundVariant).toBe('waterdrop')
-    expect(resolveQQSkinConfig({ soundVariant: 'knock' }).soundVariant).toBe('knock')
-    expect(resolveQQSkinConfig({ soundVariant: 'invalid' as never }).soundVariant).toBe('beep')
-  })
-
-  it('soundVolume defaults to 1 and clamps into [0, 1]', () => {
-    expect(resolveQQSkinConfig().soundVolume).toBe(1)
-    expect(resolveQQSkinConfig({ soundVolume: 0.5 }).soundVolume).toBe(0.5)
-    expect(resolveQQSkinConfig({ soundVolume: 0 }).soundVolume).toBe(0)
-    expect(resolveQQSkinConfig({ soundVolume: 1 }).soundVolume).toBe(1)
-    expect(resolveQQSkinConfig({ soundVolume: 1.7 }).soundVolume).toBe(1)
-    expect(resolveQQSkinConfig({ soundVolume: -0.5 }).soundVolume).toBe(0)
-    expect(resolveQQSkinConfig({ soundVolume: Number.NaN }).soundVolume).toBe(1)
-    expect(resolveQQSkinConfig({ soundVolume: 'loud' as never }).soundVolume).toBe(1)
-  })
-
-  it('quiet hours default to disabled and normalize invalid times to empty', () => {
-    expect(resolveQQSkinConfig().quietHoursStart).toBe('')
-    expect(resolveQQSkinConfig().quietHoursEnd).toBe('')
-    expect(resolveQQSkinConfig({ quietHoursStart: '22:00', quietHoursEnd: '08:00' }).quietHoursStart).toBe('22:00')
-    expect(resolveQQSkinConfig({ quietHoursStart: '22:00' }).quietHoursEnd).toBe('')
-    expect(normalizeQuietTime(' 07:30 ')).toBe('07:30')
-    expect(normalizeQuietTime('24:00')).toBe('')
-    expect(normalizeQuietTime('7:30')).toBe('')
-    expect(normalizeQuietTime('07:5')).toBe('')
-    expect(normalizeQuietTime('abc')).toBe('')
-    expect(normalizeQuietTime(123 as never)).toBe('')
-  })
-
-  it('isWithinQuietHours covers normal and overnight ranges', () => {
-    // 未启用:任一端为空。
-    expect(isWithinQuietHours(600, '', '08:00')).toBe(false)
-    expect(isWithinQuietHours(600, '22:00', '')).toBe(false)
-    // 普通区间 09:00→12:00。
-    expect(isWithinQuietHours(9 * 60, '09:00', '12:00')).toBe(true)
-    expect(isWithinQuietHours(10 * 60 + 30, '09:00', '12:00')).toBe(true)
-    expect(isWithinQuietHours(11 * 60 + 59, '09:00', '12:00')).toBe(true)
-    expect(isWithinQuietHours(12 * 60, '09:00', '12:00')).toBe(false)
-    expect(isWithinQuietHours(8 * 60 + 59, '09:00', '12:00')).toBe(false)
-    // 跨午夜区间 22:00→08:00。
-    expect(isWithinQuietHours(22 * 60, '22:00', '08:00')).toBe(true)
-    expect(isWithinQuietHours(23 * 60 + 59, '22:00', '08:00')).toBe(true)
-    expect(isWithinQuietHours(0, '22:00', '08:00')).toBe(true)
-    expect(isWithinQuietHours(7 * 60 + 59, '22:00', '08:00')).toBe(true)
-    expect(isWithinQuietHours(8 * 60, '22:00', '08:00')).toBe(false)
-    expect(isWithinQuietHours(12 * 60, '22:00', '08:00')).toBe(false)
-    // 起止相同 = 全天免打扰。
-    expect(isWithinQuietHours(0, '00:00', '00:00')).toBe(true)
-  })
-
-  it('currentLocalMinutes derives minutes from a Date', () => {
-    expect(currentLocalMinutes(new Date(2026, 10, 7, 0, 0))).toBe(0)
-    expect(currentLocalMinutes(new Date(2026, 10, 7, 8, 5))).toBe(8 * 60 + 5)
-    expect(currentLocalMinutes(new Date(2026, 10, 7, 23, 59))).toBe(23 * 60 + 59)
   })
 
   it('normalizeAvatarImage accepts data URIs and https URLs only', () => {
@@ -180,43 +102,25 @@ describe('QQ skin config', () => {
     expect(normalizeAvatarImage('javascript:alert(1)')).toBe('')
   })
 
-  it('avatarCustomImage defaults to empty and normalizes invalid sources', () => {
-    expect(resolveQQSkinConfig().avatarCustomImage).toBe('')
+  it('ignores retired fields left in older config documents', () => {
+    // 0.6 删掉了提示音/壁纸/主题导入导出共 13 项;旧文档里残留的键必须被静默忽略,
+    // 既不报错也不进入结果,只输出 12 个受支持的字段。
+    const legacy = {
+      ...QQ_SKIN_DEFAULT_CONFIG,
+      palette: 'green',
+      messageSound: true,
+      chatWallpaper: 'https://example.com/bg.jpg',
+      windowShake: true,
+    } as never
+    const config = resolveQQSkinConfig(legacy)
+    expect(Object.keys(config).sort()).toEqual(Object.keys(QQ_SKIN_DEFAULT_CONFIG).sort())
+    expect(config).toEqual({ ...QQ_SKIN_DEFAULT_CONFIG, palette: 'green' })
+  })
+
+  it('avatarCustomImage defaults to empty and normalizes invalid sources', () => {    expect(resolveQQSkinConfig().avatarCustomImage).toBe('')
     expect(resolveQQSkinConfig({ avatarCustomImage: 'https://example.com/cat.png' }).avatarCustomImage).toBe('https://example.com/cat.png')
     expect(resolveQQSkinConfig({ avatarCustomImage: '  ' }).avatarCustomImage).toBe('')
     expect(resolveQQSkinConfig({ avatarCustomImage: 'http://insecure.example/x.png' }).avatarCustomImage).toBe('')
     expect(resolveQQSkinConfig({ avatarCustomImage: 123 as never }).avatarCustomImage).toBe('')
-  })
-
-  it('remindOnlyWhenUnfocused defaults to false and toggles via override', () => {
-    expect(resolveQQSkinConfig().remindOnlyWhenUnfocused).toBe(false)
-    expect(resolveQQSkinConfig({ remindOnlyWhenUnfocused: true }).remindOnlyWhenUnfocused).toBe(true)
-    expect(resolveQQSkinConfig({ remindOnlyWhenUnfocused: 1 as never }).remindOnlyWhenUnfocused).toBe(false)
-  })
-
-  it('windowShake and frostedGlass default to false and toggle via override', () => {
-    expect(resolveQQSkinConfig().windowShake).toBe(false)
-    expect(resolveQQSkinConfig({ windowShake: true }).windowShake).toBe(true)
-    expect(resolveQQSkinConfig({ windowShake: 'yes' as never }).windowShake).toBe(false)
-
-    expect(resolveQQSkinConfig().frostedGlass).toBe(false)
-    expect(resolveQQSkinConfig({ frostedGlass: true }).frostedGlass).toBe(true)
-    expect(resolveQQSkinConfig({ frostedGlass: 1 as never }).frostedGlass).toBe(false)
-  })
-
-  it('mergeQQSkinTheme applies only the keys present in the patch', () => {
-    // 主题导入的字段级合并:显式出现的键经归一化套用,未提及的键保持基底。
-    const base = resolveQQSkinConfig({ palette: 'qqblue', soundVolume: 0.4, chatMaxWidth: 1200 })
-    const merged = mergeQQSkinTheme(base, { palette: 'green', soundVolume: 2, unknownKey: 'x' })
-    expect(merged.palette).toBe('green')
-    expect(merged.soundVolume).toBe(1)
-    expect(merged.chatMaxWidth).toBe(1200)
-    // 未提及的其余字段与基底逐字节一致(导入不重置既有配置)。
-    for (const key of Object.keys(base) as Array<keyof typeof base>) {
-      if (key === 'palette' || key === 'soundVolume') continue
-      expect(merged[key]).toBe(base[key])
-    }
-    // 空补丁 = 原样返回基底内容。
-    expect(mergeQQSkinTheme(base, {})).toEqual(base)
   })
 })

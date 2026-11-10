@@ -1,54 +1,36 @@
 import { describe, expect, it } from 'vitest'
 import { QQ_SKIN_SETTINGS_NS, settingsToConfig, type QQSkinSettings } from '../src/client/settings.ts'
 
+const DEFAULTS = {
+  palette: 'classic', customColor: '#12B7F5', density: 'normal', avatarStyle: 'classic', avatarCustomImage: '',
+  bubbleTail: true, assistantAvatar: true, avatarSize: 22,
+  chatMaxWidth: 880, frostedGlass: false, typing: true, timeDivider: true,
+}
+
 describe('QQ skin settings', () => {
   it('addresses the profile entry id as its settings namespace', () => {
     expect(QQ_SKIN_SETTINGS_NS).toBe('qq-skin')
   })
 
   it('resolves to defaults when no setting section and no fallback', () => {
-    expect(settingsToConfig(undefined)).toEqual({
-      palette: 'classic', customColor: '#12B7F5', density: 'normal', avatarStyle: 'classic', avatarCustomImage: '',
-      bubbleTail: true, assistantAvatar: true, avatarSize: 22,
-      chatMaxWidth: 880, messageSound: false, sendSound: false, soundVariant: 'beep',
-      soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
-      windowShake: false, frostedGlass: false, typing: true, timeDivider: true,
-      chatWallpaper: '', chatWallpaperDim: 0, chatWallpaperBlur: 0, wallpaperFull: false, customSound: '',
-    })
+    expect(settingsToConfig(undefined)).toEqual(DEFAULTS)
   })
 
   it('prefers settings fields over fallback config', () => {
-    const section: QQSkinSettings = { palette: 'vivid', chatMaxWidth: 720, soundVariant: 'waterdrop', avatarStyle: 'sunglasses' }
-    const config = settingsToConfig(section, { palette: 'clean', bubbleTail: false, soundVariant: 'knock', avatarStyle: 'scarf' })
-    expect(config).toEqual({
-      palette: 'vivid', customColor: '#12B7F5', density: 'normal', avatarStyle: 'sunglasses', avatarCustomImage: '',
-      bubbleTail: false, assistantAvatar: true, avatarSize: 22,
-      chatMaxWidth: 720, messageSound: false, sendSound: false, soundVariant: 'waterdrop',
-      soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
-      windowShake: false, frostedGlass: false, typing: true, timeDivider: true,
-      chatWallpaper: '', chatWallpaperDim: 0, chatWallpaperBlur: 0, wallpaperFull: false, customSound: '',
-    })
+    const section: QQSkinSettings = { palette: 'vivid', chatMaxWidth: 720, avatarStyle: 'sunglasses' }
+    const config = settingsToConfig(section, { palette: 'clean', bubbleTail: false, avatarStyle: 'scarf' })
+    expect(config).toEqual({ ...DEFAULTS, palette: 'vivid', avatarStyle: 'sunglasses', chatMaxWidth: 720, bubbleTail: false })
   })
 
   it('fills unset settings fields from the fallback config', () => {
     const section: QQSkinSettings = { bubbleTail: false }
-    const config = settingsToConfig(section, { palette: 'green', chatMaxWidth: 640, windowShake: true, avatarStyle: 'scarf' })
-    expect(config).toEqual({
-      palette: 'green', customColor: '#12B7F5', density: 'normal', avatarStyle: 'scarf', avatarCustomImage: '',
-      bubbleTail: false, assistantAvatar: true, avatarSize: 22,
-      chatMaxWidth: 640, messageSound: false, sendSound: false, soundVariant: 'beep',
-      soundVolume: 1, remindOnlyWhenUnfocused: false, quietHoursStart: '', quietHoursEnd: '',
-      windowShake: true, frostedGlass: false, typing: true, timeDivider: true,
-      chatWallpaper: '', chatWallpaperDim: 0, chatWallpaperBlur: 0, wallpaperFull: false, customSound: '',
-    })
+    const config = settingsToConfig(section, { palette: 'green', chatMaxWidth: 640, avatarStyle: 'scarf' })
+    expect(config).toEqual({ ...DEFAULTS, palette: 'green', avatarStyle: 'scarf', chatMaxWidth: 640, bubbleTail: false })
   })
 
-  it('messageSound, sendSound and typing flow through settings to config', () => {
-    const section: QQSkinSettings = { messageSound: true, sendSound: true, typing: false }
-    const config = settingsToConfig(section, {})
-    expect(config.messageSound).toBe(true)
-    expect(config.sendSound).toBe(true)
-    expect(config.typing).toBe(false)
+  it('typing flows through settings to config', () => {
+    expect(settingsToConfig({ typing: false }, {}).typing).toBe(false)
+    expect(settingsToConfig(undefined, { typing: false }).typing).toBe(false)
   })
 
   it('density flows through settings and rejects unknown values', () => {
@@ -57,73 +39,16 @@ describe('QQ skin settings', () => {
     expect(settingsToConfig(undefined, { density: 'compact' }).density).toBe('compact')
   })
 
-  it('fallback config supplies messageSound and typing when settings omit them', () => {
-    const config = settingsToConfig(undefined, { messageSound: true, typing: false })
-    expect(config.messageSound).toBe(true)
-    expect(config.typing).toBe(false)
-  })
-
-  it('new visual and sound options flow through settings to config', () => {
-    const section: QQSkinSettings = { soundVariant: 'waterdrop', windowShake: true, frostedGlass: true }
-    const config = settingsToConfig(section)
-    expect(config.soundVariant).toBe('waterdrop')
-    expect(config.windowShake).toBe(true)
-    expect(config.frostedGlass).toBe(true)
+  it('frostedGlass flows through settings and rejects non-boolean', () => {
+    expect(settingsToConfig({ frostedGlass: true }).frostedGlass).toBe(true)
+    expect(settingsToConfig({ frostedGlass: 'yes' as never }).frostedGlass).toBe(false)
+    expect(settingsToConfig(undefined, { frostedGlass: true }).frostedGlass).toBe(true)
   })
 
   it('timeDivider flows through settings and rejects non-boolean', () => {
     expect(settingsToConfig({ timeDivider: false }).timeDivider).toBe(false)
     expect(settingsToConfig({ timeDivider: 'yes' as never }).timeDivider).toBe(true)
     expect(settingsToConfig(undefined, { timeDivider: false }).timeDivider).toBe(false)
-  })
-
-  it('chatWallpaper fields flow through settings and clamp out-of-range values', () => {
-    expect(settingsToConfig({ chatWallpaper: 'https://example.com/bg.jpg' }).chatWallpaper).toBe('https://example.com/bg.jpg')
-    expect(settingsToConfig({ chatWallpaper: 'data:image/png;base64,iVBORw0K' }).chatWallpaper).toBe('data:image/png;base64,iVBORw0K')
-    expect(settingsToConfig({ chatWallpaper: 'http://insecure.example/x.png' }).chatWallpaper).toBe('')
-    expect(settingsToConfig({ chatWallpaperDim: 0.35 }).chatWallpaperDim).toBe(0.35)
-    expect(settingsToConfig({ chatWallpaperDim: 1.4 }).chatWallpaperDim).toBe(1)
-    expect(settingsToConfig({ chatWallpaperDim: Number.NaN }).chatWallpaperDim).toBe(0)
-    expect(settingsToConfig({ chatWallpaperBlur: 8 }).chatWallpaperBlur).toBe(8)
-    expect(settingsToConfig({ chatWallpaperBlur: 30 }).chatWallpaperBlur).toBe(20)
-    expect(settingsToConfig({ chatWallpaperBlur: -3 }).chatWallpaperBlur).toBe(0)
-    expect(settingsToConfig(undefined, { chatWallpaper: 'https://fallback.example/bg.png', chatWallpaperBlur: 4 }).chatWallpaper).toBe('https://fallback.example/bg.png')
-    expect(settingsToConfig(undefined, { chatWallpaperBlur: 4 }).chatWallpaperBlur).toBe(4)
-    expect(settingsToConfig({ wallpaperFull: true }).wallpaperFull).toBe(true)
-    expect(settingsToConfig({ wallpaperFull: 'yes' as never }).wallpaperFull).toBe(false)
-    expect(settingsToConfig(undefined, { wallpaperFull: true }).wallpaperFull).toBe(true)
-  })
-
-  it('soundVolume flows through settings and clamps out-of-range values', () => {
-    expect(settingsToConfig({ soundVolume: 0.4 }).soundVolume).toBe(0.4)
-    expect(settingsToConfig({ soundVolume: 1.5 }).soundVolume).toBe(1)
-    expect(settingsToConfig({ soundVolume: -0.2 }).soundVolume).toBe(0)
-    expect(settingsToConfig({ soundVolume: Number.NaN }).soundVolume).toBe(1)
-    expect(settingsToConfig(undefined, { soundVolume: 0.6 }).soundVolume).toBe(0.6)
-  })
-
-  it('customSound flows through settings and rejects invalid sources', () => {
-    expect(settingsToConfig({ customSound: 'data:audio/mpeg;base64,SUQzBAAAAA' }).customSound).toBe('data:audio/mpeg;base64,SUQzBAAAAA')
-    expect(settingsToConfig({ customSound: 'https://example.com/ding.mp3' }).customSound).toBe('https://example.com/ding.mp3')
-    expect(settingsToConfig({ customSound: 'http://insecure.example/ding.mp3' }).customSound).toBe('')
-    expect(settingsToConfig({ customSound: 'data:text/html;base64,PGI+' }).customSound).toBe('')
-    expect(settingsToConfig({ customSound: `data:audio/wav;base64,${'A'.repeat(600 * 1024)}` }).customSound).toBe('')
-    expect(settingsToConfig({ customSound: '   ' }).customSound).toBe('')
-    expect(settingsToConfig(undefined, { customSound: 'data:audio/ogg;base64,T2dnUw' }).customSound).toBe('data:audio/ogg;base64,T2dnUw')
-  })
-
-  it('remindOnlyWhenUnfocused flows through settings and rejects non-boolean', () => {
-    expect(settingsToConfig({ remindOnlyWhenUnfocused: true }).remindOnlyWhenUnfocused).toBe(true)
-    expect(settingsToConfig({ remindOnlyWhenUnfocused: 'yes' as never }).remindOnlyWhenUnfocused).toBe(false)
-    expect(settingsToConfig(undefined, { remindOnlyWhenUnfocused: true }).remindOnlyWhenUnfocused).toBe(true)
-  })
-
-  it('quiet hours flow through settings and reject malformed times', () => {
-    const config = settingsToConfig({ quietHoursStart: '22:00', quietHoursEnd: '08:00' })
-    expect(config.quietHoursStart).toBe('22:00')
-    expect(config.quietHoursEnd).toBe('08:00')
-    expect(settingsToConfig({ quietHoursStart: '25:00' }).quietHoursStart).toBe('')
-    expect(settingsToConfig({ quietHoursEnd: 'noon' as never }).quietHoursEnd).toBe('')
   })
 
   it('avatarCustomImage flows through settings and rejects insecure sources', () => {

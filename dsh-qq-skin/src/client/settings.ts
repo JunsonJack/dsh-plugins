@@ -19,7 +19,6 @@ import {
   type QQSkinConfig,
   type QQSkinDensity,
   type QQSkinPalette,
-  type QQSkinSoundVariant,
 } from './config.ts'
 
 /** 设置命名空间 == profile 条目 id(cordis.patch.yml 的 `id`)。 */
@@ -36,22 +35,9 @@ export interface QQSkinSettings {
   assistantAvatar?: boolean | undefined
   avatarSize?: number | undefined
   chatMaxWidth?: number | undefined
-  messageSound?: boolean | undefined
-  sendSound?: boolean | undefined
-  soundVariant?: QQSkinSoundVariant | undefined
-  soundVolume?: number | undefined
-  remindOnlyWhenUnfocused?: boolean | undefined
-  quietHoursStart?: string | undefined
-  quietHoursEnd?: string | undefined
-  windowShake?: boolean | undefined
   frostedGlass?: boolean | undefined
   typing?: boolean | undefined
   timeDivider?: boolean | undefined
-  chatWallpaper?: string | undefined
-  chatWallpaperDim?: number | undefined
-  chatWallpaperBlur?: number | undefined
-  wallpaperFull?: boolean | undefined
-  customSound?: string | undefined
 }
 
 /**
@@ -65,31 +51,10 @@ export function settingsToConfig(
   fallback?: PartialQQSkinConfig,
 ): QQSkinConfig {
   const s = section ?? {}
-  return resolveQQSkinConfig({
-    palette: s.palette ?? fallback?.palette,
-    customColor: s.customColor ?? fallback?.customColor,
-    density: s.density ?? fallback?.density,
-    avatarStyle: s.avatarStyle ?? fallback?.avatarStyle,
-    avatarCustomImage: s.avatarCustomImage ?? fallback?.avatarCustomImage,
-    bubbleTail: s.bubbleTail ?? fallback?.bubbleTail,
-    assistantAvatar: s.assistantAvatar ?? fallback?.assistantAvatar,
-    avatarSize: s.avatarSize ?? fallback?.avatarSize,
-    chatMaxWidth: s.chatMaxWidth ?? fallback?.chatMaxWidth,
-    messageSound: s.messageSound ?? fallback?.messageSound,
-    sendSound: s.sendSound ?? fallback?.sendSound,
-    soundVariant: s.soundVariant ?? fallback?.soundVariant,
-    soundVolume: s.soundVolume ?? fallback?.soundVolume,
-    remindOnlyWhenUnfocused: s.remindOnlyWhenUnfocused ?? fallback?.remindOnlyWhenUnfocused,
-    quietHoursStart: s.quietHoursStart ?? fallback?.quietHoursStart,
-    quietHoursEnd: s.quietHoursEnd ?? fallback?.quietHoursEnd,
-    windowShake: s.windowShake ?? fallback?.windowShake,
-    frostedGlass: s.frostedGlass ?? fallback?.frostedGlass,
-    typing: s.typing ?? fallback?.typing,
-    timeDivider: s.timeDivider ?? fallback?.timeDivider,
-    chatWallpaper: s.chatWallpaper ?? fallback?.chatWallpaper,
-    chatWallpaperDim: s.chatWallpaperDim ?? fallback?.chatWallpaperDim,
-    chatWallpaperBlur: s.chatWallpaperBlur ?? fallback?.chatWallpaperBlur,
-    wallpaperFull: s.wallpaperFull ?? fallback?.wallpaperFull,
-    customSound: s.customSound ?? fallback?.customSound,
-  })
+  const base: PartialQQSkinConfig = fallback ?? {}
+  const merged: PartialQQSkinConfig = { ...base }
+  for (const [key, value] of Object.entries(s)) {
+    if (value !== undefined) (merged as Record<string, unknown>)[key] = value
+  }
+  return resolveQQSkinConfig(merged)
 }

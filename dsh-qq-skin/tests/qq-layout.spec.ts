@@ -161,77 +161,14 @@ describe('QQ NT layout config branches', () => {
     expect(compact).toContain('[data-qq-time-divider] {\n  margin: 6px 0;')
   })
 
-  it('chat wallpaper covers the conversation root only while set', () => {
-    // 默认无壁纸:不注入任何壁纸规则。
-    expect(QQ_LAYOUT_CSS).not.toContain("[data-phase='active']::before")
-    const on = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, chatWallpaper: 'https://example.com/bg.jpg', chatWallpaperDim: 0.4, chatWallpaperBlur: 6 })
-    // 壁纸铺在会话根(data-phase=active)的 ::before,不铺 hero 欢迎页。
-    expect(on).toContain("[data-phase='active']::before")
-    expect(on).toContain('background-image: url("https://example.com/bg.jpg")')
-    expect(on).toContain('background-size: cover')
-    expect(on).toContain("background: rgba(0, 0, 0, 0.4)")
-    expect(on).toContain('filter: blur(6px)')
-    // 根层背景透明化让壁纸透出;内容提到伪元素之上。
-    expect(on).toContain("[data-phase='active'] {\n  background: transparent;")
-    expect(on).toContain("[data-phase='active'] > * {\n  position: relative;\n  z-index: 1;")
-    // dim=0 时暗化层透明度 0(仍注入,保持结构稳定);blur=0 时无 filter 行。
-    const noBlur = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, chatWallpaper: 'data:image/png;base64,iVBORw0K' })
-    expect(noBlur).toContain('background-image: url("data:image/png;base64,iVBORw0K")')
-    expect(noBlur).not.toContain('filter: blur(')
-  })
-
-  it('full-window wallpaper extends the image behind every panel and never adds backdrop-filter', () => {
-    // 默认(壁纸关/全窗关):不注入 body::before 全窗层。
-    expect(QQ_LAYOUT_CSS).not.toContain('body::before')
-    const full = buildQQLayoutCss({
-      ...QQ_SKIN_DEFAULT_CONFIG,
-      chatWallpaper: 'https://example.com/bg.jpg',
-      wallpaperFull: true,
-    })
-    // 全窗层挂在 body::before(position:fixed,z-index:-1)——所有内容之下,不遮文字。
-    expect(full).toContain('body::before')
-    expect(full).toContain('position: fixed;\n  inset: 0;\n  z-index: -1;')
-    expect(full).toContain('background-image: url("https://example.com/bg.jpg")')
-    expect(full).toContain('background: rgba(0, 0, 0, 0)')
-    // 壁纸图加载失败时的纯色兜底(不露 html 白画布)。
-    expect(full).toContain('background-color: var(--dsw-static-neutral-bluish-950, #151517);')
-    // body 自身 boot 底色(#fff/#151517)会盖住 z-index:-1 伪元素,必须透明化。
-    expect(full).toContain('body {\n  background: transparent;\n}')
-    // frame 根层(.mP3x-q_frame 铺满 #root,bg-base/sidebar-fill 实色)也必须退位,
-    // 否则 Windows 上壁纸被完整遮挡。
-    expect(full).toContain("body [class$='_frame'] {\n  background: transparent !important;")
-    // 三栏与输入卡透明兜底(无 important,毛玻璃渐变恒赢=晕染叠壁纸,亮暗一致)。
-    expect(full).toContain("body [class$='_sidebarCol'],")
-    expect(full).toContain("body [class$='_centerCol'],")
-    expect(full).toContain("body [class$='_rightbarCol'] {\n  background: transparent;")
-    expect(full).toContain("body [data-composer-card] {\n  background: transparent;\n  box-shadow: none;")
-    // 毛玻璃 + 全窗组合:渐变 !important 恒赢兜底透明(叠加语义)。
-    const fullWithGlass = buildQQLayoutCss({
-      ...QQ_SKIN_DEFAULT_CONFIG,
-      chatWallpaper: 'https://example.com/bg.jpg',
-      wallpaperFull: true,
-      frostedGlass: true,
-    })
-    expect(fullWithGlass).toContain('linear-gradient(168deg')
-    expect(fullWithGlass).toContain("body [class$='_frame'] {\n  background: transparent !important;")
-    // 全窗模式会话根层不重复供图(避免双图层)。
-    expect(full).not.toContain("[data-phase='active']::before")
-    // 两个既有回归的护栏:全窗模式也绝不出现 backdrop-filter。
-    expect(full).not.toContain('backdrop-filter')
-    // 只开全窗不开壁纸:同样不注入(全窗依赖壁纸图)。
-    const fullWithoutImage = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, wallpaperFull: true })
-    expect(fullWithoutImage).not.toContain('body::before')
-  })
-
   it('stops decorative animations under prefers-reduced-motion', () => {
     expect(QQ_LAYOUT_CSS).toContain('@media (prefers-reduced-motion: reduce)')
     expect(QQ_LAYOUT_CSS).toContain('animation: none !important;')
-    // 回退规则始终注入(不随 typing/windowShake 开关变化),关闭 typing 后
-    // 仍要能压住抖动类,反之亦然。
-    const noTyping = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, typing: false, windowShake: false })
+    // 回退规则始终注入(不随 typing 开关变化),关闭 typing 后仍保留。
+    const noTyping = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, typing: false })
     expect(noTyping).toContain('@media (prefers-reduced-motion: reduce)')
     const reducedBlock = noTyping.slice(noTyping.indexOf('@media (prefers-reduced-motion: reduce)'))
-    expect(reducedBlock).toContain(".dsh-qq-shaking")
+    expect(reducedBlock).toContain("[data-chat-flow-kind='assistant-step']")
     expect(reducedBlock.indexOf('animation: none !important')).toBeGreaterThan(0)
   })
 
@@ -245,15 +182,6 @@ describe('QQ NT layout config branches', () => {
     expect(QQ_LAYOUT_CSS).toContain("[data-time-hover-root]")
     expect(QQ_LAYOUT_CSS).toContain("[data-conversation-scroll]")
     expect(QQ_LAYOUT_CSS).toContain("[class$='_tools'] button")
-  })
-
-  it('windowShake keyframes appear when enabled', () => {
-    const off = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, windowShake: false })
-    expect(off).not.toContain('dsh-qq-shake')
-
-    const on = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, windowShake: true })
-    expect(on).toContain('@keyframes dsh-qq-shake')
-    expect(on).toContain('.dsh-qq-shaking')
   })
 
   it('frostedGlass rules appear when enabled', () => {
@@ -381,9 +309,10 @@ describe('QQ NT layout config branches', () => {
 
   it('undoes the harness wide-table bleed so no column is cropped', () => {
     // harness 会用容器查询单位把 ≥4 列的宽表容器撑得比卡片更宽
-    // (--dsh-table-lead / --dsh-table-spare),而卡片是 overflow-x:hidden
-    // → 右侧列被裁掉。这里把撑宽变量与宽度复位,列一个不少,超宽时在
-    // 容器内横向滚动。
+    // (--dsh-table-lead / --dsh-table-spare)→ 宽表溢出卡片。这里把撑宽
+    // 变量与宽度复位,列一个不少,超宽时在容器内横向滚动(卡片根不设
+    // overflow-x: hidden——尾巴 ::after 伸出卡片外侧 6px,设了会连尾巴
+    // 一起裁掉)。
     expect(QQ_LAYOUT_CSS).toContain(".md-table-wide {")
     expect(QQ_LAYOUT_CSS).toContain('--dsh-table-lead: 0px')
     expect(QQ_LAYOUT_CSS).toContain('--dsh-table-spare: 0px')
@@ -407,9 +336,10 @@ describe('QQ NT layout config branches', () => {
   })
 
   it('never shows a scrollbar on ordinary text blocks', () => {
-    // 卡片与气泡只是"防外溢"(hidden),不产生滚动条;
-    // 只有 table 允许 overflow-x: auto。
-    expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {\n  overflow-x: hidden;")
+    // 卡片与气泡都不设 overflow-x: hidden——尾巴 ::after 要伸出卡片/气泡
+    // 外侧 6px,设了会连尾巴一起裁掉,且把 overflow-y 隐式变成 auto,
+    // 凭空多出纵向滚动条;只有 table 允许 overflow-x: auto。
+    expect(QQ_LAYOUT_CSS).not.toMatch(/\[data-chat-flow-kind='assistant-step'\] > \[data-slot\] > \[class\$='_root'\] \{[^}]*overflow-x: hidden/)
     // 气泡不能设 overflow-x: hidden——会裁掉伸出气泡的尾巴,且把 overflow-y
     // 隐式变成 auto,凭空多出纵向滚动条。
     expect(QQ_LAYOUT_CSS).not.toMatch(/\[data-message-bubble\]\[data-message-bubble\] \{[^}]*overflow-x: hidden/)

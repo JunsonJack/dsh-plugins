@@ -34,7 +34,6 @@ import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import { QQ_SKIN_DEFAULT_CONFIG, type QQSkinConfig } from './config.ts'
 import { QQ_SKIN_SETTINGS_NS, settingsToConfig, type QQSkinSettings } from './settings.ts'
 import { QQSkinRuntime } from './runtime.ts'
-import { QQSoundRuntime } from './qq-sound.ts'
 import { QQTimeDividerRuntime, setTodayLabel } from './qq-time-divider.ts'
 import { QQ_SKIN_PLUGIN_NS, zh, en } from './plugin-locales.ts'
 import { QQSkinPluginCard } from './plugin-page.tsx'
@@ -63,40 +62,12 @@ export { QQ_SKIN_SETTINGS_NS }
 /** 插件页配置卡片的槽位 key(`<package name>#<row id>`,row id 与 cordis.patch.yml 声明一致)。 */
 export const QQ_SKIN_CONFIG_ROW_KEY = 'dsh-qq-skin#qq-skin'
 
-/** 两份配置是否等价(字段固定,逐字段比较以免无谓重挂皮肤层)。 */
+/** 定时比较的字段(色板/头像/布局开关),显式列名以便编译期随 QQSkinConfig 一起报错。 */
+const CONFIG_FIELDS = ['palette', 'customColor', 'density', 'avatarStyle', 'avatarCustomImage', 'bubbleTail', 'assistantAvatar', 'avatarSize', 'chatMaxWidth', 'frostedGlass', 'typing', 'timeDivider'] as const
+
+/** 两份配置是否等价(逐字段比较以免无谓重挂皮肤层)。 */
 function sameConfig(left: QQSkinConfig, right: QQSkinConfig): boolean {
-  return left.palette === right.palette
-    && left.customColor === right.customColor
-    && left.density === right.density
-    && left.avatarStyle === right.avatarStyle
-    && left.avatarCustomImage === right.avatarCustomImage
-    && left.bubbleTail === right.bubbleTail
-    && left.assistantAvatar === right.assistantAvatar
-    && left.avatarSize === right.avatarSize
-    && left.chatMaxWidth === right.chatMaxWidth
-    && left.messageSound === right.messageSound
-    && left.sendSound === right.sendSound
-    && left.soundVariant === right.soundVariant
-    && left.soundVolume === right.soundVolume
-    && left.remindOnlyWhenUnfocused === right.remindOnlyWhenUnfocused
-    && left.quietHoursStart === right.quietHoursStart
-    && left.quietHoursEnd === right.quietHoursEnd
-    && left.windowShake === right.windowShake
-    && left.frostedGlass === right.frostedGlass
-    && left.typing === right.typing
-    && left.timeDivider === right.timeDivider
-    && left.chatWallpaper === right.chatWallpaper
-    && left.chatWallpaperDim === right.chatWallpaperDim
-    && left.chatWallpaperBlur === right.chatWallpaperBlur
-    && left.wallpaperFull === right.wallpaperFull
-}
-
-/** 音效运行时消费的字段:其余字段(色板/宽度/尾巴…)变更不必重建观察链。 */
-const SOUND_CONFIG_FIELDS = ['messageSound', 'sendSound', 'soundVariant', 'soundVolume', 'remindOnlyWhenUnfocused', 'quietHoursStart', 'quietHoursEnd', 'windowShake', 'customSound'] as const
-
-/** 两份配置的音效相关字段是否等价(等价时跳过音效链重建)。 */
-function sameSoundConfig(left: QQSkinConfig, right: QQSkinConfig): boolean {
-  return SOUND_CONFIG_FIELDS.every(field => left[field] === right[field])
+  return CONFIG_FIELDS.every(field => left[field] === right[field])
 }
 
 /**
@@ -113,29 +84,25 @@ export function apply(ctx: ClientContext): void {
 
   // 皮肤运行时:两层挂载 + 配置热更新,首帧按出厂默认值上皮肤。
   const runtime = new QQSkinRuntime(ctx, QQ_SKIN_DEFAULT_CONFIG)
-  // 音效运行时:监听新增助手节点,按 messageSound 开关启停。
-  const sound = new QQSoundRuntime(ctx, runtime.getConfig())
+
   // 时间分隔条运行时:跨天消息前插入 QQ 风格日期条,按 timeDivider 启停。
   const divider = new QQTimeDividerRuntime(ctx, runtime.getConfig())
 
   // 设置表单:宿主条目配置的读写面(值 = 默认值 → profile 配置 → 用户改写)。
   const host = ctx.configForms.get<QQSkinSettings>(QQ_SKIN_SETTINGS_NS)
 
-  /** 上次采用后的完整配置:音效/分隔条各自比较旧值,最后整体刷新。 */
+  /** 上次采用后的完整配置:分隔条比较旧值,最后整体刷新。 */
   let lastMerged = runtime.getConfig()
   /** 采用宿主快照:配置未到达(loading/unavailable)时保持出厂默认值。 */
   const adopt = (): void => {
     const section = host.getSnapshot().value
     if (section === undefined) return
-    const merged = settingsToConfig(section)
+    const merged = settingsToConfig(section, QQ_SKIN_DEFAULT_CONFIG)
     // 快照在激活时已就绪(与首帧同值)则不重挂两层。
     if (!sameConfig(merged, runtime.getConfig())) {
       runtime.update(merged)
     }
-    // 调色等纯视觉变更不重建音效观察链,避免拖拽拾色时反复拆装 observer。
-    if (!sameSoundConfig(merged, lastMerged)) {
-      sound.update(merged)
-    }
+
     // 分隔条开关变化才重建观察链(日期文案不随配置变,无需比较)。
     if (lastMerged.timeDivider !== merged.timeDivider) {
       divider.update(merged)

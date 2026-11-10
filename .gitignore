@@ -6,3 +6,8 @@
 node_modules/
 package-lock.json
 yarn.lock
+
+# 本地备份快照与临时暂存目录(改动前备份、待清理的产物都放这里)
+/backups/
+backups/
+/package.json

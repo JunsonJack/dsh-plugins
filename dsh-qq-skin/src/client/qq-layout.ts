@@ -248,116 +248,6 @@ function timeDividerRule(): string {
 `
 }
 
-/**
- * 聊天区壁纸:铺在会话根容器(ConversationRoot,持 data-phase 属性且
- * background 为 bg-base)的 ::before 伪元素上 —— asar 取证确认中间层
- * (scrollBody/ChatView scroll/column)全部无背景,根层透出即达聊天区;
- * 根层不滚动,伪元素模糊/亮度稳定不抖。暗化用叠加半透明黑层而非
- * filter: brightness(避免 filter 生成 stacking context 把伪元素
- * 提到内容之下的问题一致化,叠加层还可与模糊解耦独立调节)。
- * 模糊伪元素四边内缩负 inset,避免 blur 在边缘采样出白边。
- * hero(欢迎页)/settling(加载中)不铺 —— 壁纸只属于真实会话。
- */
-function chatWallpaperRule(wallpaper: string, dim: number, blur: number): string {
-  const image = wallpaper.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
-  const dimAlpha = Math.round(dim * 100) / 100
-  const blurPx = Math.max(0, Math.round(blur))
-  const filterLine = blurPx > 0 ? `\n  filter: blur(${blurPx}px);` : ''
-  return `
-[data-phase='active']::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background-image: url("${image}");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  pointer-events: none;${filterLine}
-}
-[data-phase='active']::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background: rgba(0, 0, 0, ${dimAlpha});
-  pointer-events: none;
-}
-[data-phase='active'] {
-  background: transparent;
-}
-[data-phase='active'] > * {
-  position: relative;
-  z-index: 1;
-}
-`
-}
-
-/**
- * 全窗沉浸:壁纸铺满整个窗口(不只是会话根),左栏/详情栏/输入区透出壁纸。
- *
- * 实现说明:
- * - 铺底层挂在 body::before(position:fixed, z-index:-1):伪元素画在 body
- *   背景之下、html 画布之上,因此宿主三层不透明底必须依次退位——
- *   body(boot 主题 background-color:#fff/#151517)→ frame 根层
- *   (.mP3x-q_frame 铺满 #root,bg-base/sidebar-fill 实色)→ 三栏列。
- *   绝不给任何元素加 backdrop-filter/transform/filter(0.3.16 折叠按钮
- *   fixed 包含块、0.3.17 弹窗 backdrop root 两个回归的根因)。
- * - 透明化采用"无 important、毛玻璃优先"策略:三栏与输入卡的透明兜底
- *   不带 !important,毛玻璃渐变(!important)恒赢——观感=壁纸+品牌色晕染
- *   叠加,亮暗主题行为一致,弹窗 backdrop 语义不受影响;毛玻璃关闭时
- *   兜底透明生效(特异度 (0,1,1) 压宿主基础背景)。
- * - full 模式下会话根层(chatWallpaperRule)不输出:body 层供图,
- *   [data-phase='active'] 只做透明化,避免双图层重复绘制。
- * - body::before 带 background-color 兜底:壁纸图加载失败时不露 html
- *   白画布(暗色主题下白窗突兀),退为纯色底。
- */
-function wallpaperFullRule(wallpaper: string, dim: number, blur: number): string {
-  const image = wallpaper.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
-  const dimAlpha = Math.round(dim * 100) / 100
-  const blurPx = Math.max(0, Math.round(blur))
-  const filterLine = blurPx > 0 ? `\n  filter: blur(${blurPx}px);` : ''
-  return `
-body {
-  background: transparent;
-}
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background-color: var(--dsw-static-neutral-bluish-950, #151517);
-  background-image: url("${image}");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  pointer-events: none;${filterLine}
-}
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background: rgba(0, 0, 0, ${dimAlpha});
-  pointer-events: none;
-}
-body [class$='_frame'] {
-  background: transparent !important;
-}
-body [class$='_sidebarCol'],
-body [class$='_centerCol'],
-body [class$='_rightbarCol'] {
-  background: transparent;
-}
-body [data-composer-card] {
-  background: transparent;
-  box-shadow: none;
-}
-[data-phase='active'] {
-  background: transparent;
-}
-`
-}
 
 /**
  * 助手卡片左尾巴:QQ"对方消息"的弧形小勾,贴在卡片左下角指向头像。
@@ -386,37 +276,15 @@ function assistantTailRule(tailShadow: [number, number, number]): string {
 `
 }
 
-/** 窗口抖动动效(400ms 经典 QQ 窗口震颤)。 */
-function shakeRule(): string {
-  return `
-@keyframes dsh-qq-shake {
-  0%, 100% { transform: translate(0, 0); }
-  15% { transform: translate(-3px, 1px); }
-  30% { transform: translate(3px, -2px); }
-  45% { transform: translate(-3px, -1px); }
-  60% { transform: translate(2px, 1px); }
-  75% { transform: translate(-1px, 2px); }
-  90% { transform: translate(1px, -1px); }
-}
-.dsh-qq-shaking {
-  animation: dsh-qq-shake 0.4s ease-in-out !important;
-}
-`
-}
-
 /**
  * 无障碍:系统开启"减弱动态效果"(prefers-reduced-motion: reduce)时,
- * 本插件注入的所有装饰动画(打字机揭示、窗口抖动)一律停播,直接呈现
- * 最终状态。动画只是视觉点缀,停掉不影响任何功能;这是操作系统的
- * 用户偏好,插件应当尊重。
+ * 本插件注入的装饰动画(打字机揭示)一律停播,直接呈现最终状态。动画
+ * 只是视觉点缀,停掉不影响任何功能;这是操作系统的用户偏好,插件应当尊重。
  */
 function reducedMotionRule(): string {
   return `
 @media (prefers-reduced-motion: reduce) {
   [data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {
-    animation: none !important;
-  }
-  .dsh-qq-shaking {
     animation: none !important;
   }
 }
@@ -513,9 +381,10 @@ body[data-ds-dark-theme] [data-composer-card] {
      于是宽表容器被算成**比卡片还宽**(让它"溢出到气泡之外"),
      `margin-left:-lead` + `padding-left:lead` 把左边补回来。
 
-   本插件的助手卡片与用户气泡都是 `overflow-x: hidden`(需求:普通文本块
-   不出现滚动条),于是 harness 这套"故意超出卡片"的宽表容器被裁掉右侧 →
-   用户看到的"少一列/少两列"(本轮要修的核心问题)。
+   本插件的助手卡片与用户气泡都不设 `overflow-x: hidden`——尾巴 ::after
+   要伸出卡片/气泡外侧 6px,设了会连尾巴一起裁掉(0.5.6 的回归)。
+   harness 这套"故意超出卡片"的宽表容器靠下面的变量归零 + width:100%
+   压回卡片内,容器保留 `overflow-x:auto` 承担横向滚动,一列不少。
 
    修复策略:
    1) 把 harness 的撑宽变量归零、宽度压回 100%、margin/padding 复位,
@@ -608,8 +477,7 @@ const PALETTE_SHADOW_RGB: Record<string, [number, number, number]> = {
  * @param config - 用户配置(可缺省,回落默认)。
  */
 export function buildQQLayoutCss(config: QQSkinConfig = QQ_SKIN_DEFAULT_CONFIG): string {
-  const { bubbleTail, assistantAvatar, chatMaxWidth, typing, windowShake, frostedGlass, timeDivider, density } = config
-  const { chatWallpaper, chatWallpaperDim, chatWallpaperBlur, wallpaperFull } = config
+  const { bubbleTail, assistantAvatar, chatMaxWidth, typing, frostedGlass, timeDivider, density } = config
   // 头像光晕与气泡阴影的主色:custom 色板跟随自定义主色,其余色板各取本色。
   const isCustom = config.palette === 'custom'
   const customRgb = isCustom ? parseHexColor(config.customColor) : null
@@ -630,11 +498,8 @@ export function buildQQLayoutCss(config: QQSkinConfig = QQ_SKIN_DEFAULT_CONFIG):
   margin: 0 auto;
   padding: 16px 24px 8px;
 }
-${windowShake ? shakeRule() : ''}
 ${frostedGlass ? frostedGlassRule() : ''}
 ${density === 'compact' ? densityRule() : ''}
-${chatWallpaper && wallpaperFull ? wallpaperFullRule(chatWallpaper, chatWallpaperDim, chatWallpaperBlur) : ''}
-${chatWallpaper && !wallpaperFull ? chatWallpaperRule(chatWallpaper, chatWallpaperDim, chatWallpaperBlur) : ''}
 ${reducedMotionRule()}
 
 /* ── 助手消息:左侧官方 QQ 企鹅头像 + 白色卡片(QQ"对方消息"观感) ──
@@ -708,13 +573,14 @@ ${isClean ? '' : `
 }
 `}
 
-/* ── 卡片兜底:只做"防外溢",不产生滚动条 ─────────────────────────────
+/* ── 卡片兜底:宽度压回,不产生滚动条 ─────────────────────────────────
     需求:只有表格区域可以横向滚动;正常不溢出的文字块不应出现任何滚动条。
-    因此卡片用 overflow-x: hidden(裁掉溢出,不生成滚动条),而不是 auto;
-    长文本改为按词换行(break-word)而不是靠滚动查看。
-    代码块 pre 自带 overflow-x: auto,超长代码仍可在块内滚动。 */
+    ⚠ 卡片根不能设 overflow-x: hidden——尾巴 ::after 要伸出卡片左侧 6px,
+    设了会连尾巴一起裁掉(0.5.6 引入、0.5.7 修复的回归)。宽表靠
+    .md-table-wide 容器自身 overflow-x:auto 兜底;长文本按词换行
+    (break-word)而不是靠滚动查看;代码块 pre 自带 overflow-x: auto,
+    超长代码仍可在块内滚动。 */
 [data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] {
-  overflow-x: hidden;
   max-width: 100%;
 }
 [data-chat-flow-kind='assistant-step'] > [data-slot] > [class$='_root'] :not(pre):not(pre *):not(table):not(table *) {
