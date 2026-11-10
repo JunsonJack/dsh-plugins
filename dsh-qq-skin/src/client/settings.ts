@@ -15,30 +15,14 @@
 import {
   resolveQQSkinConfig,
   type PartialQQSkinConfig,
-  type QQAvatarStyle,
   type QQSkinConfig,
-  type QQSkinDensity,
-  type QQSkinPalette,
 } from './config.ts'
 
 /** 设置命名空间 == profile 条目 id(cordis.patch.yml 的 `id`)。 */
 export const QQ_SKIN_SETTINGS_NS = 'qq-skin'
 
 /** 设置分节里的持久化字段:形状与 QQSkinConfig 一致,全部可缺省。 */
-export interface QQSkinSettings {
-  palette?: QQSkinPalette | undefined
-  customColor?: string | undefined
-  density?: QQSkinDensity | undefined
-  avatarStyle?: QQAvatarStyle | undefined
-  avatarCustomImage?: string | undefined
-  bubbleTail?: boolean | undefined
-  assistantAvatar?: boolean | undefined
-  avatarSize?: number | undefined
-  chatMaxWidth?: number | undefined
-  frostedGlass?: boolean | undefined
-  typing?: boolean | undefined
-  timeDivider?: boolean | undefined
-}
+export type QQSkinSettings = PartialQQSkinConfig
 
 /**
  * 把设置分节合并为完整配置(设置字段优先,缺省回落默认)。
