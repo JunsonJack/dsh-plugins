@@ -287,6 +287,61 @@ describe('QQ time divider', () => {
     vi.unstubAllGlobals()
   })
 
+  it('excludes group containers by walking ancestors instead of scanning subtrees', () => {
+    setTodayLabel(() => '今天')
+    // 分组容器(stub):同时出现在行列表里,并且是另一行的父元素。
+    // 旧实现靠 row.querySelector(子树扫描)判定容器,长会话下每行付一次
+    // 全子树遍历;新实现沿 parentElement 上溯,这里用 parentElement 关系
+    // 表达同一结构——容器必须被排除,否则会被当成一个回合。
+    const container = {
+      textContent: '',
+      remove: vi.fn(),
+      before: vi.fn(),
+      nextElementSibling: undefined as unknown,
+      getAttribute: () => null,
+      querySelector: (selector: string) => (selector.includes('data-clock') ? null : null),
+    } as unknown as Record<string, unknown>
+    const child = {
+      textContent: '',
+      remove: vi.fn(),
+      before: vi.fn((divider: { textContent: string }) => {
+        inserted.push(divider as { textContent: string })
+      }),
+      nextElementSibling: undefined as unknown,
+      getAttribute: (name: string) => (name === 'data-chat-turn' ? '1' : null),
+      querySelector: (selector: string) => (selector.includes('data-clock') ? { textContent: '08:00' } : null),
+      parentElement: container as unknown,
+    }
+    container.querySelector = (selector: string) => (selector.includes('data-clock') ? null : null)
+    const inserted: Array<{ textContent: string }> = []
+    const flow = {
+      querySelectorAll: (selector: string) => {
+        // 容器在前、子行在后:旧实现会把容器当作一个回合。
+        if (selector.includes('data-chat-flow-key')) return [container, child]
+        return []
+      },
+    }
+    vi.stubGlobal('document', {
+      createElement: () => {
+        const el: { textContent: string; [key: string]: unknown } = { textContent: '' }
+        el.setAttribute = vi.fn()
+        el.className = ''
+        el.dataset = {}
+        el.remove = vi.fn()
+        el.appendChild = vi.fn((node: { textContent: string }) => {
+          el.textContent = node.textContent
+        })
+        return el
+      },
+    })
+    alignDividers(flow as unknown as Element)
+    // 只有子行成为回合:一条分隔条,插在子行之前,容器上不插。
+    expect(inserted).toHaveLength(1)
+    expect(child.before).toHaveBeenCalledTimes(1)
+    expect(container.before).not.toHaveBeenCalled()
+    vi.unstubAllGlobals()
+  })
+
   it('clears dividers when the runtime is disabled or disposed', () => {
     setTodayLabel(() => '今天')
     const yest = zhYesterdayChip()

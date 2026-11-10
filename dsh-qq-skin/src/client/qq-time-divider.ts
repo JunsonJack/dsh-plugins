@@ -17,8 +17,9 @@
  * 分隔条文本:直接复用 chip 的日期部分(去掉尾部时间),与宿主本地化格式
  * 天然一致;当天 chip 只有时间,替换为「今天」文案(setTodayLabel 注入)。
  *
- * 注入机制:两段式懒挂载(与音效层同款)——sentinel observer 等
- * `[data-chat-flow]` 出现,flow observer 监听子树变化后做全量对齐重扫。
+ * 注入机制:两段式懒挂载——sentinel observer 等
+ * `[data-chat-flow]` 出现,flow observer 只在「流 item / 时间 chip 有增删」
+ * 时安排一次防抖的增量判定,再做全量对齐。
  * 对齐是幂等的:现有分隔条与期望完全一致(数量/文本/位置)时零变更,
  * 不会触发 observer 自循环;只在状态不符时先删旧条再按位置插入新条。
  *
@@ -176,7 +177,7 @@ export function planDividers(
  */
 export function alignDividers(flow: Element): void {
   if (typeof flow.querySelectorAll !== 'function') return
-  const rows = Array.from(flow.querySelectorAll(FLOW_KEY_SELECTOR)).filter(row => !containsFlowItem(row))
+  const rows = leafRows(flow)
   const groups = groupByTurn(rows)
   const plan = planDividers(groups.map(group => clockTextOf(group.rows)))
   const existing = Array.from(flow.querySelectorAll(`[${DIVIDER_ATTRIBUTE}]`))
@@ -218,9 +219,89 @@ interface TurnGroup {
   rows: Element[]
 }
 
-/** 某行是否嵌套了其它流 item(ChatGroupSeat 分组容器):这类行不参与分组。 */
-function containsFlowItem(row: Element): boolean {
-  return typeof row.querySelector === 'function' && row.querySelector(FLOW_KEY_SELECTOR) !== null
+/**
+ * 取聊天流里的叶子流 item(排除 ChatGroupSeat 这类嵌套了其它流 item 的分组容器)。
+ *
+ * 性能:宿主把整段 Markdown 渲染在流 item 内,长会话下单行子树可达上千节点。
+ * 旧实现对每行做一次 `row.querySelector(FLOW_KEY_SELECTOR)` 子树查询
+ * (183 行 ≈ 183 次全子树遍历,每次重扫都付一遍);这里改为沿着
+ * `parentElement` 上溯:谁的祖先里出现另一个流 item,谁就是容器。
+ * 代价是 O(行数 × 层级深度)的纯属性访问,不碰子树。
+ * @param flow - 聊天流容器。
+ * @returns 叶子流 item,按 DOM 顺序。
+ */
+function leafRows(flow: Element): Element[] {
+  const all = Array.from(flow.querySelectorAll(FLOW_KEY_SELECTOR))
+  if (all.length < 2) return all
+  const known = new Set<Element>(all)
+  const containers = new Set<Element>()
+  for (const row of all) {
+    let parent = parentOf(row)
+    while (parent !== null) {
+      if (known.has(parent)) {
+        containers.add(parent)
+        break
+      }
+      parent = parentOf(parent)
+    }
+  }
+  if (containers.size === 0) return all
+  return all.filter(row => !containers.has(row))
+}
+
+/** 取父元素;stub 环境(无 parentElement)返回 null。 */
+function parentOf(el: Element): Element | null {
+  return (el as Element & { parentElement?: Element | null }).parentElement ?? null
+}
+
+/**
+ * 新增/删除的节点是否可能影响分隔条:是流 item,或内含流 item / 时间 chip。
+ *
+ * 只关心这两类,是因为分隔条的期望完全由「回合划分(流 item)」与
+ * 「chip 文本(时钟)」决定:流式输出期间宿主持续替换 Markdown 子节点,
+ * 那些变化与分隔条无关,不应触发全量重扫。
+ * @param node - mutation 记录里的新增/删除节点。
+ */
+function isFlowNode(node: Node): boolean {
+  const el = node as Element | null
+  if (el === null || typeof el.matches !== 'function') return false
+  if (el.matches(FLOW_KEY_SELECTOR) || el.matches(CLOCK_SELECTOR)) return true
+  if (typeof el.querySelector !== 'function') return false
+  return el.querySelector(FLOW_KEY_SELECTOR) !== null || el.querySelector(CLOCK_SELECTOR) !== null
+}
+
+/**
+ * 这批 mutation 是否值得重扫(见 `isFlowNode` 的取舍)。
+ * @param mutations - observer 回调收到的记录。
+ */
+function touchesFlow(mutations: readonly MutationRecord[]): boolean {
+  for (const mutation of mutations) {
+    // 文本变化:只有落在 chip 内部的才可能改分组的日期(流式正文的
+    // 逐字更新全部落空),用 closest 一次上溯判定,不做子树查询。
+    if (mutation.type === 'characterData') {
+      if (isInsideClock(mutation.target)) return true
+      continue
+    }
+    for (const node of mutation.addedNodes) {
+      if (isFlowNode(node)) return true
+    }
+    for (const node of mutation.removedNodes) {
+      if (isFlowNode(node)) return true
+    }
+  }
+  return false
+}
+
+/**
+ * 节点是否位于时间 chip 内(chip 文本被原地改写时要重扫)。
+ * @param node - 文本节点或其父元素。
+ */
+function isInsideClock(node: Node): boolean {
+  const parent = (node as Node & { parentElement?: Element | null }).parentElement
+  if (parent === undefined || parent === null) return false
+  const closest = (parent as Element & { closest?: (selector: string) => Element | null }).closest
+  if (typeof closest !== 'function') return false
+  return closest.call(parent, CLOCK_SELECTOR) !== null
 }
 
 /** 读取行所属回合标识;stub 环境(无 getAttribute)返回 undefined。 */
@@ -257,13 +338,17 @@ function groupByTurn(rows: readonly Element[]): TurnGroup[] {
 }
 
 /**
- * 取回合内的时间 chip 文本:时钟通常挂在回合尾部的 turn-tail 行。
+ * 取回合内的时间 chip 文本:时钟挂在回合尾部的 turn-tail 行。
+ *
+ * 从尾部往前找(通常第一次探测即命中),避免对每行都做一次子树
+ * `querySelector`——回合内行数越多、Markdown 越重,正序扫描越吃亏。
  * @param rows - 该回合的流 item。
  * @returns 首个非空 chip 文本;全无则 undefined。
  */
 function clockTextOf(rows: readonly Element[]): string | undefined {
-  for (const row of rows) {
-    if (typeof row.querySelector !== 'function') continue
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const row = rows[i]
+    if (row === undefined || typeof row.querySelector !== 'function') continue
     const text = row.querySelector(CLOCK_SELECTOR)?.textContent?.trim()
     if (text) return text
   }
@@ -397,7 +482,7 @@ export class QQTimeDividerRuntime {
   /** 按配置挂载 sentinel(或直接挂 flow observer 如果聊天流已存在)。 */
   private applyObserver(config: QQSkinConfig): void {
     if (!config.timeDivider) return
-    // 无 DOM 环境(测试/SSR)或 stub 环境不挂载,与音效层的防御一致。
+    // 无 DOM 环境(测试/SSR)或 stub 环境不挂载。
     if (typeof document === 'undefined' || typeof document.querySelector !== 'function') return
 
     // 快路径:聊天流已挂载,直接全量对齐后挂观察。
@@ -419,10 +504,19 @@ export class QQTimeDividerRuntime {
     this.sentinel.observe(document.body, { childList: true, subtree: true })
   }
 
-  /** 挂载 flow observer,监听聊天流子树变化后防抖全量对齐。 */
+  /**
+   * 挂载 flow observer:只有「流 item / 时间 chip 有增删」才安排重扫。
+   *
+   * 直接对每条 mutation 重扫的旧实现在流式输出时最吃亏:助手 Markdown
+   * 每个 token 批次都可能替换子树节点,但分隔条的期望值只随回合划分与
+   * chip 文本变化。过滤后,一天之内的流式渲染不再触发全量对齐。
+   * @param flow - 已挂载的聊天流容器。
+   */
   private mountFlowObserver(flow: Element): void {
-    this.observer = new MutationObserver(() => this.scheduleRescan(flow))
-    this.observer.observe(flow, { childList: true, subtree: true })
+    this.observer = new MutationObserver((mutations) => {
+      if (touchesFlow(mutations)) this.scheduleRescan(flow)
+    })
+    this.observer.observe(flow, { childList: true, subtree: true, characterData: true })
   }
 
   /** 防抖安排一次全量对齐(流式输出期间合并多次变化)。 */
