@@ -342,6 +342,80 @@ describe('QQ time divider', () => {
     vi.unstubAllGlobals()
   })
 
+  it('collects chip texts with a single subtree query instead of one per turn', () => {
+    setTodayLabel(() => '今天')
+    const yest = zhYesterdayChip()
+    // 每行故意不提供 querySelector('data-clock'):只有走"一次 querySelectorAll
+    // 全树收集 + 沿 parentElement 上溯"的新路径,才能取到 chip 文本。
+    const inserted: Array<{ textContent: string; removed?: boolean }> = []
+    const makeRow = (turn: string, chip: { textContent: string } | null) => {
+      const row: {
+        textContent: string
+        remove: () => void
+        before: (divider: { textContent: string; nextElementSibling?: unknown }) => void
+        nextElementSibling: unknown
+        getAttribute: (name: string) => string | null
+        parentElement: unknown
+      } = {
+        textContent: '',
+        remove: vi.fn(),
+        before: (divider) => {
+          divider.nextElementSibling = row
+          inserted.push(divider as { textContent: string })
+        },
+        nextElementSibling: undefined,
+        getAttribute: (name: string) => (name === 'data-chat-turn' ? turn : null),
+        parentElement: null,
+      }
+      if (chip !== null) chip.parentElement = null
+      return row
+    }
+    const row1 = makeRow('1', null)
+    const row2 = makeRow('2', null)
+    const chip1 = { textContent: '08:00' }
+    const chip2 = { textContent: `用量 73.1K tok${yest.chip}` }
+    // chip 的两层祖先后才到行,验证上溯逻辑(不是直接父子)。
+    const mid1 = { parentElement: row1 }
+    const mid2 = { parentElement: row2 }
+    ;(chip1 as { parentElement?: unknown }).parentElement = mid1
+    ;(chip2 as { parentElement?: unknown }).parentElement = mid2
+    const queryCount = { clock: 0, rows: 0 }
+    const flow = {
+      querySelectorAll: (selector: string) => {
+        if (selector.includes('data-chat-flow-key')) {
+          queryCount.rows++
+          return [row1, row2]
+        }
+        if (selector.includes('data-qq-time-divider')) return inserted.filter(el => el.removed !== true)
+        if (selector.includes('data-clock')) {
+          queryCount.clock++
+          return [chip1, chip2]
+        }
+        return []
+      },
+    }
+    vi.stubGlobal('document', {
+      createElement: () => {
+        const el: { textContent: string; [key: string]: unknown } = { textContent: '' }
+        el.setAttribute = vi.fn()
+        el.className = ''
+        el.dataset = {}
+        el.remove = vi.fn()
+        el.appendChild = vi.fn((child: { textContent: string }) => { el.textContent = child.textContent })
+        return el
+      },
+    })
+
+    alignDividers(flow as unknown as Element)
+    // 两回合各一条;文本分别来自各自回合的 chip。
+    expect(inserted).toHaveLength(2)
+    expect(inserted[0].textContent).toBe('今天')
+    expect(inserted[1].textContent).toBe(yest.label)
+    // 关键:clock 只查了一次(与回合数无关),不再每回合扫一次子树。
+    expect(queryCount.clock).toBe(1)
+    vi.unstubAllGlobals()
+  })
+
   it('clears dividers when the runtime is disabled or disposed', () => {
     setTodayLabel(() => '今天')
     const yest = zhYesterdayChip()
@@ -355,5 +429,90 @@ describe('QQ time divider', () => {
     runtime.update({ ...QQ_SKIN_DEFAULT_CONFIG, timeDivider: true })
     expect(runtime.isEnabled()).toBe(true)
     runtime.dispose()
+  })
+
+  it('re-attaches to a rebuilt chat flow instead of watching a detached element', () => {
+    setTodayLabel(() => '今天')
+    // 宿主会重建聊天流元素(切换会话、进出设置页)。旧实现找到 flow 就
+    // 卸掉 sentinel、只盯那一个元素:flow 被替换后 observer 绑在已分离
+    // 的旧节点上,分隔条从此不再出现。这里模拟"旧 flow 分离 → 新 flow 挂上"。
+    const observers: Array<{ callback: (records: MutationRecord[]) => void; targets: unknown[]; disconnect: ReturnType<typeof vi.fn> }> = []
+    class FakeMutationObserver {
+      private readonly entry: { callback: (records: MutationRecord[]) => void; targets: unknown[]; disconnect: ReturnType<typeof vi.fn> }
+      constructor(callback: (records: MutationRecord[]) => void) {
+        this.entry = { callback, targets: [], disconnect: vi.fn(() => {}) }
+        observers.push(this.entry)
+      }
+      observe(target: unknown): void {
+        this.entry.targets.push(target)
+      }
+      disconnect(): void {
+        this.entry.disconnect()
+      }
+    }
+
+    /** 造一个 flow 桩;rows 决定它内部有多少流 item。 */
+    const makeFlow = (connected: () => boolean) => {
+      const row = {
+        textContent: '',
+        remove: vi.fn(),
+        before: vi.fn(),
+        nextElementSibling: undefined as unknown,
+        getAttribute: (name: string) => (name === 'data-chat-turn' ? '1' : null),
+        querySelector: (selector: string) => (selector.includes('data-clock') ? { textContent: '08:00' } : null),
+      }
+      const flow = {
+        get isConnected() { return connected() },
+        querySelectorAll: (selector: string) => {
+          if (selector.includes('data-chat-flow-key')) return [row]
+          return []
+        },
+        querySelector: (selector: string) => (selector.includes('data-clock') ? { textContent: '08:00' } : null),
+      }
+      return { flow, row }
+    }
+
+    let oldConnected = true
+    let currentFlow: unknown = makeFlow(() => oldConnected).flow
+    const body = {}
+    vi.stubGlobal('MutationObserver', FakeMutationObserver)
+    vi.stubGlobal('document', {
+      body,
+      createElement: () => {
+        const el: { textContent: string; [key: string]: unknown } = { textContent: '' }
+        el.setAttribute = vi.fn()
+        el.className = ''
+        el.dataset = {}
+        el.remove = vi.fn()
+        el.appendChild = vi.fn((child: { textContent: string }) => { el.textContent = child.textContent })
+        return el
+      },
+      querySelector: (selector: string) => (selector === '[data-chat-flow]' ? currentFlow : null),
+    })
+
+    const ctx = new Context()
+    const runtime = new QQTimeDividerRuntime(ctx, QQ_SKIN_DEFAULT_CONFIG)
+    // flow observer 先建(快路径),sentinel 常驻兜底:一个看 flow,一个看 body。
+    expect(observers).toHaveLength(2)
+    const firstFlowObserver = observers[0]
+    const sentinel = observers[1]
+    expect(firstFlowObserver?.targets[0]).toBe(currentFlow)
+    expect(sentinel?.targets[0]).toBe(body)
+
+    // 宿主替换聊天流:旧节点分离,新节点挂上。
+    oldConnected = false
+    currentFlow = makeFlow(() => true).flow
+    sentinel?.callback([])
+    // 旧 flow observer 被断开,并新挂了一个到新 flow。
+    expect(firstFlowObserver?.disconnect).toHaveBeenCalled()
+    const secondFlowObserver = observers[2]
+    expect(secondFlowObserver).toBeDefined()
+    expect(secondFlowObserver?.targets[0]).toBe(currentFlow)
+
+    // sentinel 常驻:找到新 flow 后不自我卸载。
+    expect(sentinel?.disconnect).not.toHaveBeenCalled()
+
+    runtime.dispose()
+    vi.unstubAllGlobals()
   })
 })
