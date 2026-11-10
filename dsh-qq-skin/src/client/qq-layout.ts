@@ -198,7 +198,9 @@ function typingRule(): string {
 /**
  * 紧凑密度:收紧消息流的垂直呼吸(行间距、卡片内边距、气泡间距),
  * 单屏容纳更多消息;normal 档不注入任何规则(宿主原样)。
- * 用 data-qq-density 作用域选择器,避免覆盖宿主未知的内部间距。
+ * 选择器只命中本插件已依赖的稳定锚点(data-chat-flow、data-chat-flow-key、
+ * data-message-bubble、data-qq-time-divider 与助手卡片链路),不碰宿主
+ * 未知的内部间距。
  */
 function densityRule(): string {
   return `

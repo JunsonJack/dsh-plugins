@@ -178,10 +178,13 @@ export function planDividers(
 export function alignDividers(flow: Element): void {
   if (typeof flow.querySelectorAll !== 'function') return
   const rows = leafRows(flow)
+  const chipByRow = collectChipTexts(flow, rows)
   const groups = groupByTurn(rows)
-  const plan = planDividers(groups.map(group => clockTextOf(group.rows)))
+  const plan = planDividers(groups.map(group => groupChipText(group.rows, chipByRow)))
   const existing = Array.from(flow.querySelectorAll(`[${DIVIDER_ATTRIBUTE}]`))
-  if (existing.length === plan.filter(label => label !== undefined).length) {
+  let planned = 0
+  for (const label of plan) if (label !== undefined) planned++
+  if (existing.length === planned) {
     let aligned = true
     let at = 0
     for (let i = 0; i < plan.length; i++) {
@@ -252,6 +255,15 @@ function leafRows(flow: Element): Element[] {
 /** 取父元素;stub 环境(无 parentElement)返回 null。 */
 function parentOf(el: Element): Element | null {
   return (el as Element & { parentElement?: Element | null }).parentElement ?? null
+}
+
+/**
+ * 元素是否仍在文档里。stub 环境没有 `isConnected`(undefined)时按「仍连接」
+ * 处理,避免测试桩被误判成已分离。
+ * @param el - 待判定的元素。
+ */
+function isConnected(el: Element): boolean {
+  return (el as Element & { isConnected?: boolean }).isConnected !== false
 }
 
 /**
@@ -338,17 +350,47 @@ function groupByTurn(rows: readonly Element[]): TurnGroup[] {
 }
 
 /**
- * 取回合内的时间 chip 文本:时钟挂在回合尾部的 turn-tail 行。
+ * 一次性收集每行的时间 chip 文本:`flow.querySelectorAll('[data-clock]')`
+ * 只遍历一遍子树,再沿 `parentElement` 上溯到所属的叶子流 item。
  *
- * 从尾部往前找(通常第一次探测即命中),避免对每行都做一次子树
- * `querySelector`——回合内行数越多、Markdown 越重,正序扫描越吃亏。
+ * 旧实现对每个回合做一次 `row.querySelector('[data-clock]')`(正序或尾部
+ * 起始),长会话下是 O(行数 × 子树)。这里等价于用一次查询换掉 N 次。
+ * stub 环境(chip 没有 parentElement、上溯不到行)回落到逐行 `querySelector`,
+ * 保持与原实现一致的行为。
+ *
+ * @param flow - 聊天流容器。
+ * @param rows - 本次参与分组的叶子流 item。
+ * @returns 行元素 → 首个非空 chip 文本。
+ */
+function collectChipTexts(flow: Element, rows: readonly Element[]): Map<Element, string> {
+  const byRow = new Map<Element, string>()
+  const rowSet = new Set<Element>(rows)
+  if (typeof flow.querySelectorAll !== 'function') return byRow
+  for (const chip of flow.querySelectorAll(CLOCK_SELECTOR)) {
+    const text = chip.textContent?.trim()
+    if (!text) continue
+    // 沿祖先上溯找到最近的叶子流 item(行);不在本次 rows 内的 chip 忽略。
+    let node: Element | null = parentOf(chip)
+    while (node !== null && !rowSet.has(node)) node = parentOf(node)
+    if (node === null) continue
+    if (!byRow.has(node)) byRow.set(node, text)
+  }
+  return byRow
+}
+
+/**
+ * 取回合内的时间 chip 文本:优先用一次性收集的结果,缺失时逐行兜底。
  * @param rows - 该回合的流 item。
+ * @param chipByRow - collectChipTexts 的收集结果。
  * @returns 首个非空 chip 文本;全无则 undefined。
  */
-function clockTextOf(rows: readonly Element[]): string | undefined {
+function groupChipText(rows: readonly Element[], chipByRow: ReadonlyMap<Element, string>): string | undefined {
   for (let i = rows.length - 1; i >= 0; i--) {
     const row = rows[i]
-    if (row === undefined || typeof row.querySelector !== 'function') continue
+    if (row === undefined) continue
+    const collected = chipByRow.get(row)
+    if (collected !== undefined) return collected
+    if (typeof row.querySelector !== 'function') continue
     const text = row.querySelector(CLOCK_SELECTOR)?.textContent?.trim()
     if (text) return text
   }
@@ -420,14 +462,21 @@ function buildDivider(label: string): HTMLElement {
  *
  * 生命周期与 cordis 一致:构造时按配置挂载 sentinel;`update` 按新配置
  * 启停整套观察链;插件 dispose 时通过 effect 清理。
+ *
+ * sentinel 常驻(启用期间不卸载):宿主会重建聊天流元素(切换会话、
+ * 进入设置页再返回),只观察首次找到的 flow 会让 observer 绑在已分离的
+ * 旧元素上——分隔条从此不再出现。sentinel 保留下来负责两件事:发现新
+ * flow 时挂上 flow observer;发现已观察的 flow 从文档分离时重挂自己。
  */
 export class QQTimeDividerRuntime {
   /** 当前生效配置(热更新后保持最新)。 */
   private config: QQSkinConfig
-  /** sentinel observer:等 [data-chat-flow] 出现;出现后自动卸载。 */
+  /** sentinel observer:发现 flow 挂 observer;flow 分离后等新 flow 出现。 */
   private sentinel: MutationObserver | undefined
   /** flow observer:监听聊天流变化后防抖全量对齐;未启用时为 undefined。 */
   private observer: MutationObserver | undefined
+  /** flow observer 当前绑定的聊天流(分离检测的对照物)。 */
+  private observedFlow: Element | undefined
   /** 重扫防抖定时器。 */
   private rescanTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -459,10 +508,7 @@ export class QQTimeDividerRuntime {
     this.disposeSentinel()
     if (!config.timeDivider) {
       // 已挂载的聊天流(若有)里的分隔条一并清掉,不留裸文本。
-      if (typeof document !== 'undefined' && typeof document.querySelector === 'function') {
-        const flow = document.querySelector(FLOW_SELECTOR)
-        if (flow) clearDividers(flow)
-      }
+      this.clearMountedFlow()
       return
     }
     this.applyObserver(config)
@@ -473,10 +519,7 @@ export class QQTimeDividerRuntime {
     this.disposeRescan()
     this.disposeObserver()
     this.disposeSentinel()
-    if (typeof document !== 'undefined' && typeof document.querySelector === 'function') {
-      const flow = document.querySelector(FLOW_SELECTOR)
-      if (flow) clearDividers(flow)
-    }
+    this.clearMountedFlow()
   }
 
   /** 按配置挂载 sentinel(或直接挂 flow observer 如果聊天流已存在)。 */
@@ -490,18 +533,33 @@ export class QQTimeDividerRuntime {
     if (flow) {
       alignDividers(flow)
       this.mountFlowObserver(flow)
-      return
     }
 
-    // 慢路径:聊天流尚未挂载,用 sentinel observer 等它出现。
-    this.sentinel = new MutationObserver(() => {
-      const target = document.querySelector(FLOW_SELECTOR)
-      if (!target) return
-      alignDividers(target)
-      this.disposeSentinel()
-      this.mountFlowObserver(target)
-    })
+    // sentinel 常驻:flow 已存在时它只负责分离检测;不存在时负责发现。
+    this.mountSentinel()
+  }
+
+  /** 挂载 sentinel observer(启用期间的常驻兜底,不因找到 flow 而卸载)。 */
+  private mountSentinel(): void {
+    this.disposeSentinel()
+    this.sentinel = new MutationObserver(() => this.reconcileFlow())
     this.sentinel.observe(document.body, { childList: true, subtree: true })
+  }
+
+  /**
+   * sentinel 回调:让观察链跟上聊天流的挂载与重建。
+   * flow 不存在 → 等下一次变化;出现且未被观察 → 挂 observer;
+   * 已观察但已从文档分离 → 丢弃旧 observer,等新 flow 出现后重挂。
+   */
+  private reconcileFlow(): void {
+    if (this.observer !== undefined && this.observedFlow !== undefined && !isConnected(this.observedFlow)) {
+      this.disposeObserver()
+    }
+    if (this.observer !== undefined) return
+    const target = document.querySelector(FLOW_SELECTOR)
+    if (!target) return
+    alignDividers(target)
+    this.mountFlowObserver(target)
   }
 
   /**
@@ -513,10 +571,20 @@ export class QQTimeDividerRuntime {
    * @param flow - 已挂载的聊天流容器。
    */
   private mountFlowObserver(flow: Element): void {
+    if (this.observer !== undefined && this.observedFlow === flow) return
+    this.disposeObserver()
     this.observer = new MutationObserver((mutations) => {
       if (touchesFlow(mutations)) this.scheduleRescan(flow)
     })
     this.observer.observe(flow, { childList: true, subtree: true, characterData: true })
+    this.observedFlow = flow
+  }
+
+  /** 清掉已挂载聊天流里的分隔条(dispose 与关闭开关共用)。 */
+  private clearMountedFlow(): void {
+    if (typeof document === 'undefined' || typeof document.querySelector !== 'function') return
+    const flow = document.querySelector(FLOW_SELECTOR)
+    if (flow) clearDividers(flow)
   }
 
   /** 防抖安排一次全量对齐(流式输出期间合并多次变化)。 */
@@ -543,5 +611,6 @@ export class QQTimeDividerRuntime {
   private disposeObserver(): void {
     this.observer?.disconnect()
     this.observer = undefined
+    this.observedFlow = undefined
   }
 }

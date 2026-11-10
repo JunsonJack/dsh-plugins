@@ -148,6 +148,27 @@ export type PartialQQSkinConfig = {
   [K in keyof QQSkinConfig]?: QQSkinConfig[K] | undefined
 }
 
+/** 配置字段清单:两处配置比较(热更新判定)与字段遍历共用,新增字段只改这里。 */
+export const QQ_SKIN_CONFIG_FIELDS = [
+  'palette',
+  'customColor',
+  'density',
+  'avatarStyle',
+  'avatarCustomImage',
+  'bubbleTail',
+  'assistantAvatar',
+  'avatarSize',
+  'chatMaxWidth',
+  'frostedGlass',
+  'typing',
+  'timeDivider',
+] as const satisfies ReadonlyArray<keyof QQSkinConfig>
+
+/** 两份配置是否等价(逐字段比较以免无谓重挂皮肤层)。 */
+export function sameQQSkinConfig(left: QQSkinConfig, right: QQSkinConfig): boolean {
+  return QQ_SKIN_CONFIG_FIELDS.every(field => left[field] === right[field])
+}
+
 /** 合并用户配置与默认值,非法字段回落默认。 */
 export function resolveQQSkinConfig(config?: PartialQQSkinConfig): QQSkinConfig {
   const raw = config ?? {}

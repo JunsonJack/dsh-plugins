@@ -1,15 +1,37 @@
 import { describe, expect, it } from 'vitest'
 import {
   QQ_AVATAR_STYLES,
+  QQ_SKIN_CONFIG_FIELDS,
   QQ_SKIN_DEFAULT_CONFIG,
   QQ_SKIN_PALETTES,
   normalizeAvatarImage,
   resolveQQSkinConfig,
+  sameQQSkinConfig,
 } from '../src/client/config.ts'
 
 describe('QQ skin config', () => {
   it('declares the seven palette variants', () => {
     expect(QQ_SKIN_PALETTES).toEqual(['classic', 'vivid', 'clean', 'green', 'black', 'qqblue', 'custom'])
+  })
+
+  it('keeps the shared field list in step with the config shape', () => {
+    // 新增配置项忘了登记到 QQ_SKIN_CONFIG_FIELDS 时,热更新比较会漏掉它
+    // (字段变了却不重挂皮肤层)。这里把清单与运行时配置对象的键对齐。
+    expect([...QQ_SKIN_CONFIG_FIELDS].sort()).toEqual(Object.keys(QQ_SKIN_DEFAULT_CONFIG).sort())
+  })
+
+  it('treats two configs as equal only when every shared field matches', () => {
+    const base = resolveQQSkinConfig()
+    expect(sameQQSkinConfig(base, { ...base })).toBe(true)
+    for (const field of QQ_SKIN_CONFIG_FIELDS) {
+      const value = base[field]
+      const changed = typeof value === 'boolean'
+        ? !value
+        : typeof value === 'number'
+          ? value + 1
+          : `${value}x`
+      expect(sameQQSkinConfig(base, { ...base, [field]: changed })).toBe(false)
+    }
   })
 
   it('declares the three avatar styles', () => {
