@@ -37,7 +37,7 @@ Options persist under the `qq-skin` namespace in the profile config document (sc
 | `bubbleTail` | `true` | Small triangular "tail" on the right of user bubbles |
 | `assistantAvatar` | `true` | Official QQ-penguin avatar disc left of assistant messages; it also drives the mirrored QQ tail at the assistant card's bottom-left corner (same arc shape flipped horizontally, shadow tinted by the palette), and turning the avatar off tucks the tail away too |
 | `chatMaxWidth` | `880` | Max width of the chat flow (px, clamped between 480 and 1600) |
-| `frostedGlass` | `false` | Tinted frosted-glass panels on the sidebar, right details column, and composer (brand-tint gradient + translucent base + glass-edge highlight; the composer also gets `blur(16px)` backdrop blur — columns stay blur-free so the fixed-positioned sidebar toggle keeps its window anchoring) |
+| `frostedGlass` | `false` | Tinted frosted-glass panels on the sidebar, right details column, and composer (brand-tint gradient + translucent base + glass-edge highlight; no `backdrop-filter` anywhere — columns stay blur-free so the fixed-positioned sidebar toggle keeps its window anchoring, and the composer stays blur-free so the file/command popups keep their own backdrop blur) |
 | `typing` | `true` | Assistant message typing reveal animation |
 | `timeDivider` | `true` | Message time dividers: insert a QQ-style centered date chip before the first message of each day ("Today" for the current day; date text follows the host locale format) |
 
