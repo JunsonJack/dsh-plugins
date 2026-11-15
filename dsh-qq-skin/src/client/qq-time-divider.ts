@@ -114,8 +114,10 @@ export function parseClockText(text: string | undefined | null): number | undefi
       ? withTime(nowDate, hours, minutes).getTime()
       : undefined
   }
-  // 跨年:YYYY年M月D日 HH:mm / YYYY-M-D HH:mm
-  const fullYear = /^(\d{4})[年-](\d{1,2})[月/-](\d{1,2})日?\s+(\d{1,2}):(\d{2})$/.exec(value)
+  // 跨年:YYYY年M月D日 HH:mm / YYYY-M-D HH:mm / YYYY/M/D HH:mm
+  // 年份分隔符必须与 CLOCK_PATTERNS[0] 的 [年/-] 一致,否则斜杠年份日期会被
+  // extractClock 抽出来却在这里解析失败,该回合静默没有分隔条。
+  const fullYear = /^(\d{4})[年/-](\d{1,2})[月/-](\d{1,2})日?\s+(\d{1,2}):(\d{2})$/.exec(value)
   if (fullYear) {
     const month = Number(fullYear[2])
     const day = Number(fullYear[3])

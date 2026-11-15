@@ -43,17 +43,38 @@ export const QQ_SCARF_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(S
  * 自定义头像优先:avatarImage 非空时直接用它(装扮层是按企鹅几何绘制的,
  * 叠在任意图片上会错位,故整体跳过)。
  */
+/**
+ * 把任意值包成安全的 CSS url("...") 声明。
+ *
+ * avatarImage 可能来自用户在输入框里手粘的链接,里面只要有一个双引号,
+ * 就会提前闭合 url(),让同一条 style 标签里后续规则(气泡、间距、尾巴)
+ * 整段失效——不只是头像坏掉。反斜杠与控制字符同理,都会截断字符串。
+ *
+ * 内建的 data URI(base64 字母表 + encodeURIComponent 输出)不含这些字符,
+ * 走同一个函数转义后是空操作,所以四个分支统一用它。
+ */
+function toCssUrl(value: string): string {
+  const escaped = value.replace(/[\u0000-\u001f"\\]/g, (char) => {
+    const code = char.charCodeAt(0)
+    if (code === 0x22) return '\\"'
+    if (code === 0x5c) return '\\\\'
+    // 其余控制字符用 CSS 十六进制转义(尾随空格是转义的一部分)。
+    return `\\${code.toString(16)} `
+  })
+  return `url("${escaped}")`
+}
+
 export function getAvatarBackgroundImage(style: QQAvatarStyle = 'classic', avatarImage = ''): string {
   if (avatarImage) {
-    return `url("${avatarImage}")`
+    return toCssUrl(avatarImage)
   }
   switch (style) {
     case 'sunglasses':
-      return `url("${QQ_SUNGLASSES_DATA_URI}"), url("${QQ_AVATAR_DATA_URI}")`
+      return `${toCssUrl(QQ_SUNGLASSES_DATA_URI)}, ${toCssUrl(QQ_AVATAR_DATA_URI)}`
     case 'scarf':
-      return `url("${QQ_SCARF_DATA_URI}"), url("${QQ_AVATAR_DATA_URI}")`
+      return `${toCssUrl(QQ_SCARF_DATA_URI)}, ${toCssUrl(QQ_AVATAR_DATA_URI)}`
     case 'classic':
     default:
-      return `url("${QQ_AVATAR_DATA_URI}")`
+      return toCssUrl(QQ_AVATAR_DATA_URI)
   }
 }

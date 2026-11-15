@@ -395,7 +395,7 @@ body[data-ds-dark-theme] [data-composer-card] {
    3) 宽度交给 harness 自己的 tableFill / tableScroll 机制决定;
    4) 视觉层做 GitHub/Typora 风:发丝线、圆角、表头浅色带、斑马纹、
       表格内代码渲染成 chip。 */
-function markdownTableRule(scope: string, wideScope: string): string {
+function markdownTableRule(scope: string, wideContainer: string): string {
   return `
 ${scope} table {
   border-collapse: separate;
@@ -404,8 +404,10 @@ ${scope} table {
   border-radius: 10px;
   font-size: 0.94em;
 }
-/* 宽表滚动容器去撑宽:宽度压回卡片内,列一个不少,超宽时容器内滚动。 */
-${wideScope} .md-table-wide {
+/* 宽表滚动容器去撑宽:宽度压回卡片内,列一个不少,超宽时容器内滚动。
+   注意:wideContainer 只传容器选择器,后缀 .md-table-wide 由本函数追加;
+   传成「容器 + .md-table-wide」会拼出 .md-table-wide .md-table-wide 的死规则。 */
+${wideContainer} .md-table-wide {
   --dsh-table-lead: 0px;
   --dsh-table-spare: 0px;
   box-sizing: border-box;
@@ -416,8 +418,8 @@ ${wideScope} .md-table-wide {
   overflow-x: auto;
   overscroll-behavior-x: contain;
 }
-${wideScope} .md-table-wide:hover,
-${wideScope} .md-table-wide:focus-visible {
+${wideContainer} .md-table-wide:hover,
+${wideContainer} .md-table-wide:focus-visible {
   overflow-x: auto;
 }
 ${scope} table th,
@@ -548,7 +550,7 @@ ${markdownTableRule("[data-chat-flow-kind='assistant-step']", "[data-chat-flow-k
    ⚠ 气泡本身不能设 overflow-x: hidden——那会把伸出气泡外侧的
    尾巴(::after)一起裁掉,而且 overflow-x:hidden 会把 overflow-y
    隐式变成 auto,给气泡凭空加出纵向滚动条。 */
-${markdownTableRule('[data-message-bubble][data-message-bubble]', '[data-message-bubble][data-message-bubble] .md-table-wide')}
+${markdownTableRule('[data-message-bubble][data-message-bubble]', '[data-message-bubble][data-message-bubble]')}
 /* 气泡内的表格 chip 底色改用气泡自身的深浅底,避免灰底压在蓝底上。
    简洁白色板的亮色气泡是白底(深字),沿用默认浅色表格样式即可。 */
 ${isClean ? '' : `

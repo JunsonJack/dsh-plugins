@@ -565,6 +565,24 @@ function QQSkinEditor({ t, config, revision, writable, mutate }: {
   /** 是否有未保存修改:草稿与外部快照按 JSON 全量比较。 */
   const dirty = JSON.stringify(draft) !== externalText
 
+  /**
+   * 放弃:草稿与三个本地输入态一起回滚到外部快照。
+   *
+   * 只回滚 draft 不够。sizeDraft / widthDraft / colorDraft 的回显 effect 依赖
+   * config.avatarSize / chatMaxWidth / customColor,放弃时快照没变,effect 不跑,
+   * 输入框会残留刚被丢弃的数字,而 dirty 已归零、保存按钮变灰;之后再改别的开关
+   * 保存,落库的仍是旧值,和屏幕显示不一致。
+   * 调色盘的 40ms 定时器同理:不清掉,放弃后它会把已丢弃的颜色写回草稿。
+   */
+  const discard = (): void => {
+    if (colorTimer.current !== undefined) window.clearTimeout(colorTimer.current)
+    colorTimer.current = undefined
+    setDraft(JSON.parse(externalText) as QQSkinSettings)
+    setSizeDraft(String(config.avatarSize ?? DEFAULT_AVATAR_SIZE))
+    setWidthDraft(String(config.chatMaxWidth ?? 880))
+    setColorDraft(config.customColor ?? DEFAULT_CUSTOM_COLOR)
+  }
+
   /** 保存:只提交与外部快照有差异的字段(一次原子提交,共享 revision fence)。 */
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(false)
@@ -797,7 +815,7 @@ function QQSkinEditor({ t, config, revision, writable, mutate }: {
         {dirty && (
           <button
             type="button"
-            onClick={() => { setDraft(JSON.parse(externalText) as QQSkinSettings) }}
+            onClick={discard}
             style={discardButtonStyle}
           >
             {t('card.discard')}
