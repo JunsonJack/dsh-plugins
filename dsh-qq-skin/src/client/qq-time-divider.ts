@@ -28,15 +28,18 @@
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type { QQSkinConfig } from './config.ts'
+import { HOST_SELECTORS } from './host-probe.ts'
 
+// 三个结构选择器统一取自 host-probe.ts 的单一真相源:探针检查的就是
+// 这三处,规则与检查走散时探针会变成「查 A 报 B」的摆设。
 /** 聊天流容器选择器(harness ChatView 的 data-chat-flow 属性)。 */
-const FLOW_SELECTOR = '[data-chat-flow]'
+const FLOW_SELECTOR = HOST_SELECTORS.chatFlow
 /** 流 item 选择器:所有消息行与分组容器(ChatGroupSeat)都带该属性。 */
-const FLOW_KEY_SELECTOR = '[data-chat-flow-key]'
+const FLOW_KEY_SELECTOR = HOST_SELECTORS.flowKey
 /** 回合标识属性:同一回合的多行共享同一 data-chat-turn 值。 */
 const TURN_ATTRIBUTE = 'data-chat-turn'
 /** 时间 chip 容器(助手回合 clock='end',位于该回合的 turn-tail 行)。 */
-const CLOCK_SELECTOR = '[data-clock]'
+const CLOCK_SELECTOR = HOST_SELECTORS.clock
 /**
  * 时间片段的候选模式,按「信息量从多到少」排列:跨年 → 今年内 → 当天。
  * 全部不锚定首尾,因为 chip 文本里可能混有「用量 xx tok」前缀。

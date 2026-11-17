@@ -26,6 +26,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { getAvatarBackgroundImage } from './qq-avatar.ts'
 import { DEFAULT_AVATAR_SIZE, QQ_SKIN_DEFAULT_CONFIG, type QQAvatarStyle, type QQSkinConfig } from './config.ts'
 import { parseHexColor } from './qq-tokens.ts'
+import { HOST_SELECTORS, USER_BUBBLE_BASE_SELECTOR } from './host-probe.ts'
 
 /** 注入的 <style> 标签归属标识(便于排查与测试断言)。 */
 export const QQ_LAYOUT_PLUGIN = 'dsh-qq-skin/layout'
@@ -43,7 +44,9 @@ export const QQ_LAYOUT_PLUGIN = 'dsh-qq-skin/layout'
  * (0,1,0)——后者声明 `color: var(--dsw-alias-label-primary)`,正是气泡
  * 文字发黑的根因。
  */
-export const QQ_USER_BUBBLE_SELECTOR = '[data-message-bubble][data-message-bubble]'
+// 基础锚点来自 host-probe.ts 的单一真相源,这里重复一次以把特异度提到
+// (0,2,0);CSS 输出与历史版本逐字节一致。
+export const QQ_USER_BUBBLE_SELECTOR = `${USER_BUBBLE_BASE_SELECTOR}${USER_BUBBLE_BASE_SELECTOR}`
 
 /**
  * 问题回执气泡(ask_user_question 已回答批次)的稳定选择器。
@@ -65,7 +68,8 @@ export const QQ_USER_BUBBLE_SELECTOR = '[data-message-bubble][data-message-bubbl
  * 普通用户气泡无透传 className,值恰为 `_bubble_1sgyj_1`(结尾 `_1`),不命中。
  * 若 harness 改为 clsx(透传, 基元) 顺序,此选择器会静默失配,升级时留意。
  */
-export const QQ_REPLY_BUBBLE_SELECTOR = "[data-question-reply] [class$='_bubble']"
+// 与 host-probe.ts 的探针共用同一条选择器,避免规则与检查两处走散。
+export const QQ_REPLY_BUBBLE_SELECTOR = HOST_SELECTORS.replyBubble
 
 /** 企鹅头像圆标(默认开启时注入;关闭后无头像,也不占左侧空间;支持墨镜/围巾装扮)。
  * glow 为头像投影的主色 RGB:custom 色板跟随自定义主色,其余色板保持经典 QQ 蓝。

@@ -34,6 +34,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import { QQ_SKIN_DEFAULT_CONFIG, type QQSkinConfig } from './config.ts'
 import { QQ_SKIN_SETTINGS_NS, settingsToConfig, type QQSkinSettings } from './settings.ts'
 import { QQSkinRuntime } from './runtime.ts'
+import { installHostProbe } from './host-probe.ts'
 import { QQTimeDividerRuntime, setTodayLabel } from './qq-time-divider.ts'
 import { QQ_SKIN_PLUGIN_NS, zh, en } from './plugin-locales.ts'
 import { QQSkinPluginCard } from './plugin-page.tsx'
@@ -76,6 +77,9 @@ function sameConfig(left: QQSkinConfig, right: QQSkinConfig): boolean {
  * @param ctx - 客户端插件上下文。
  */
 export function apply(ctx: ClientContext): void {
+  // 宿主 DOM 锚点探针:失配时明确告警,便于 harness 升级后定位静默失效。
+  installHostProbe((cleanup) => ctx.effect(() => cleanup, 'dsh-qq-skin: host probe cleanup'))
+
   // 文案字典:插件页卡片与时间分隔条共用的双语键(typed register,缺键编译期报错)。
   ctx.effect(() => ctx.locale.register(QQ_SKIN_PLUGIN_NS, { zh, en }), 'dsh-qq-skin: plugin card dictionaries')
   // 「今天」文案:时间分隔条用;bind 返回活翻译函数,语言切换后跟随。
