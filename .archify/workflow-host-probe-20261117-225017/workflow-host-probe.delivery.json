@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "99d6bb9e-d4ef-4613-8189-0ae4353a948a",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "D:\\AIWork\\dsh-plugins\\.archify\\workflow-host-probe-20261117-225017\\candidate.json",
+  "output": "D:\\AIWork\\dsh-plugins\\.archify\\workflow-host-probe-20261117-225017\\workflow-host-probe.html",
+  "specification": {
+    "sha256": "b82312653b753fe5dcda9a78ef3c02472f6580fa6d27a8922499557c74316b34",
+    "bytes": 9377
+  },
+  "artifact": {
+    "sha256": "e37b050812b503703a18c472e9506020c8f18175bc62be02929051e9bdc97af1",
+    "bytes": 859451
+  }
+}

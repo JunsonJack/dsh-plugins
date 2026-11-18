@@ -1,0 +1,366 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "dsh-qq-skin 客户端模块组件架构",
+    "output": ".archify/architecture-client-20261117-225035/architecture-client.html",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "repository": {
+      "url": "git@github.com:JunsonJack/dsh-plugins.git",
+      "revision": "e05069ff4530f252d42c411e80a6dc112909843a",
+      "link_mode": "local-only"
+    }
+  },
+  "components": [
+    {
+      "id": "clientApplyPort",
+      "type": "frontend",
+      "label": "apply(ctx)",
+      "sublabel": "插件入口 · 声明 inject",
+      "pos": [40, 40],
+      "size": [200, 82],
+      "tag": "入口",
+      "sources": [
+        { "path": "dsh-qq-skin/src/client/index.ts", "line": 52 },
+        { "path": "dsh-qq-skin/src/client/index.ts", "line": 79, "end_line": 129 }
+      ]
+    },
+    {
+      "id": "hostContextPort",
+      "type": "external",
+      "label": "宿主 ClientContext",
+      "sublabel": "theme / locale / slots / configForms",
+      "pos": [330, 40],
+      "size": [210, 82],
+      "tag": "宿主"
+    },
+    {
+      "id": "settingsBridgePort",
+      "type": "frontend",
+      "label": "配置订阅桥",
+      "sublabel": "namespace qq-skin · getSnapshot + subscribe",
+      "pos": [400, 175],
+      "size": [210, 88],
+      "tag": "配置流",
+      "sources": [
+        { "path": "dsh-qq-skin/src/client/index.ts", "line": 96 },
+        { "path": "dsh-qq-skin/src/client/index.ts", "line": 101, "end_line": 119 },
+        { "path": "dsh-qq-skin/src/client/settings.ts", "line": 49, "end_line": 60 }
+      ]
+    },
+    {
+      "id": "configModelPort",
+      "type": "frontend",
+      "label": "配置模型",
+      "sublabel": "默认值 · normalize · resolve",
+      "pos": [40, 175],
+      "size": [200, 88],
+      "tag": "配置",
+      "sources": [
+        { "path": "dsh-qq-skin/src/client/config.ts", "line": 78, "end_line": 91 },
+        { "path": "dsh-qq-skin/src/client/config.ts", "line": 152, "end_line": 169 }
+      ]
+    },
+    {
+      "id": "runtimePort",
+      "type": "frontend",
+      "label": "QQSkinRuntime",
+      "sublabel": "applyLayers · update · dispose",
+      "pos": [40, 318],
+      "size": [200, 88],
+      "tag": "编排",
+      "sources": [
+        { "path": "dsh-qq-skin/src/client/runtime.ts", "line": 37, "end_line": 43 },
+        { "path": "dsh-qq-skin/src/client/runtime.ts", "line": 65, "end_line": 80 }
+      ]
+    },
+    {
+      "id": "tokensPort",
+      "type": "frontend",
+      "label": "Token 覆盖层",
+      "sublabel": "QQ_SKIN_SOURCE · buildTokenOverrides",
+      "pos": [40, 455],
+      "size": [200, 90],
+      "tag": "稳定契约",
+      "sources": [
+        { "path": "dsh-qq-skin/src/client/qq-tokens.ts", "line": 31 },
+        { "path": "dsh-qq-skin/src/client/qq-tokens.ts", "line": 37, "end_line": 180 },
+        { "path": "dsh-qq-skin/src/client/qq-tokens.ts", "line": 608, "end_line": 613 }
+      ]
+    },
+    {
+      "id": "layoutPort",
+      "type": "frontend",
+      "label": "布局样式层",
+      "sublabel": "buildQQLayoutCss · style[data-plugin]",
+      "pos": [330, 455],
+      "size": [210, 90],
+      "tag": "宿主 DOM",
+      "sources": [
+        { "path": "dsh-qq-skin/src/client/qq-layout.ts", "line": 485, "end_line": 490 },
+        { "path": "dsh-qq-skin/src/client/qq-layout.ts", "line": 842, "end_line": 864 }
+      ]
+    },
+    {
+      "id": "avatarPort",
+      "type": "frontend",
+      "label": "头像背景生成器",
+      "sublabel": "getAvatarBackgroundImage · toCssUrl",
+      "pos": [330, 596],
+      "size": [210, 88],
+      "tag": "布局依赖",
+      "sources": [
+        { "path": "dsh-qq-skin/src/client/qq-avatar.ts", "line": 56, "end_line": 80 }
+      ]
+    },
+    {
+      "id": "dividerPort",
+      "type": "frontend",
+      "label": "时间分隔条运行时",
+      "sublabel": "MutationObserver · data-qq-time-divider",
+      "pos": [620, 318],
+      "size": [220, 92],
+      "tag": "宿主 DOM",
+      "sources": [
+        { "path": "dsh-qq-skin/src/client/qq-time-divider.ts", "line": 429, "end_line": 447 },
+        { "path": "dsh-qq-skin/src/client/qq-time-divider.ts", "line": 460, "end_line": 474 }
+      ]
+    },
+    {
+      "id": "selectorsPort",
+      "type": "frontend",
+      "label": "HOST_SELECTORS",
+      "sublabel": "宿主锚点单一真相源",
+      "pos": [620, 455],
+      "size": [220, 90],
+      "tag": "宿主内部实现",
+      "sources": [
+        { "path": "dsh-qq-skin/src/client/host-probe.ts", "line": 48 },
+        { "path": "dsh-qq-skin/src/client/host-probe.ts", "line": 58, "end_line": 71 }
+      ]
+    },
+    {
+      "id": "probePort",
+      "type": "frontend",
+      "label": "宿主探针（只读）",
+      "sublabel": "probeHostAnchors · console.warn",
+      "pos": [900, 596],
+      "size": [220, 88],
+      "tag": "只读告警",
+      "sources": [
+        { "path": "dsh-qq-skin/src/client/host-probe.ts", "line": 120, "end_line": 158 },
+        { "path": "dsh-qq-skin/src/client/host-probe.ts", "line": 189, "end_line": 221 }
+      ]
+    },
+    {
+      "id": "localePort",
+      "type": "frontend",
+      "label": "双语字典",
+      "sublabel": "QQ_SKIN_PLUGIN_NS · zh / en",
+      "pos": [900, 175],
+      "size": [210, 88],
+      "tag": "双语",
+      "sources": [
+        { "path": "dsh-qq-skin/src/client/plugin-locales.ts", "line": 12 },
+        { "path": "dsh-qq-skin/src/client/plugin-locales.ts", "line": 61, "end_line": 138 }
+      ]
+    },
+    {
+      "id": "pluginCardPort",
+      "type": "frontend",
+      "label": "插件配置卡片",
+      "sublabel": "QQSkinPluginCard · 仅保存差异字段",
+      "pos": [900, 318],
+      "size": [210, 92],
+      "tag": "配置界面",
+      "sources": [
+        { "path": "dsh-qq-skin/src/client/plugin-page.tsx", "line": 478, "end_line": 510 },
+        { "path": "dsh-qq-skin/src/client/plugin-page.tsx", "line": 513, "end_line": 535 }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "稳定契约：--dsw-* Token 层",
+      "wraps": ["tokensPort"]
+    },
+    {
+      "kind": "region",
+      "label": "宿主内部实现：DOM 锚点 / 时序 · HOST_SELECTORS 单一真相源",
+      "wraps": ["layoutPort", "avatarPort", "dividerPort", "selectorsPort"]
+    },
+    {
+      "kind": "region",
+      "label": "监控与界面：只读探针告警 + 双语配置卡片",
+      "wraps": ["probePort", "localePort", "pluginCardPort"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "entryInjectsHost",
+      "from": "clientApplyPort",
+      "to": "hostContextPort",
+      "label": "inject ctx 能力",
+      "variant": "default"
+    },
+    {
+      "id": "hostConfigFormsToBridge",
+      "from": "hostContextPort",
+      "to": "settingsBridgePort",
+      "label": "configForms.get('qq-skin')",
+      "variant": "default",
+      "labelDx": 80
+    },
+    {
+      "id": "entrySetsTodayLabel",
+      "from": "clientApplyPort",
+      "to": "localePort",
+      "label": "register zh/en + setTodayLabel",
+      "variant": "default"
+    },
+    {
+      "id": "bridgeNormalizes",
+      "from": "settingsBridgePort",
+      "to": "configModelPort",
+      "label": "归一化配置",
+      "variant": "default"
+    },
+    {
+      "id": "entryStartsRuntime",
+      "from": "clientApplyPort",
+      "to": "runtimePort",
+      "label": "new QQSkinRuntime（默认值）",
+      "variant": "emphasis"
+    },
+    {
+      "id": "configFeedsRuntime",
+      "from": "configModelPort",
+      "to": "runtimePort",
+      "label": "QQSkinConfig",
+      "variant": "default"
+    },
+    {
+      "id": "bridgeUpdatesRuntime",
+      "from": "settingsBridgePort",
+      "to": "runtimePort",
+      "label": "差异 → runtime.update",
+      "variant": "emphasis"
+    },
+    {
+      "id": "runtimeDrivesTokens",
+      "from": "runtimePort",
+      "to": "tokensPort",
+      "label": "applyLayers → overrideTokens",
+      "variant": "emphasis",
+      "labelDy": 24
+    },
+    {
+      "id": "runtimeDrivesLayout",
+      "from": "runtimePort",
+      "to": "layoutPort",
+      "label": "applyLayers → create/set style",
+      "variant": "emphasis"
+    },
+    {
+      "id": "entryStartsDivider",
+      "from": "clientApplyPort",
+      "to": "dividerPort",
+      "label": "new QQTimeDividerRuntime",
+      "variant": "default"
+    },
+    {
+      "id": "bridgeUpdatesDivider",
+      "from": "settingsBridgePort",
+      "to": "dividerPort",
+      "label": "timeDivider 切换 → update/dispose",
+      "variant": "default"
+    },
+    {
+      "id": "tokensToHostTheme",
+      "from": "tokensPort",
+      "to": "hostContextPort",
+      "label": "--dsw-* 稳定主题令牌",
+      "variant": "emphasis"
+    },
+    {
+      "id": "layoutUsesAvatar",
+      "from": "layoutPort",
+      "to": "avatarPort",
+      "label": "avatarRule 调用",
+      "variant": "default"
+    },
+    {
+      "id": "layoutReadsSelectors",
+      "from": "selectorsPort",
+      "to": "layoutPort",
+      "label": "HOST_SELECTORS + 高特异气泡",
+      "variant": "dashed"
+    },
+    {
+      "id": "dividerReadsSelectors",
+      "from": "selectorsPort",
+      "to": "dividerPort",
+      "label": "chatFlow / flowKey / clock",
+      "variant": "dashed"
+    },
+    {
+      "id": "selectorsFeedsProbe",
+      "from": "selectorsPort",
+      "to": "probePort",
+      "label": "REQUIRED_ANCHORS",
+      "variant": "dashed"
+    },
+    {
+      "id": "entryInstallsProbe",
+      "from": "clientApplyPort",
+      "to": "probePort",
+      "label": "installHostProbe（只读）",
+      "variant": "dashed"
+    },
+    {
+      "id": "localeToCard",
+      "from": "localePort",
+      "to": "pluginCardPort",
+      "label": "t() 标签（zh/en）",
+      "variant": "default"
+    },
+    {
+      "id": "cardMutatesConfigForms",
+      "from": "pluginCardPort",
+      "to": "hostContextPort",
+      "label": "mutate(ops, revision)",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "先读这张图",
+      "items": [
+        "稳定契约：ctx.theme.overrideTokens 写 --dsw-*，不碰宿主 DOM 结构。",
+        "宿主内部实现：布局与时间分隔条依赖 HOST_SELECTORS 锚点与 MutationObserver 时序。",
+        "只读告警：host-probe 仅检查锚点并 console.warn，不改变皮肤行为。"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "配置与热更新",
+      "items": [
+        "namespace qq-skin 对应配置条目，configForms.get + settingsToConfig 归一化。",
+        "保存插件卡片只写差异字段；订阅触发 runtime.update，时间分隔条仅在开关变化时 update/dispose。",
+        "同名 source 的 overrideTokens 就地替换；layout.set 改写同一 style[data-plugin]，不重挂载会话。"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "事实来源",
+      "items": [
+        "入口：src/client/index.ts（apply、inject、effects）。",
+        "稳定层：src/client/qq-tokens.ts；宿主层：qq-layout.ts / qq-time-divider.ts / host-probe.ts。",
+        "配置与界面：config.ts / settings.ts / plugin-page.tsx / plugin-locales.ts。"
+      ]
+    }
+  ]
+}

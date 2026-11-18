@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "dataflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "D:\\AIWork\\dsh-plugins\\.archify\\dataflow-time-divider-20261117-225037\\candidate.json",
+    "sha256": "0c6db705b4cdd26b7d30a240a1a981b79e8a8612ef22337c335b3aec3bf67454",
+    "bytes": 4752
+  },
+  "artifact": {
+    "path": "D:\\AIWork\\dsh-plugins\\.archify\\dataflow-time-divider-20261117-225037\\time-divider-flow.html",
+    "sha256": "4e9e6741318e69a1c22802d852834a927de0c09734e695d3281f2c267c3fcd34",
+    "bytes": 836683
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "D:\\AIWork\\dsh-plugins\\.archify\\dataflow-time-divider-20261117-225037\\time-divider-flow.finalize.json",
+    "summaryReceipt": "D:\\AIWork\\dsh-plugins\\.archify\\dataflow-time-divider-20261117-225037\\time-divider-flow.finalize-summary.json",
+    "browserCheckReceipt": "D:\\AIWork\\dsh-plugins\\.archify\\dataflow-time-divider-20261117-225037\\time-divider-flow.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-11-17T14:50:51.747Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 6383,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  },
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 2
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "leafRowsToGrouper",
+            "from": "hostFlowKeyRows",
+            "to": "turnBucketGrouper",
+            "label": "行序列",
+            "collectionIndex": 1,
+            "artifactIndex": 2
+          },
+          "bends": 4,
+          "stretch": 1.129,
+          "directCorridorBlockers": [
+            {
+              "id": "clockFragmentExtractor",
+              "label": "extractClock",
+              "box": [
+                259,
+                356,
+                112,
+                58
+              ]
+            },
+            {
+              "id": "patternLadderParser",
+              "label": "三级模式匹配",
+              "box": [
+                474,
+                356,
+                112,
+                58
+              ]
+            }
+          ]
+        },
+        {
+          "relationship": {
+            "id": "chatFlowToClockChip",
+            "from": "hostChatFlowDom",
+            "to": "hostClockChip",
+            "label": "回合尾部 chip",
+            "collectionIndex": 2,
+            "artifactIndex": 3
+          },
+          "bends": 4,
+          "stretch": 1.305,
+          "directCorridorBlockers": [
+            {
+              "id": "hostFlowKeyRows",
+              "label": "叶子流 item",
+              "box": [
+                44,
+                356,
+                112,
+                58
+              ]
+            }
+          ]
+        }
+      ],
+      "truncated": false
+    },
+    "repair": "Advisory only: this mode places or routes these relationships itself. Report them; do not remove relationships or meaning to reduce crossings."
+  }
+}

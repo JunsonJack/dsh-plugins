@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "f606f09e-db0e-48b5-a9bb-26d2d6f01a15",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "D:\\AIWork\\dsh-plugins\\.archify\\architecture-client-20261117-225035\\candidate.json",
+  "output": "D:\\AIWork\\dsh-plugins\\.archify\\architecture-client-20261117-225035\\architecture-client.html",
+  "specification": {
+    "sha256": "a0bc35b671922fd87abac581226bbb9194ecf72814d78813ab74d2649f4222da",
+    "bytes": 11185
+  },
+  "artifact": {
+    "sha256": "e3fbe2a2f6039224e0610952f41381e778043bd5a64f104a21498f8bb1a57026",
+    "bytes": 873340
+  }
+}

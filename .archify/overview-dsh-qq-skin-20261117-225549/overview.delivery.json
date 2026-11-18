@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "32ddc4c7-e62e-4b17-9ed3-de1bb4907e47",
+  "status": "current",
+  "command": "deliver",
+  "type": "explainer",
+  "input": "D:\\AIWork\\dsh-plugins\\.archify\\overview-dsh-qq-skin-20261117-225549\\candidate.archify.md",
+  "output": "D:\\AIWork\\dsh-plugins\\.archify\\overview-dsh-qq-skin-20261117-225549\\overview.html",
+  "specification": {
+    "sha256": "88c94537600a35f10e65033d3a179a8c2fead81be096e3c610a74fe9185256e8",
+    "bytes": 1323
+  },
+  "artifact": {
+    "sha256": "3d78bce075739e04eef0bea14e8259c74d55bc9704fe4bdf220385bfc8fd58e1",
+    "bytes": 139443
+  },
+  "explainer": {
+    "preparedSha256": "9817b66d8a379d4b0771835b8ea8804afb1b5f7354d53223f097e78120c80f76",
+    "dependencies": []
+  }
+}

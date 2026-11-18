@@ -1,0 +1,169 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "dsh-qq-skin 时间分隔条数据流",
+    "locale": "zh-CN",
+    "output": ".archify/dataflow-time-divider-20261117-225037/time-divider-flow.html",
+    "quality_profile": "showcase"
+  },
+  "stages": [
+    { "label": "宿主 DOM" },
+    { "label": "时间抽取" },
+    { "label": "模式匹配" },
+    { "label": "回合分组" },
+    { "label": "注入" }
+  ],
+  "nodes": [
+    {
+      "id": "hostChatFlowDom",
+      "type": "external",
+      "label": "宿主聊天流 DOM",
+      "sublabel": "data-chat-flow",
+      "tag": "HOST_SELECTORS.chatFlow",
+      "stage": 0,
+      "row": 0,
+      "icon": "external"
+    },
+    {
+      "id": "hostFlowKeyRows",
+      "type": "frontend",
+      "label": "叶子流 item",
+      "sublabel": "data-chat-flow-key",
+      "tag": "HOST_SELECTORS.flowKey",
+      "stage": 0,
+      "row": 2,
+      "icon": "frontend"
+    },
+    {
+      "id": "hostClockChip",
+      "type": "external",
+      "label": "时间 chip 文本",
+      "sublabel": "data-clock 用量前缀",
+      "tag": "HOST_SELECTORS.clock",
+      "stage": 0,
+      "row": 4,
+      "icon": "clock"
+    },
+    {
+      "id": "clockFragmentExtractor",
+      "type": "backend",
+      "label": "extractClock",
+      "sublabel": "matchAll 逐候选过滤",
+      "tag": "去噪抽取",
+      "stage": 1,
+      "row": 2,
+      "icon": "backend"
+    },
+    {
+      "id": "patternLadderParser",
+      "type": "backend",
+      "label": "三级模式匹配",
+      "sublabel": "跨年 → 今年内 → 当天",
+      "tag": "CLOCK_PATTERNS",
+      "stage": 2,
+      "row": 2,
+      "icon": "calendar"
+    },
+    {
+      "id": "turnBucketGrouper",
+      "type": "backend",
+      "label": "groupByTurn",
+      "sublabel": "data-chat-turn 归一回合",
+      "tag": "回合分组",
+      "stage": 3,
+      "row": 2,
+      "icon": "backend"
+    },
+    {
+      "id": "dividerInjector",
+      "type": "frontend",
+      "label": "alignDividers",
+      "sublabel": "按 dayKey 变化生成文本 → 幂等删旧插新",
+      "tag": "data-qq-time-divider",
+      "stage": 4,
+      "row": 2,
+      "icon": "flag"
+    }
+  ],
+  "flows": [
+    {
+      "id": "chatFlowToLeafRows",
+      "from": "hostChatFlowDom",
+      "to": "hostFlowKeyRows",
+      "label": "叶子筛选 flowKey",
+      "variant": "default"
+    },
+    {
+      "id": "leafRowsToGrouper",
+      "from": "hostFlowKeyRows",
+      "to": "turnBucketGrouper",
+      "label": "行序列",
+      "variant": "default"
+    },
+    {
+      "id": "chatFlowToClockChip",
+      "from": "hostChatFlowDom",
+      "to": "hostClockChip",
+      "label": "回合尾部 chip",
+      "variant": "default"
+    },
+    {
+      "id": "clockChipToExtractor",
+      "from": "hostClockChip",
+      "to": "clockFragmentExtractor",
+      "label": "chip 文本",
+      "variant": "emphasis"
+    },
+    {
+      "id": "extractorToPatterns",
+      "from": "clockFragmentExtractor",
+      "to": "patternLadderParser",
+      "label": "时间片段",
+      "variant": "emphasis"
+    },
+    {
+      "id": "patternsToGrouper",
+      "from": "patternLadderParser",
+      "to": "turnBucketGrouper",
+      "label": "时间戳 dayKey",
+      "variant": "emphasis"
+    },
+    {
+      "id": "grouperToInjector",
+      "from": "turnBucketGrouper",
+      "to": "dividerInjector",
+      "label": "每回合分隔条计划",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "单一真相源",
+      "items": [
+        "chatFlow / flowKey / clock 三个结构选择器取自 host-probe.ts 导出的 HOST_SELECTORS",
+        "qq-time-divider.ts 起手 import HOST_SELECTORS，规则与探针不会走散",
+        "data-chat-turn 以本文件常量 TURN_ATTRIBUTE 读取，同一回合多行共享该值"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "抽取与三级匹配",
+      "items": [
+        "宿主把「用量 xx tok」与时钟同放一个 data-clock，chip 实测形如「用量 72.3K tok19:57」，故用 extractClock 在任意位置抽取",
+        "CLOCK_PATTERNS 按信息量从多到少：跨年 YYYY年M月D日 HH:mm → 今年内 M月D日 HH:mm → 当天 HH:mm",
+        "逐个 matchAll 候选，尾巴紧跟 : 或数字的作废，避免把 12:30:45 的秒当分钟"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "分组与幂等注入",
+      "items": [
+        "leafRows 排除 ChatGroupSeat 等容器，只保留叶子流 item",
+        "groupByTurn 连续同 data-chat-turn 归一组；planDividers 仅在 dayKey 变化时安排分隔条",
+        "alignDividers 对比现有条的数量/文本/位置，完全一致时零变更，避免 observer 自循环"
+      ]
+    }
+  ]
+}
