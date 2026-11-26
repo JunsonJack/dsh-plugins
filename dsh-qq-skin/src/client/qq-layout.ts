@@ -692,6 +692,44 @@ ${QQ_REPLY_BUBBLE_SELECTOR} :not(pre):not(pre *):not(code) {
 ${QQ_REPLY_BUBBLE_SELECTOR} a {
   color: inherit;
 }
+/* ── 问题与回答的视觉区分 ─────────────────────────────────────────
+   QuestionReplyView 把每个问题 dt 与答案 dd 塞进同一个 UserMessageBubble,
+   核心 CSS 仅给 dt 次要色、dd 无强调,在品牌底上几乎糊成一行。这里以
+   [data-question-reply] 限定作用域(与 hash 无关),用语义 dl/dt/dd 锚定:
+   问题=正常字重+小标题,答案=高亮胶囊,多问之间加分隔线。
+   分隔线与胶囊底用 color-mix(currentColor, transparent) 跟随气泡字色
+   (bubbleForeground):彩底/暗色自动为白、简洁白亮色自动为墨,避免写死白色
+   在白底上不可见。层级靠字重(dd 600 > dt 500 > header 400)与背景区分,
+   不叠加 opacity,保证亮色品牌底上的对比度;刻意不设 color 覆盖通用规则。 */
+[data-question-reply] dl {
+  margin: 0;
+}
+[data-question-reply] dl > div + div {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+}
+[data-question-reply] dl > div > dt {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+[data-question-reply] dl > div > dt [class$='_header'] {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 12px;
+  font-weight: 400;
+}
+[data-question-reply] dl > div > dd {
+  display: inline-block;
+  max-width: 100%;
+  margin: 6px 0 0;
+  padding: 2px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  font-weight: 600;
+}
 ${isClean ? `/* 简洁白:暗色回执气泡同样回到白字。 */
 body[data-ds-dark-theme] ${QQ_REPLY_BUBBLE_SELECTOR},
 body[data-ds-dark-theme] ${QQ_REPLY_BUBBLE_SELECTOR} :not(pre):not(pre *):not(code) {

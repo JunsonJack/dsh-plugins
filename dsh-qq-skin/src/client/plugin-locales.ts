@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 插件管理页配置卡片(plugins.row.config)的文案字典:zh/en 双语,注册进
  * locale 服务。命名空间声明合并进 LocaleNamespaceMap,typed register
  * 缺键/多键在编译期报错。
@@ -7,9 +7,19 @@
  * settings-locales.ts)同源:沿用其字段文案键,新增插件页卡片所需的
  * 摘要/加载/只读文案键。
  */
+import {
+  QQ_AVATAR_STYLES,
+  QQ_SKIN_DENSITIES,
+  QQ_SKIN_PALETTES,
+} from './config.ts'
 
 /** 插件页配置卡片命名空间(locale 字典与槽位 locale 座共用)。 */
 export const QQ_SKIN_PLUGIN_NS = 'dsh-qq-skin.plugin'
+
+/** 枚举值对应的文案键,由 config.ts 的选项数组派生 —— 新增选项时 key 自动扩展。 */
+type PaletteKey = `palette.${(typeof QQ_SKIN_PALETTES)[number]}`
+type DensityKey = `density.${(typeof QQ_SKIN_DENSITIES)[number]}`
+type AvatarKey = `avatar.${(typeof QQ_AVATAR_STYLES)[number]}`
 
 /** 插件页配置卡片文案键全集。 */
 export type QQSkinPluginKey =
@@ -25,22 +35,13 @@ export type QQSkinPluginKey =
   | 'card.imageError'
   | 'card.saveFailed'
   | 'row.palette'
-  | 'palette.classic'
-  | 'palette.vivid'
-  | 'palette.clean'
-  | 'palette.green'
-  | 'palette.black'
-  | 'palette.qqblue'
-  | 'palette.custom'
+  | PaletteKey
   | 'row.customColor'
   | 'row.density'
-  | 'density.normal'
-  | 'density.compact'
+  | DensityKey
   | 'row.avatarStyle'
   | 'row.avatarCustomImage'
-  | 'avatar.classic'
-  | 'avatar.sunglasses'
-  | 'avatar.scarf'
+  | AvatarKey
   | 'row.bubbleTail'
   | 'row.assistantAvatar'
   | 'row.avatarSize'

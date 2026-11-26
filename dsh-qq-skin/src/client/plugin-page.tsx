@@ -37,6 +37,7 @@ import {
   CHAT_MAX_WIDTH_MIN,
   DEFAULT_AVATAR_SIZE,
   DEFAULT_CUSTOM_COLOR,
+  isValidAvatarImage,
   QQ_AVATAR_STYLES,
   QQ_SKIN_DENSITIES,
   QQ_SKIN_PALETTES,
@@ -651,7 +652,9 @@ function QQSkinEditor({ t, config, revision, writable, mutate }: {
 
   // 本地图片读取失败提示(下一次任何编辑或重新选择时清除)。
   const [imageError, setImageError] = useState(false)
-  const imageIsLocal = (draft.avatarCustomImage ?? '').startsWith('data:image/')
+  // 与 config 层共用校验口径:非法 data URI 不再误报「已设置」,合法图片才显示恢复按钮。
+  const avatarImage = (draft.avatarCustomImage ?? '').trim()
+  const imageIsLocal = avatarImage.startsWith('data:') && isValidAvatarImage(avatarImage)
 
   const showColor = (draft.palette ?? 'classic') === 'custom'
   const showAvatarFields = (draft.assistantAvatar ?? true)

@@ -90,6 +90,12 @@ export const QQ_SKIN_DEFAULT_CONFIG: QQSkinConfig = {
   timeDivider: true,
 }
 
+/**
+ * 配置字段全集,由默认配置派生 —— 字段的单一真源。
+ * index.ts 的逐字段比较、settings 的合并都以此为准,新增字段只改 DEFAULT_CONFIG 一处。
+ */
+export const QQ_SKIN_CONFIG_KEYS = Object.keys(QQ_SKIN_DEFAULT_CONFIG) as Array<keyof QQSkinConfig>
+
 /** 规范化十六进制色值:格式错误回落默认 #12B7F5,3位扩展为6位。 */
 export function normalizeHexColor(value: unknown): string {
   if (typeof value !== 'string') return DEFAULT_CUSTOM_COLOR
@@ -125,12 +131,22 @@ function normalizeChatMaxWidth(value: unknown): number {
   return Math.min(CHAT_MAX_WIDTH_MAX, Math.max(CHAT_MAX_WIDTH_MIN, Math.round(value)))
 }
 
+/**
+ * 头像图片源是否合法(data:image/* URI 或 https:// URL)。
+ * UI 层与 resolve 共用同一口径,避免「界面显示已设置但保存后被丢弃」。
+ */
+export function isValidAvatarImage(value: unknown): value is string {
+  if (typeof value !== 'string') return false
+  const trimmed = value.trim()
+  if (!trimmed) return false
+  return AVATAR_IMAGE_DATA_URI.test(trimmed) || AVATAR_IMAGE_HTTPS.test(trimmed)
+}
+
 /** 规范化自定义头像图片:仅接受 data:image/* URI 或 https:// URL,其余回落空串(用官方企鹅)。 */
 export function normalizeAvatarImage(value: unknown): string {
   if (typeof value !== 'string') return ''
   const trimmed = value.trim()
-  if (!trimmed) return ''
-  return AVATAR_IMAGE_DATA_URI.test(trimmed) || AVATAR_IMAGE_HTTPS.test(trimmed) ? trimmed : ''
+  return isValidAvatarImage(trimmed) ? trimmed : ''
 }
 
 /** 枚举字段白名单校验:命中则原样采用,否则回落默认值。 */

@@ -31,7 +31,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: 合并 ui-plugin-manager 的 plugins.row.config 槽声明。
 import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
-import { QQ_SKIN_DEFAULT_CONFIG, type QQSkinConfig } from './config.ts'
+import { QQ_SKIN_CONFIG_KEYS, QQ_SKIN_DEFAULT_CONFIG, type QQSkinConfig } from './config.ts'
 import { QQ_SKIN_SETTINGS_NS, settingsToConfig, type QQSkinSettings } from './settings.ts'
 import { QQSkinRuntime } from './runtime.ts'
 import { installHostProbe } from './host-probe.ts'
@@ -63,12 +63,9 @@ export { QQ_SKIN_SETTINGS_NS }
 /** 插件页配置卡片的槽位 key(`<package name>#<row id>`,row id 与 cordis.patch.yml 声明一致)。 */
 export const QQ_SKIN_CONFIG_ROW_KEY = 'dsh-qq-skin#qq-skin'
 
-/** 定时比较的字段(色板/头像/布局开关),显式列名以便编译期随 QQSkinConfig 一起报错。 */
-const CONFIG_FIELDS = ['palette', 'customColor', 'density', 'avatarStyle', 'avatarCustomImage', 'bubbleTail', 'assistantAvatar', 'avatarSize', 'chatMaxWidth', 'frostedGlass', 'typing', 'timeDivider'] as const
-
-/** 两份配置是否等价(逐字段比较以免无谓重挂皮肤层)。 */
+/** 两份配置是否等价(逐字段比较以免无谓重挂皮肤层;字段集由 config.ts 单一真源派生)。 */
 function sameConfig(left: QQSkinConfig, right: QQSkinConfig): boolean {
-  return CONFIG_FIELDS.every(field => left[field] === right[field])
+  return QQ_SKIN_CONFIG_KEYS.every(field => left[field] === right[field])
 }
 
 /**
