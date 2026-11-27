@@ -256,6 +256,27 @@ describe('QQ NT layout config branches', () => {
     expect(fallback).toContain('data:image/svg+xml')
   })
 
+  it('escapes quotes and backslashes in avatarCustomImage so the style tag survives', () => {
+    // 用户手粘的 URL 里只要有一个双引号,就会提前闭合 url(),让同一条
+    // style 标签里后续规则(气泡、间距、尾巴)整段失效——toCssUrl 必须转义。
+    const hostile = buildQQLayoutCss({
+      ...QQ_SKIN_DEFAULT_CONFIG, avatarCustomImage: 'https://example.com/a").png',
+    })
+    // 转义后不得出现裸的提前闭合:url("..." 后紧跟 ") 序列即死规则。
+    expect(hostile).not.toContain('url("https://example.com/a")')
+    expect(hostile).toContain('\\"')
+
+    const backslash = buildQQLayoutCss({
+      ...QQ_SKIN_DEFAULT_CONFIG, avatarCustomImage: 'https://example.com/a\\b.png',
+    })
+    expect(backslash).not.toContain('url("https://example.com/a\\b.png")')
+    expect(backslash).toContain('\\\\')
+
+    // 内建 data URI(不含引号/反斜杠)转义是空操作,官方企鹅不受影响。
+    const builtin = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, avatarStyle: 'classic' })
+    expect(builtin).toContain('data:image/png;base64')
+  })
+
   it('scales the avatar bubble offset and size from avatarSize', () => {
     // 默认 22px:历史写死值(offset = 22 + 14 间距 = 36,top = 13)。
     const def = buildQQLayoutCss(QQ_SKIN_DEFAULT_CONFIG)
@@ -319,6 +340,19 @@ describe('QQ NT layout config branches', () => {
     expect(QQ_LAYOUT_CSS).toContain('margin-left: 0')
     expect(QQ_LAYOUT_CSS).toContain('padding-left: 0')
     expect(QQ_LAYOUT_CSS).toMatch(/\.md-table-wide \{[^}]*overflow-x: auto/)
+  })
+
+  it('never emits the doubled .md-table-wide dead selector', () => {
+    // markdownTableRule 只收容器选择器、自行追加 .md-table-wide 后缀;
+    // 调用方若把「容器 + .md-table-wide」整串传入,会拼出
+    // .md-table-wide .md-table-wide 的死规则,宽表撑宽变量永不归零。
+    // 断言前先剥掉 /* */ 注释——本文件把设计说明也打进 CSS,注释文字
+    // 里恰好提到这个死选择器,不做剥离会误报。
+    const css = QQ_LAYOUT_CSS.replace(/\/\*[\s\S]*?\*\//g, '')
+    expect(css).not.toContain('.md-table-wide .md-table-wide')
+    // 两个作用域(助手卡片 / 用户气泡)各自恰有一条容器级规则。
+    const count = css.split('.md-table-wide {').length - 1
+    expect(count).toBe(2)
   })
 
   it('keeps table cell text from folding mid-word', () => {

@@ -11,3 +11,4 @@ yarn.lock
 /backups/
 backups/
 /package.json
+.alma-snapshots

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "46295333-d99c-484d-b915-7e88d4d59d2f",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "D:\\AIWork\\dsh-plugins\\.archify\\dataflow-time-divider-20261117-225037\\candidate.json",
+  "output": "D:\\AIWork\\dsh-plugins\\.archify\\dataflow-time-divider-20261117-225037\\time-divider-flow.html",
+  "specification": {
+    "sha256": "0c6db705b4cdd26b7d30a240a1a981b79e8a8612ef22337c335b3aec3bf67454",
+    "bytes": 4752
+  },
+  "artifact": {
+    "sha256": "4e9e6741318e69a1c22802d852834a927de0c09734e695d3281f2c267c3fcd34",
+    "bytes": 836683
+  }
+}

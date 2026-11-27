@@ -1,0 +1,338 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "D:\\AIWork\\dsh-plugins\\.archify\\architecture-client-20261117-225035\\candidate.json",
+    "sha256": "a0bc35b671922fd87abac581226bbb9194ecf72814d78813ab74d2649f4222da",
+    "bytes": 11185
+  },
+  "artifact": {
+    "path": "D:\\AIWork\\dsh-plugins\\.archify\\architecture-client-20261117-225035\\architecture-client.html",
+    "sha256": "e3fbe2a2f6039224e0610952f41381e778043bd5a64f104a21498f8bb1a57026",
+    "bytes": 873340
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "D:\\AIWork\\dsh-plugins\\.archify\\architecture-client-20261117-225035\\architecture-client.finalize.json",
+    "summaryReceipt": "D:\\AIWork\\dsh-plugins\\.archify\\architecture-client-20261117-225035\\architecture-client.finalize-summary.json",
+    "browserCheckReceipt": "D:\\AIWork\\dsh-plugins\\.archify\\architecture-client-20261117-225035\\architecture-client.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-11-17T14:50:51.747Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 8182,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  },
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "resolvedCrossovers": 9,
+      "routesOverSuggestedBends": 6,
+      "routesOverSuggestedStretch": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [
+        {
+          "left": {
+            "id": "hostConfigFormsToBridge",
+            "from": "hostContextPort",
+            "to": "settingsBridgePort",
+            "label": "configForms.get(&#39;qq-skin&#39;)",
+            "collectionIndex": 1,
+            "artifactIndex": 2
+          },
+          "right": {
+            "id": "entrySetsTodayLabel",
+            "from": "clientApplyPort",
+            "to": "localePort",
+            "label": "register zh/en + setTodayLabel",
+            "collectionIndex": 2,
+            "artifactIndex": 3
+          },
+          "point": [
+            503.3888888888889,
+            151
+          ]
+        },
+        {
+          "left": {
+            "id": "entrySetsTodayLabel",
+            "from": "clientApplyPort",
+            "to": "localePort",
+            "label": "register zh/en + setTodayLabel",
+            "collectionIndex": 2,
+            "artifactIndex": 3
+          },
+          "right": {
+            "id": "tokensToHostTheme",
+            "from": "tokensPort",
+            "to": "hostContextPort",
+            "label": "--dsw-* 稳定主题令牌",
+            "collectionIndex": 11,
+            "artifactIndex": 12
+          },
+          "point": [
+            397.38461538461536,
+            151
+          ]
+        },
+        {
+          "left": {
+            "id": "entrySetsTodayLabel",
+            "from": "clientApplyPort",
+            "to": "localePort",
+            "label": "register zh/en + setTodayLabel",
+            "collectionIndex": 2,
+            "artifactIndex": 3
+          },
+          "right": {
+            "id": "cardMutatesConfigForms",
+            "from": "pluginCardPort",
+            "to": "hostContextPort",
+            "label": "mutate(ops, revision)",
+            "collectionIndex": 18,
+            "artifactIndex": 19
+          },
+          "point": [
+            876,
+            151
+          ]
+        },
+        {
+          "left": {
+            "id": "bridgeNormalizes",
+            "from": "settingsBridgePort",
+            "to": "configModelPort",
+            "label": "归一化配置",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "right": {
+            "id": "entryStartsRuntime",
+            "from": "clientApplyPort",
+            "to": "runtimePort",
+            "label": "new QQSkinRuntime（默认值）",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "point": [
+            243,
+            210.95
+          ]
+        },
+        {
+          "left": {
+            "id": "bridgeNormalizes",
+            "from": "settingsBridgePort",
+            "to": "configModelPort",
+            "label": "归一化配置",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "right": {
+            "id": "entryStartsDivider",
+            "from": "clientApplyPort",
+            "to": "dividerPort",
+            "label": "new QQTimeDividerRuntime",
+            "collectionIndex": 9,
+            "artifactIndex": 10
+          },
+          "point": [
+            280,
+            210.95
+          ]
+        },
+        {
+          "left": {
+            "id": "bridgeNormalizes",
+            "from": "settingsBridgePort",
+            "to": "configModelPort",
+            "label": "归一化配置",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "right": {
+            "id": "tokensToHostTheme",
+            "from": "tokensPort",
+            "to": "hostContextPort",
+            "label": "--dsw-* 稳定主题令牌",
+            "collectionIndex": 11,
+            "artifactIndex": 12
+          },
+          "point": [
+            265.4000000000023,
+            210.95
+          ]
+        },
+        {
+          "left": {
+            "id": "bridgeUpdatesRuntime",
+            "from": "settingsBridgePort",
+            "to": "runtimePort",
+            "label": "差异 → runtime.update",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "right": {
+            "id": "tokensToHostTheme",
+            "from": "tokensPort",
+            "to": "hostContextPort",
+            "label": "--dsw-* 稳定主题令牌",
+            "collectionIndex": 11,
+            "artifactIndex": 12
+          },
+          "point": [
+            262,
+            355
+          ]
+        },
+        {
+          "left": {
+            "id": "runtimeDrivesLayout",
+            "from": "runtimePort",
+            "to": "layoutPort",
+            "label": "applyLayers → create/set style",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "right": {
+            "id": "tokensToHostTheme",
+            "from": "tokensPort",
+            "to": "hostContextPort",
+            "label": "--dsw-* 稳定主题令牌",
+            "collectionIndex": 11,
+            "artifactIndex": 12
+          },
+          "point": [
+            262,
+            390
+          ]
+        }
+      ],
+      "detours": [
+        {
+          "relationship": {
+            "id": "entrySetsTodayLabel",
+            "from": "clientApplyPort",
+            "to": "localePort",
+            "label": "register zh/en + setTodayLabel",
+            "collectionIndex": 2,
+            "artifactIndex": 3
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "entryStartsRuntime",
+            "from": "clientApplyPort",
+            "to": "runtimePort",
+            "label": "new QQSkinRuntime（默认值）",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "bends": 4,
+          "stretch": 1.946,
+          "directCorridorBlockers": [
+            {
+              "id": "configModelPort",
+              "label": "配置模型",
+              "box": [
+                40,
+                175,
+                200,
+                88
+              ]
+            }
+          ]
+        },
+        {
+          "relationship": {
+            "id": "entryStartsDivider",
+            "from": "clientApplyPort",
+            "to": "dividerPort",
+            "label": "new QQTimeDividerRuntime",
+            "collectionIndex": 9,
+            "artifactIndex": 10
+          },
+          "bends": 4,
+          "stretch": 1.086
+        },
+        {
+          "relationship": {
+            "id": "tokensToHostTheme",
+            "from": "tokensPort",
+            "to": "hostContextPort",
+            "label": "--dsw-* 稳定主题令牌",
+            "collectionIndex": 11,
+            "artifactIndex": 12
+          },
+          "bends": 6,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "layoutReadsSelectors",
+            "from": "selectorsPort",
+            "to": "layoutPort",
+            "label": "HOST_SELECTORS + 高特异气泡",
+            "collectionIndex": 13,
+            "artifactIndex": 14
+          },
+          "bends": 3,
+          "stretch": 1.217
+        },
+        {
+          "relationship": {
+            "id": "entryInstallsProbe",
+            "from": "clientApplyPort",
+            "to": "probePort",
+            "label": "installHostProbe（只读）",
+            "collectionIndex": 16,
+            "artifactIndex": 17
+          },
+          "bends": 3,
+          "stretch": 1.061
+        }
+      ],
+      "truncated": true
+    },
+    "hints": [
+      "hostContextPort → settingsBridgePort crosses clientApplyPort → localePort: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "clientApplyPort → localePort crosses tokensPort → hostContextPort: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "clientApplyPort → localePort crosses pluginCardPort → hostContextPort: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "settingsBridgePort → configModelPort crosses clientApplyPort → runtimePort: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "settingsBridgePort → configModelPort crosses clientApplyPort → dividerPort: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "settingsBridgePort → configModelPort crosses tokensPort → hostContextPort: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "settingsBridgePort → runtimePort crosses tokensPort → hostContextPort: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "runtimePort → layoutPort crosses tokensPort → hostContextPort: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

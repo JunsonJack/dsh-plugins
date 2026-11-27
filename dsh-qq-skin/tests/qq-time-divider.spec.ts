@@ -90,6 +90,14 @@ describe('QQ time divider', () => {
     expect(zhYmd).toBeDefined()
     expect(new Date(zhYmd as number).getFullYear()).toBe(2025)
     expect(parseClockText('2025-12-31 23:59')).toBe(zhYmd)
+    // 斜杠年份:YYYY/M/D HH:mm(年份分隔符必须与抽取正则 [年/-] 一致,
+    // 否则 extractClock 抽出来却解析失败,该回合静默无分隔条)。
+    expect(parseClockText('2025/12/31 23:59')).toBe(zhYmd)
+    const slashShort = parseClockText('2025/1/5 07:30')
+    expect(slashShort).toBeDefined()
+    expect(new Date(slashShort as number).getFullYear()).toBe(2025)
+    expect(new Date(slashShort as number).getMonth()).toBe(0)
+    expect(new Date(slashShort as number).getDate()).toBe(5)
   })
 
   it('rejects unparseable or out-of-range chip text instead of guessing a time', () => {

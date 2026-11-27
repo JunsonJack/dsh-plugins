@@ -21,7 +21,10 @@ import {
 /** 设置命名空间 == profile 条目 id(cordis.patch.yml 的 `id`)。 */
 export const QQ_SKIN_SETTINGS_NS = 'qq-skin'
 
-/** 设置分节里的持久化字段:形状与 QQSkinConfig 一致,全部可缺省。 */
+/**
+ * 设置分节里的持久化字段:形状与 QQSkinConfig 一致,全部可缺省。
+ * 直接复用 config.ts 的 PartialQQSkinConfig,避免字段清单在此重复声明。
+ */
 export type QQSkinSettings = PartialQQSkinConfig
 
 /**

@@ -26,6 +26,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { getAvatarBackgroundImage } from './qq-avatar.ts'
 import { DEFAULT_AVATAR_SIZE, QQ_SKIN_DEFAULT_CONFIG, type QQAvatarStyle, type QQSkinConfig } from './config.ts'
 import { parseHexColor } from './qq-tokens.ts'
+import { HOST_SELECTORS, USER_BUBBLE_BASE_SELECTOR } from './host-probe.ts'
 
 /** 注入的 <style> 标签归属标识(便于排查与测试断言)。 */
 export const QQ_LAYOUT_PLUGIN = 'dsh-qq-skin/layout'
@@ -43,7 +44,9 @@ export const QQ_LAYOUT_PLUGIN = 'dsh-qq-skin/layout'
  * (0,1,0)——后者声明 `color: var(--dsw-alias-label-primary)`,正是气泡
  * 文字发黑的根因。
  */
-export const QQ_USER_BUBBLE_SELECTOR = '[data-message-bubble][data-message-bubble]'
+// 基础锚点来自 host-probe.ts 的单一真相源,这里重复一次以把特异度提到
+// (0,2,0);CSS 输出与历史版本逐字节一致。
+export const QQ_USER_BUBBLE_SELECTOR = `${USER_BUBBLE_BASE_SELECTOR}${USER_BUBBLE_BASE_SELECTOR}`
 
 /**
  * 问题回执气泡(ask_user_question 已回答批次)的稳定选择器。
@@ -65,7 +68,8 @@ export const QQ_USER_BUBBLE_SELECTOR = '[data-message-bubble][data-message-bubbl
  * 普通用户气泡无透传 className,值恰为 `_bubble_1sgyj_1`(结尾 `_1`),不命中。
  * 若 harness 改为 clsx(透传, 基元) 顺序,此选择器会静默失配,升级时留意。
  */
-export const QQ_REPLY_BUBBLE_SELECTOR = "[data-question-reply] [class$='_bubble']"
+// 与 host-probe.ts 的探针共用同一条选择器,避免规则与检查两处走散。
+export const QQ_REPLY_BUBBLE_SELECTOR = HOST_SELECTORS.replyBubble
 
 /** 企鹅头像圆标(默认开启时注入;关闭后无头像,也不占左侧空间;支持墨镜/围巾装扮)。
  * glow 为头像投影的主色 RGB:custom 色板跟随自定义主色,其余色板保持经典 QQ 蓝。
@@ -257,8 +261,8 @@ function timeDividerRule(): string {
  * 投影取色板主色,与头像光晕同一色源。亮色主题下画布(bg-base)与卡片
  * (bg-layer-1)同为 #fff,白尾巴贴白画布会隐形 —— 追加一道与卡片描边
  * 同色的 0.5px 毛边(简洁白色板气泡尾巴的既有做法),让形状在白底上
- * 依然可辨。头像关闭时尾巴一并停用 —— 尾巴指向头像,没有头像的尾巴
- * 是断箭。
+ * 依然可辨。「气泡尾巴」开关同时控制用户与助手两侧尾巴;头像关闭时
+ * 助手尾巴一并停用 —— 尾巴指向头像,没有头像的尾巴是断箭。
  */
 function assistantTailRule(tailShadow: [number, number, number]): string {
   const shadow = `${tailShadow[0]}, ${tailShadow[1]}, ${tailShadow[2]}`
@@ -397,7 +401,7 @@ body[data-ds-dark-theme] [data-composer-card] {
    3) 宽度交给 harness 自己的 tableFill / tableScroll 机制决定;
    4) 视觉层做 GitHub/Typora 风:发丝线、圆角、表头浅色带、斑马纹、
       表格内代码渲染成 chip。 */
-function markdownTableRule(scope: string, wideScope: string): string {
+function markdownTableRule(scope: string, wideContainer: string): string {
   return `
 ${scope} table {
   border-collapse: separate;
@@ -406,8 +410,10 @@ ${scope} table {
   border-radius: 10px;
   font-size: 0.94em;
 }
-/* 宽表滚动容器去撑宽:宽度压回卡片内,列一个不少,超宽时容器内滚动。 */
-${wideScope} .md-table-wide {
+/* 宽表滚动容器去撑宽:宽度压回卡片内,列一个不少,超宽时容器内滚动。
+   注意:wideContainer 只传容器选择器,后缀 .md-table-wide 由本函数追加;
+   传成「容器 + .md-table-wide」会拼出 .md-table-wide .md-table-wide 的死规则。 */
+${wideContainer} .md-table-wide {
   --dsh-table-lead: 0px;
   --dsh-table-spare: 0px;
   box-sizing: border-box;
@@ -418,8 +424,8 @@ ${wideScope} .md-table-wide {
   overflow-x: auto;
   overscroll-behavior-x: contain;
 }
-${wideScope} .md-table-wide:hover,
-${wideScope} .md-table-wide:focus-visible {
+${wideContainer} .md-table-wide:hover,
+${wideContainer} .md-table-wide:focus-visible {
   overflow-x: auto;
 }
 ${scope} table th,
@@ -527,7 +533,7 @@ ${assistantAvatar ? avatarRule(config.avatarStyle, glow, config.avatarCustomImag
     0 1px 2px rgba(15, 23, 42, 0.04),
     0 4px 14px rgba(15, 23, 42, 0.05);
 }
-${assistantAvatar ? assistantTailRule(shadow) : ''}
+${bubbleTail && assistantAvatar ? assistantTailRule(shadow) : ''}
 ${typing ? typingRule() : ''}
 ${timeDivider ? timeDividerRule() : ''}
 
@@ -550,7 +556,7 @@ ${markdownTableRule("[data-chat-flow-kind='assistant-step']", "[data-chat-flow-k
    ⚠ 气泡本身不能设 overflow-x: hidden——那会把伸出气泡外侧的
    尾巴(::after)一起裁掉,而且 overflow-x:hidden 会把 overflow-y
    隐式变成 auto,给气泡凭空加出纵向滚动条。 */
-${markdownTableRule('[data-message-bubble][data-message-bubble]', '[data-message-bubble][data-message-bubble] .md-table-wide')}
+${markdownTableRule('[data-message-bubble][data-message-bubble]', '[data-message-bubble][data-message-bubble]')}
 /* 气泡内的表格 chip 底色改用气泡自身的深浅底,避免灰底压在蓝底上。
    简洁白色板的亮色气泡是白底(深字),沿用默认浅色表格样式即可。 */
 ${isClean ? '' : `
@@ -687,6 +693,50 @@ ${QQ_REPLY_BUBBLE_SELECTOR} :not(pre):not(pre *):not(code) {
 }
 ${QQ_REPLY_BUBBLE_SELECTOR} a {
   color: inherit;
+}
+/* ── 问题与回答的视觉区分 ─────────────────────────────────────────
+   QuestionReplyView 把每个问题 dt 与答案 dd 塞进同一个 UserMessageBubble,
+   核心 CSS 仅给 dt 次要色、dd 无强调,在品牌底上几乎糊成一行。这里以
+   [data-question-reply] 限定作用域(与 hash 无关),用语义 dl/dt/dd 锚定:
+   问题=左侧竖条标记+小标题,答案=实底胶囊+粗体,多问之间加分隔线。
+   所有强调色用 color-mix(currentColor, transparent) 跟随气泡字色
+   (bubbleForeground):彩底/暗色自动为白、简洁白亮色自动为墨,避免写死白色
+   在白底上不可见;不叠加 opacity,保证亮色品牌底上的对比度;刻意不设 color
+   覆盖通用规则。 */
+[data-question-reply] dl {
+  margin: 0;
+}
+[data-question-reply] dl > div + div {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+}
+[data-question-reply] dl > div > dt {
+  display: block;
+  margin: 0 0 2px;
+  padding-left: 9px;
+  border-left: 3px solid color-mix(in srgb, currentColor 55%, transparent);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+[data-question-reply] dl > div > dt [class$='_header'] {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 12px;
+  font-weight: 400;
+}
+[data-question-reply] dl > div > dd {
+  display: inline-block;
+  max-width: 100%;
+  margin: 8px 0 0;
+  padding: 5px 12px;
+  border: 1px solid color-mix(in srgb, currentColor 32%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, currentColor 30%, transparent);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
 }
 ${isClean ? `/* 简洁白:暗色回执气泡同样回到白字。 */
 body[data-ds-dark-theme] ${QQ_REPLY_BUBBLE_SELECTOR},

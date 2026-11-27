@@ -16,38 +16,15 @@ import {
   QQ_AVATAR_STYLES,
   QQ_SKIN_DENSITIES,
   QQ_SKIN_PALETTES,
-  type QQAvatarStyle,
-  type QQSkinDensity,
-  type QQSkinPalette,
+  type QQSkinConfig,
 } from './client/config.ts'
 
-/** 设置字段的运行时形状:volatile 字段在 Live 配置里以 ref 形式存在。 */
-export interface Config {
-  /** 色板变体。 */
-  palette: Volatile<QQSkinPalette>
-  /** 自定义主色十六进制色值(如 #12B7F5)。 */
-  customColor: Volatile<string>
-  /** 消息密度:normal=标准,compact=紧凑(默认 normal)。 */
-  density: Volatile<QQSkinDensity>
-  /** 企鹅头像装扮(classic=经典, sunglasses=墨镜, scarf=围巾)。 */
-  avatarStyle: Volatile<QQAvatarStyle>
-  /** 自定义助手头像图片(URL 或 data:image/* URI;空 = 官方企鹅)。 */
-  avatarCustomImage: Volatile<string>
-  /** 用户气泡右侧"尾巴"伪元素开关。 */
-  bubbleTail: Volatile<boolean>
-  /** 助手消息左侧官方 QQ 企鹅头像开关。 */
-  assistantAvatar: Volatile<boolean>
-  /** 助手头像尺寸(px,16~40)。 */
-  avatarSize: Volatile<number>
-  /** 聊天流最大宽度(px)。 */
-  chatMaxWidth: Volatile<number>
-  /** 侧边栏/顶栏毛玻璃亚克力通透质感(默认关)。 */
-  frostedGlass: Volatile<boolean>
-  /** 助手消息打字机揭示动效开关(默认开)。 */
-  typing: Volatile<boolean>
-  /** 消息时间分隔条开关:跨天消息前插入 QQ 风格日期条(默认开)。 */
-  timeDivider: Volatile<boolean>
-}
+/**
+ * 设置字段的运行时形状:volatile 字段在 Live 配置里以 ref 形式存在。
+ * 字段清单从 config.ts 的 QQSkinConfig 派生,与皮肤配置形状单一真源对齐;
+ * 新增字段只需改 config.ts + 下方 z.object 校验器两处。
+ */
+export type Config = { [K in keyof QQSkinConfig]: Volatile<QQSkinConfig[K]> }
 
 /** 设置分节 schema:宿主校验条目配置、设置面板渲染表单共用。 */
 export const Config = z.object({

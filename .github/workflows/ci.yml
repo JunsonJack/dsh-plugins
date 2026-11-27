@@ -43,3 +43,21 @@ jobs:
 
       - name: Build
         run: pnpm run build
+
+  # 零依赖插件:node --test 直接跑,不需要 pnpm install。
+  # (dsh-llm-mmsp / dsh-task-panel 尚无独立锁文件,接入时照此加 job。)
+  test-magpie-mmsp:
+    name: Test magpie-mmsp
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: magpie-mmsp
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Test
+        run: node --test tests/

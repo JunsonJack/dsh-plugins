@@ -125,12 +125,22 @@ function normalizeChatMaxWidth(value: unknown): number {
   return Math.min(CHAT_MAX_WIDTH_MAX, Math.max(CHAT_MAX_WIDTH_MIN, Math.round(value)))
 }
 
+/**
+ * 头像图片源是否合法(data:image/* URI 或 https:// URL)。
+ * UI 层与 resolve 共用同一口径,避免「界面显示已设置但保存后被丢弃」。
+ */
+export function isValidAvatarImage(value: unknown): value is string {
+  if (typeof value !== 'string') return false
+  const trimmed = value.trim()
+  if (!trimmed) return false
+  return AVATAR_IMAGE_DATA_URI.test(trimmed) || AVATAR_IMAGE_HTTPS.test(trimmed)
+}
+
 /** 规范化自定义头像图片:仅接受 data:image/* URI 或 https:// URL,其余回落空串(用官方企鹅)。 */
 export function normalizeAvatarImage(value: unknown): string {
   if (typeof value !== 'string') return ''
   const trimmed = value.trim()
-  if (!trimmed) return ''
-  return AVATAR_IMAGE_DATA_URI.test(trimmed) || AVATAR_IMAGE_HTTPS.test(trimmed) ? trimmed : ''
+  return isValidAvatarImage(trimmed) ? trimmed : ''
 }
 
 /** 枚举字段白名单校验:命中则原样采用,否则回落默认值。 */

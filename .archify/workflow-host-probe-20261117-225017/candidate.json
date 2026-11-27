@@ -1,0 +1,211 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "dsh-qq-skin 宿主 DOM 锚点探针工作流",
+    "locale": "zh-CN",
+    "output": ".archify/workflow-host-probe-20261117-225017/workflow-host-probe.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "git@github.com:JunsonJack/dsh-plugins.git",
+      "provider": "github",
+      "link_mode": "local-only",
+      "revision": "e05069ff4530f252d42c411e80a6dc112909843a"
+    }
+  },
+  "lanes": [
+    { "id": "activation", "label": "激活入口" },
+    { "id": "probe_core", "label": "探针核对" },
+    { "id": "decision", "label": "就绪与三态" },
+    { "id": "outcome", "label": "告警出口" },
+    { "id": "cleanup", "label": "收尾" },
+    { "id": "observer", "label": "慢路径 / 终止", "variant": "exception" }
+  ],
+  "phases": [
+    { "id": "mount", "label": "挂载", "fromCol": 0, "toCol": 1 },
+    { "id": "entry", "label": "入口分叉", "fromCol": 2, "toCol": 2, "variant": "emphasis" },
+    { "id": "decide", "label": "三态与就绪", "fromCol": 3, "toCol": 4 },
+    { "id": "report", "label": "过滤告警与收尾", "fromCol": 5, "toCol": 5 }
+  ],
+  "groups": [
+    { "id": "probe_group", "label": "check → probe", "lane": "probe_core", "fromCol": 2, "toCol": 3, "variant": "emphasis" },
+    { "id": "decision_group", "label": "三态 → 就绪", "lane": "decision", "fromCol": 3, "toCol": 4 },
+    { "id": "sentinel_group", "label": "sentinel observer", "lane": "observer", "fromCol": 2, "toCol": 4, "variant": "dashed" }
+  ],
+  "mainPath": ["apply_call", "install_call", "check_call", "probe_call", "tristate", "ready_gate", "required_gate", "warn_gate", "disconnect"],
+  "semanticChecks": {
+    "allowedRoots": ["apply_call"],
+    "allowedTerminals": ["fast_end", "no_dom_end", "disconnect", "observer_unavailable_end"],
+    "requiredEdges": [
+      { "from": "apply_call", "to": "install_call" },
+      { "from": "install_call", "to": "check_call" },
+      { "from": "check_call", "to": "probe_call" },
+      { "from": "probe_call", "to": "tristate" },
+      { "from": "tristate", "to": "ready_gate" },
+      { "from": "ready_gate", "to": "required_gate" },
+      { "from": "required_gate", "to": "warn_gate" },
+      { "from": "warn_gate", "to": "disconnect" }
+    ],
+    "requiredPaths": [
+      { "from": "install_call", "to": "observe_start" },
+      { "from": "observe_start", "to": "disconnect" },
+      { "from": "check_call", "to": "fast_end" }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "apply_call",
+      "lane": "activation",
+      "col": 0,
+      "type": "frontend",
+      "label": "apply(ctx)",
+      "sublabel": "客户端入口",
+      "sources": [{ "path": "dsh-qq-skin/src/client/index.ts", "line": 79, "end_line": 82, "label": "入口调用 installHostProbe" }]
+    },
+    {
+      "id": "install_call",
+      "lane": "activation",
+      "col": 1,
+      "type": "backend",
+      "label": "installHostProbe",
+      "sublabel": "注入 cleanup + warn",
+      "sources": [{ "path": "dsh-qq-skin/src/client/host-probe.ts", "line": 189, "end_line": 193, "label": "安装入口与回调注入" }]
+    },
+    {
+      "id": "check_call",
+      "lane": "probe_core",
+      "col": 2,
+      "type": "backend",
+      "label": "check()",
+      "sublabel": "有 document 才核对",
+      "sources": [{ "path": "dsh-qq-skin/src/client/host-probe.ts", "line": 196, "end_line": 206, "label": "check 函数" }]
+    },
+    {
+      "id": "probe_call",
+      "lane": "probe_core",
+      "col": 3,
+      "type": "backend",
+      "label": "probeHostAnchors",
+      "sublabel": "只读 DOM 查 6 锚点",
+      "sources": [{ "path": "dsh-qq-skin/src/client/host-probe.ts", "line": 120, "end_line": 135, "label": "探针查询所有锚点" }]
+    },
+    {
+      "id": "tristate",
+      "lane": "decision",
+      "col": 3,
+      "type": "backend",
+      "label": "三态判定",
+      "sublabel": "present / missing / pending",
+      "tag": "未就绪 → pending",
+      "sources": [{ "path": "dsh-qq-skin/src/client/host-probe.ts", "line": 143, "end_line": 150, "label": "三态赋值" }]
+    },
+    {
+      "id": "ready_gate",
+      "lane": "decision",
+      "col": 4,
+      "type": "security",
+      "label": "就绪判据",
+      "sublabel": "chatFlow + 三者之一在场",
+      "sources": [{ "path": "dsh-qq-skin/src/client/host-probe.ts", "line": 136, "end_line": 142, "label": "ready 计算" }]
+    },
+    {
+      "id": "required_gate",
+      "lane": "outcome",
+      "col": 4,
+      "type": "security",
+      "label": "必需锚点过滤",
+      "sublabel": "仅必需锚点进告警集",
+      "sources": [{ "path": "dsh-qq-skin/src/client/host-probe.ts", "line": 80, "end_line": 82, "label": "REQUIRED_ANCHORS 定义" }, { "path": "dsh-qq-skin/src/client/host-probe.ts", "line": 152, "end_line": 157, "label": "missing 集合过滤" }]
+    },
+    {
+      "id": "warn_gate",
+      "lane": "outcome",
+      "col": 5,
+      "type": "frontend",
+      "label": "format + warn",
+      "sublabel": "缺失且未告警 → warn 一次",
+      "sources": [{ "path": "dsh-qq-skin/src/client/host-probe.ts", "line": 166, "end_line": 176, "label": "格式化告警文案" }, { "path": "dsh-qq-skin/src/client/host-probe.ts", "line": 200, "end_line": 205, "label": "一次性告警控制" }]
+    },
+    {
+      "id": "disconnect",
+      "lane": "cleanup",
+      "col": 5,
+      "type": "backend",
+      "label": "observer.disconnect",
+      "sublabel": "断开 + effect cleanup",
+      "sources": [{ "path": "dsh-qq-skin/src/client/host-probe.ts", "line": 216, "end_line": 220, "label": "断开与注册清理" }]
+    },
+    {
+      "id": "fast_end",
+      "lane": "cleanup",
+      "col": 4,
+      "type": "external",
+      "label": "快路径结束",
+      "sublabel": "在场即核对, 无 observer",
+      "sources": [{ "path": "dsh-qq-skin/src/client/host-probe.ts", "line": 208, "end_line": 209, "label": "快路径返回" }]
+    },
+    {
+      "id": "no_dom_end",
+      "lane": "observer",
+      "col": 2,
+      "type": "external",
+      "label": "无 document",
+      "sublabel": "check 返回 false",
+      "sources": [{ "path": "dsh-qq-skin/src/client/host-probe.ts", "line": 197, "end_line": 199, "label": "无 document 时不就绪" }]
+    },
+    {
+      "id": "observe_start",
+      "lane": "observer",
+      "col": 3,
+      "type": "messagebus",
+      "label": "慢路径 observer",
+      "sublabel": "MutationObserver 等就绪",
+      "sources": [{ "path": "dsh-qq-skin/src/client/host-probe.ts", "line": 211, "end_line": 219, "label": "sentinel observer 建立" }]
+    },
+    {
+      "id": "observer_unavailable_end",
+      "lane": "observer",
+      "col": 4,
+      "type": "external",
+      "label": "observer 不可用",
+      "sublabel": "无 MO / target 空 → 放弃",
+      "sources": [{ "path": "dsh-qq-skin/src/client/host-probe.ts", "line": 212, "end_line": 214, "label": "observer 前置条件" }]
+    }
+  ],
+  "edges": [
+    { "id": "e_apply_install", "from": "apply_call", "to": "install_call", "label": "调用", "role": "main" },
+    { "id": "e_install_check", "from": "install_call", "to": "check_call", "label": "首次核对", "role": "main" },
+    { "id": "e_check_probe", "from": "check_call", "to": "probe_call", "label": "探针", "role": "main" },
+    { "id": "e_check_nodesc", "from": "check_call", "to": "no_dom_end", "label": "无 document", "role": "error" },
+    { "id": "e_probe_tristate", "from": "probe_call", "to": "tristate", "label": "逐锚点", "role": "main" },
+    { "id": "e_tristate_ready", "from": "tristate", "to": "ready_gate", "label": "汇总", "role": "main" },
+    { "id": "e_ready_observe", "from": "ready_gate", "to": "observe_start", "label": "未就绪", "role": "branch" },
+    { "id": "e_ready_fast", "from": "ready_gate", "to": "fast_end", "label": "就绪", "role": "branch" },
+    { "id": "e_observe_probe", "from": "observe_start", "to": "probe_call", "label": "DOM 变化重查", "role": "async" },
+    { "id": "e_observe_unavail", "from": "observe_start", "to": "observer_unavailable_end", "label": "前置不满足", "role": "error" },
+    { "id": "e_ready_required", "from": "ready_gate", "to": "required_gate", "label": "就绪", "role": "main" },
+    { "id": "e_required_warn", "from": "required_gate", "to": "warn_gate", "label": "缺失∈必需", "role": "main" },
+    { "id": "e_warn_disconnect", "from": "warn_gate", "to": "disconnect", "label": "完成", "role": "main" },
+    { "id": "e_observe_disconnect", "from": "observe_start", "to": "disconnect", "label": "就绪后断开", "role": "async" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三态语义",
+      "items": [
+        "present：找到至少一个匹配节点",
+        "missing：就绪但锚点 0 命中（如实记录，按需锚点不告警）",
+        "pending：会话未就绪，此刻判定会误报，留待渲染完成"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "就绪判据与告警边界",
+      "items": [
+        "ready = chatFlow 在场 ∧ (flowKey / userBubble / clock 至少一个在场)",
+        "必需锚点：chatFlow / flowKey / userBubble；按需锚点 clock / replyBubble / sessionHeader 缺席正常",
+        "只有必需锚点缺失才 formatHostProbeReport → console.warn 一次，随后 observer 断开"
+      ]
+    }
+  ]
+}
