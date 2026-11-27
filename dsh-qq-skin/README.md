@@ -64,6 +64,7 @@ Example (set in the profile's plugin config):
 | Brand & primary actions (QQ blue) | `--dsw-alias-brand-primary`, `--dsw-alias-button-primary-*`, `--dsw-alias-state-business-*` |
 | Canvas & surfaces (clean light) | `--dsw-alias-bg-base` (`#F7F9FB`), `--dsw-alias-bg-layer-1..3`, `--dsw-alias-bg-overlay` |
 | Conversation bubbles (solid; white text, Clean White uses dark text) | `--dsw-specific-bubble`, `--dsw-specific-bubble-highlight` + layout-layer radius/shadow/white text |
+| Question-reply card (`ask_user_question` answered batch) | layout-layer `[data-question-reply]` scope: bubble skin (radius/shadow/tail — the node reuses `UserMessageBubble` but does **not** forward `data-message-bubble`, so it needs its own anchor) + `dl/dt/dd` hierarchy: question at weight 500, optional sub-title at 400, answer pill at 600 on a `color-mix` fill, 1px top rule between questions |
 | Assistant messages | layout-layer avatar disc (token colors) + white card with border (`--dsw-alias-bg-layer-1` + `border-l1`) |
 | Chat flow | layout-layer centering (via `data-chat-flow`, width configurable) |
 | Input bar | layout-layer capsule (`data-composer-card`) + toolbar button radius + `--dsw-specific-input-major` |
@@ -78,6 +79,8 @@ Example (set in the profile's plugin config):
 | Markdown, scrollbar (QQ blue), menus, tooltips | `--dsw-alias-markdown-*`, `--dsw-alias-scrollbar-*`, `--dsw-specific-menu`, `--dsw-alias-tooltip-bg` |
 
 Tokens that are **not** overridden keep the product default, so a QQ-skin run stays readable and consistent everywhere else.
+
+Inside a question-reply card the hierarchy rides on font weight and a translucent fill only — never `opacity`, which would eat contrast on the coloured palettes — and both the fill and the separator are `color-mix(in srgb, currentColor …%, transparent)` rather than a hard-coded white. `currentColor` is the bubble foreground, so one rule holds on a coloured bubble (white ink) and on the Clean White palette's light bubble (dark ink), with no white-on-white.
 
 ## Requirements (dsh version)
 

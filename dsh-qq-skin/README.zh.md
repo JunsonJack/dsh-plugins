@@ -64,6 +64,7 @@
 | 品牌与主操作（QQ 蓝） | `--dsw-alias-brand-primary`、`--dsw-alias-button-primary-*`、`--dsw-alias-state-business-*` |
 | 画布与表面（亮色白净） | `--dsw-alias-bg-base`（`#F7F9FB`）、`--dsw-alias-bg-layer-1..3`、`--dsw-alias-bg-overlay` |
 | 会话气泡（实色主色 + 白字） | `--dsw-specific-bubble`、`--dsw-specific-bubble-highlight` + 布局层圆角/阴影/白字 |
+| 问题回执卡（`ask_user_question` 已回答批次） | 布局层 `[data-question-reply]` 作用域：气泡圆角/阴影/尾巴（该节点复用 `UserMessageBubble` 却**不透传** `data-message-bubble`，故需独立锚点）+ `dl/dt/dd` 层级——问题 500、可选小标题 400、答案胶囊 600 且带 `color-mix` 底色，多问之间一条 1px 顶部分隔线 |
 | 助手消息 | 布局层头像圆标（token 色）+ 白卡片描边（`--dsw-alias-bg-layer-1` + `border-l1`） |
 | 聊天流 | 布局层居中收窄（`data-chat-flow`，宽度可配置） |
 | 输入区 | 布局层胶囊化（`data-composer-card`）+ 工具栏按钮圆角 + `--dsw-specific-input-major` |
@@ -78,6 +79,8 @@
 | Markdown、滚动条（QQ 蓝）、菜单、提示 | `--dsw-alias-markdown-*`、`--dsw-alias-scrollbar-*`、`--dsw-specific-menu`、`--dsw-alias-tooltip-bg` |
 
 未覆盖的 token 保持产品默认，QQ 皮肤运行中其他区域依然清晰一致。
+
+回执卡内的问题/答案层级只靠字重（答案 600 > 问题 500 > 小标题 400）与半透明底色区分，不用 `opacity`；底色与分隔线取 `color-mix(in srgb, currentColor …%, transparent)` 而非写死白色。`currentColor` 即气泡字色，于是同一条规则在彩底气泡（白字）与「简洁白」色板的浅底气泡（墨字）上都成立，不会白叠白。
 
 ## 环境要求(dsh 版本)
 
