@@ -1,0 +1,23 @@
+{
+  "name": "dsh-acp-modes",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "DSH ACP bridge fork that exposes permission preset + plan mode as one ACP mode selector (for Tern and other ACP clients).",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "sync.mjs",
+    "README.md"
+  ],
+  "scripts": {
+    "sync": "node sync.mjs",
+    "install-local": "node sync.mjs && node install-local.mjs",
+    "test": "node --test tests/"
+  },
+  "license": "MIT"
+}
