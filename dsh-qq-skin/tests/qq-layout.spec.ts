@@ -26,6 +26,14 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+/** 取某条选择器的声明体,用于断言具体属性值(选择器里不含 `{}`,可直接切片)。 */
+function ruleBody(css: string, selector: string): string {
+  const start = css.indexOf(`${selector} {`)
+  if (start === -1)
+    return ''
+  return css.slice(start + selector.length + 2, css.indexOf('}', start))
+}
+
 describe('QQ NT layout layer', () => {
   it('exposes a stylesheet covering the QQ NT layout hooks', () => {
     expect(QQ_LAYOUT_CSS).toContain("[data-chat-flow]")
@@ -498,6 +506,56 @@ describe('QQ NT layout config branches', () => {
     expect(QQ_LAYOUT_CSS).toMatch(/\[data-question-reply\] \[class\$='_bubble'\] \{[^}]*position: relative;/)
     const cleanDark = buildQQLayoutCss({ ...QQ_SKIN_DEFAULT_CONFIG, palette: 'clean' })
     expect(cleanDark).toMatch(/body\[data-ds-dark-theme\] \[data-question-reply\] \[class\$='_bubble'\],\s*body\[data-ds-dark-theme\] \[data-question-reply\] \[class\$='_bubble'\] :not\(pre\):not\(pre \*\):not\(code\) \{\s*color: rgb\(255, 255, 255\);/)
+  })
+
+  it('separates question and answer inside the reply bubble by weight and background', () => {
+    // QuestionReplyView 把每个问题 dt 与答案 dd 塞进同一个回执气泡,核心 CSS
+    // 只给 dt 次要色、dd 无任何强调 → 品牌底上糊成一行。层级只允许靠字重
+    // (dd 700 > dt 500 > 小标题 400)与背景区分,不叠 opacity:亮色彩底上半
+    // 透明正文会直接掉对比度,而 color-mix 的胶囊底本身已经够区分。
+    const question = ruleBody(QQ_LAYOUT_CSS, '[data-question-reply] dl > div > dt')
+    expect(question).toMatch(/font-weight: 500;/)
+    // 问题用左侧竖条做行标记:胶囊只包答案,问题靠这条竖线锚定。
+    expect(question).toMatch(/padding-left: 9px;/)
+    expect(question).toMatch(/border-left: 3px solid color-mix\(in srgb, currentColor 55%, transparent\);/)
+    const header = ruleBody(QQ_LAYOUT_CSS, "[data-question-reply] dl > div > dt [class$='_header']")
+    expect(header).toMatch(/font-weight: 400;/)
+    const answer = ruleBody(QQ_LAYOUT_CSS, '[data-question-reply] dl > div > dd')
+    expect(answer).toMatch(/display: inline-block;/)
+    expect(answer).toMatch(/border-radius: 10px;/)
+    expect(answer).toMatch(/font-weight: 700;/)
+    // 胶囊边框与内边距是「实底胶囊」观感的另一半,不能只剩背景色。
+    expect(answer).toMatch(/padding: 5px 12px;/)
+    expect(answer).toMatch(/border: 1px solid color-mix\(in srgb, currentColor 32%, transparent\);/)
+    // 去掉浏览器给 dd 的 40px 默认缩进,否则胶囊右移、与问题不对齐。
+    expect(answer).toMatch(/margin: 8px 0 0;/)
+    // 作用域内不得出现 opacity:层级只走字重 + 背景。
+    for (const selector of ['[data-question-reply] dl > div > dt', '[data-question-reply] dl > div > dd', "[data-question-reply] dl > div > dt [class$='_header']"])
+      expect(ruleBody(QQ_LAYOUT_CSS, selector)).not.toMatch(/opacity:/)
+  })
+
+  it('draws the separator and the answer pill from currentColor instead of a fixed white', () => {
+    // 写死 white/black 会翻车:彩底气泡要白、简洁白亮色气泡是墨字,白叠白
+    // 直接不可见。分隔线、竖条、胶囊边框与底色四者都取 currentColor 掺
+    // transparent,自动跟随 bubbleForeground。
+    const separator = ruleBody(QQ_LAYOUT_CSS, '[data-question-reply] dl > div + div')
+    expect(separator).toMatch(/border-top: 1px solid color-mix\(in srgb, currentColor 35%, transparent\);/)
+    const answer = ruleBody(QQ_LAYOUT_CSS, '[data-question-reply] dl > div > dd')
+    expect(answer).toMatch(/background: color-mix\(in srgb, currentColor 30%, transparent\);/)
+    // 多问之间要有间距与分隔,否则两批问答会连成一片。
+    expect(separator).toMatch(/margin-top: 14px;/)
+    expect(separator).toMatch(/padding-top: 12px;/)
+    expect(`${separator}${answer}`).not.toMatch(/(rgba?\(255, 255, 255|#fff\b)/i)
+    // 也不得自己写 color:字色统一由回执气泡的 bubbleForeground 规则给。
+    expect(`${separator}${answer}`).not.toMatch(/(^|\n)\s*color:/)
+  })
+
+  it('keeps the question/answer rules inside the data-question-reply scope', () => {
+    // dt/dd/dl 是极宽的元素选择器,漏出作用域会打到 markdown 列表、详情面板
+    // 等所有语义列表;每条规则都必须挂在 [data-question-reply] 下。
+    expect(QQ_LAYOUT_CSS).not.toMatch(/(^|\n)(dt|dd|dl)([ ,{:])/)
+    expect(QQ_LAYOUT_CSS).toContain('[data-question-reply] dl {')
+    expect(QQ_LAYOUT_CSS).toContain('[data-question-reply] dl > div + div {')
   })
 
   it('renders user bubbles solid with white text and inherited link color', () => {
