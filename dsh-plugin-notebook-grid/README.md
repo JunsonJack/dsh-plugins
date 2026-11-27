@@ -28,6 +28,20 @@
 - **超轻量纯 CSS 渲染**：底层由 CSS 变量驱动，零 Canvas / WebGL 开销，`background-attachment: local` 让纹理随内容滚动。
 - **持久化**：`localStorage`（`dsh-notebook-grid-style` / `dsh-notebook-grid-enabled`）+ 尽力同步至 Host 的 `~/.dsh/notebook-grid/config.json`。
 
+## 🔒 配置接口的访问边界
+
+`/_plugins/notebook-grid/config` 只在**本机 DSH 窗口**内可用，不是公开接口：
+
+- 只接受 loopback 来源（`127.0.0.1` / `::1` / `::ffff:127.0.0.1`），其他地址一律 403；
+- `sec-fetch-site: cross-site` 直接拒绝，跨源 `Origin` 拒绝；无 `Origin` 的桌面端转发按 `Host` 与本地端口一致判定（防 DNS rebinding）；
+- **不回 `Access-Control-Allow-Origin: *`**，只对通过校验的本机来源回显其自身 Origin；
+- POST 只接受 `application/json`、≤16 KB，且写入前按键白名单校验类型与范围（未知键丢弃），不会把任意 JSON 落进 `config.json`；
+- 落盘目录可用环境变量 `DSH_NOTEBOOK_GRID_CONFIG_DIR` 覆盖（测试与多实例调试用）。
+
+```bash
+cd dsh-plugin-notebook-grid && node --test tests/    # 15 个用例覆盖上述边界
+```
+
 ## 🔧 安装要点
 
 客户端 bundle 必须在 profile 的 `package.json` 中**同时**登记两处，缺一处都不会加载：
