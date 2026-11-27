@@ -259,8 +259,8 @@ function timeDividerRule(): string {
  * 投影取色板主色,与头像光晕同一色源。亮色主题下画布(bg-base)与卡片
  * (bg-layer-1)同为 #fff,白尾巴贴白画布会隐形 —— 追加一道与卡片描边
  * 同色的 0.5px 毛边(简洁白色板气泡尾巴的既有做法),让形状在白底上
- * 依然可辨。头像关闭时尾巴一并停用 —— 尾巴指向头像,没有头像的尾巴
- * 是断箭。
+ * 依然可辨。「气泡尾巴」开关同时控制用户与助手两侧尾巴;头像关闭时
+ * 助手尾巴一并停用 —— 尾巴指向头像,没有头像的尾巴是断箭。
  */
 function assistantTailRule(tailShadow: [number, number, number]): string {
   const shadow = `${tailShadow[0]}, ${tailShadow[1]}, ${tailShadow[2]}`
@@ -531,7 +531,7 @@ ${assistantAvatar ? avatarRule(config.avatarStyle, glow, config.avatarCustomImag
     0 1px 2px rgba(15, 23, 42, 0.04),
     0 4px 14px rgba(15, 23, 42, 0.05);
 }
-${assistantAvatar ? assistantTailRule(shadow) : ''}
+${bubbleTail && assistantAvatar ? assistantTailRule(shadow) : ''}
 ${typing ? typingRule() : ''}
 ${timeDivider ? timeDividerRule() : ''}
 
@@ -696,39 +696,45 @@ ${QQ_REPLY_BUBBLE_SELECTOR} a {
    QuestionReplyView 把每个问题 dt 与答案 dd 塞进同一个 UserMessageBubble,
    核心 CSS 仅给 dt 次要色、dd 无强调,在品牌底上几乎糊成一行。这里以
    [data-question-reply] 限定作用域(与 hash 无关),用语义 dl/dt/dd 锚定:
-   问题=正常字重+小标题,答案=高亮胶囊,多问之间加分隔线。
-   分隔线与胶囊底用 color-mix(currentColor, transparent) 跟随气泡字色
+   问题=左侧竖条标记+小标题,答案=实底胶囊+粗体,多问之间加分隔线。
+   所有强调色用 color-mix(currentColor, transparent) 跟随气泡字色
    (bubbleForeground):彩底/暗色自动为白、简洁白亮色自动为墨,避免写死白色
-   在白底上不可见。层级靠字重(dd 600 > dt 500 > header 400)与背景区分,
-   不叠加 opacity,保证亮色品牌底上的对比度;刻意不设 color 覆盖通用规则。 */
+   在白底上不可见;不叠加 opacity,保证亮色品牌底上的对比度;刻意不设 color
+   覆盖通用规则。 */
 [data-question-reply] dl {
   margin: 0;
 }
 [data-question-reply] dl > div + div {
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, currentColor 35%, transparent);
 }
 [data-question-reply] dl > div > dt {
   display: block;
+  margin: 0 0 2px;
+  padding-left: 9px;
+  border-left: 3px solid color-mix(in srgb, currentColor 55%, transparent);
   font-size: 13px;
   font-weight: 500;
   line-height: 1.5;
 }
 [data-question-reply] dl > div > dt [class$='_header'] {
   display: block;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
   font-size: 12px;
   font-weight: 400;
 }
 [data-question-reply] dl > div > dd {
   display: inline-block;
   max-width: 100%;
-  margin: 6px 0 0;
-  padding: 2px 10px;
+  margin: 8px 0 0;
+  padding: 5px 12px;
+  border: 1px solid color-mix(in srgb, currentColor 32%, transparent);
   border-radius: 10px;
-  background: color-mix(in srgb, currentColor 18%, transparent);
-  font-weight: 600;
+  background: color-mix(in srgb, currentColor 30%, transparent);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
 }
 ${isClean ? `/* 简洁白:暗色回执气泡同样回到白字。 */
 body[data-ds-dark-theme] ${QQ_REPLY_BUBBLE_SELECTOR},
